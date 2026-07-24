@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { store, useStoreSelector } from "@/lib/store";
-import { EVENT_NAME } from "@/lib/mock-data";
 import { HeartHandshake, Sparkles, Users, Handshake } from "lucide-react";
+
+import { EVENT_ID, EVENT_NAME } from "@/lib/mock-data";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
+import { useEventStats } from "@/features/staff/useEventStats";
 
 export const Route = createFileRoute("/publico")({
   head: () => ({
@@ -12,8 +13,15 @@ export const Route = createFileRoute("/publico")({
       {
         name: "description",
         content:
-          "Painel para TV/LED com estatísticas agregadas do Matchmaker SudoExpo.",
+          "Painel para TV/LED com estatísticas agregadas do Matchmaker SudoExpo em tempo real.",
       },
+      { property: "og:title", content: "Painel público — Matchmaker SudoExpo" },
+      {
+        property: "og:description",
+        content: "Estatísticas ao vivo das conexões geradas na SudoExpo.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: PublicBoard,
@@ -21,8 +29,23 @@ export const Route = createFileRoute("/publico")({
 
 function PublicBoard() {
   const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
-  const stats = useStoreSelector(() => store.stats());
+  const [now, setNow] = useState<string>("--:--:--");
+  useEffect(() => {
+    setHydrated(true);
+    setNow(new Date().toLocaleTimeString("pt-BR"));
+    const id = setInterval(() => setNow(new Date().toLocaleTimeString("pt-BR")), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  const statsQuery = useEventStats(EVENT_ID, { refetchMs: 10_000 });
+  const stats = statsQuery.data ?? {
+    totalProfiles: 0,
+    totalMatches: 0,
+    mutualMatches: 0,
+    totalConnections: 0,
+    completedConnections: 0,
+    totalSegments: 0,
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-hero-gradient text-primary-foreground">
@@ -40,37 +63,16 @@ function PublicBoard() {
             </h1>
           </div>
           <div className="rounded-full bg-white/10 px-4 py-1.5 text-sm backdrop-blur">
-            {hydrated ? new Date().toLocaleTimeString("pt-BR") : "--:--:--"}
+            {hydrated ? now : "--:--:--"}
           </div>
         </header>
 
         <div className="grid gap-6 md:grid-cols-4">
-          <StatCard
-            icon={Users}
-            label="Participantes"
-            value={hydrated ? stats.profiles : 0}
-            tone="secondary"
-          />
-          <StatCard
-            icon={Sparkles}
-            label="Matches gerados"
-            value={hydrated ? stats.matches : 0}
-            tone="accent"
-          />
-          <StatCard
-            icon={HeartHandshake}
-            label="Interesse mútuo"
-            value={hydrated ? stats.mutualMatches : 0}
-            tone="warning"
-          />
-          <StatCard
-            icon={Handshake}
-            label="Conexões concluídas"
-            value={hydrated ? stats.completedConnections : 0}
-            tone="success"
-          />
+          <StatCard icon={Users} label="Participantes" value={stats.totalProfiles} tone="secondary" />
+          <StatCard icon={Sparkles} label="Matches gerados" value={stats.totalMatches} tone="accent" />
+          <StatCard icon={HeartHandshake} label="Interesse mútuo" value={stats.mutualMatches} tone="warning" />
+          <StatCard icon={Handshake} label="Conexões concluídas" value={stats.completedConnections} tone="success" />
         </div>
-
 
         <footer className="text-center">
           <p className="font-display text-2xl font-semibold md:text-3xl">
@@ -101,17 +103,10 @@ function StatCard({
     success: "bg-success/20 border-success/40",
   }[tone];
   return (
-    <div
-      className={`rounded-3xl border p-6 backdrop-blur ${bg}`}
-      aria-label={label}
-    >
+    <div className={`rounded-3xl border p-6 backdrop-blur ${bg}`} aria-label={label}>
       <Icon className="h-8 w-8 opacity-90" />
-      <p className="mt-3 text-xs uppercase tracking-widest text-white/70">
-        {label}
-      </p>
-      <p className="mt-1 font-display text-5xl font-bold tabular-nums md:text-6xl">
-        {value}
-      </p>
+      <p className="mt-3 text-xs uppercase tracking-widest text-white/70">{label}</p>
+      <p className="mt-1 font-display text-5xl font-bold tabular-nums md:text-6xl">{value}</p>
     </div>
   );
 }
