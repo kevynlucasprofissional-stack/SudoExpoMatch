@@ -844,7 +844,7 @@ export function StepReview({
         />
         <ReviewRow
           label="Segmento"
-          value={`${seg?.emoji ?? ""} ${seg?.label ?? draft.segmentId || "—"}`}
+          value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
         />
         <ReviewRow label="Resumo" value={draft.summary} />
         <div>
