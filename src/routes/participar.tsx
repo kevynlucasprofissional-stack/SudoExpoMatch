@@ -498,7 +498,7 @@ function WizardPage() {
           </div>
         )}
 
-        {catalogFallback && (
+        {manualCatalogMode && (
           <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
             <p className="font-medium">Catálogo indisponível — modo manual</p>
             <p className="mt-1 text-muted-foreground">
@@ -520,6 +520,29 @@ function WizardPage() {
             </div>
           </div>
         )}
+
+        {catalogRefreshFailed && (
+          <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+            <p className="font-medium">
+              Não foi possível atualizar o catálogo.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Você está usando a última versão carregada.
+            </p>
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void catalogQuery.refetch()}
+                disabled={catalogQuery.isFetching}
+                aria-busy={catalogQuery.isFetching}
+              >
+                {catalogQuery.isFetching ? "Tentando…" : "Tentar atualizar novamente"}
+              </Button>
+            </div>
+          </div>
+        )}
+
 
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
