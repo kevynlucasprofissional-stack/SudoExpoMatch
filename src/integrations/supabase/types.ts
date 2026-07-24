@@ -1055,6 +1055,7 @@ export type Database = {
         Returns: Json
       }
       list_own_matches_v2: { Args: { _event_id: string }; Returns: Json }
+      list_staff_connections: { Args: { _event_id: string }; Returns: Json }
       norm_label: { Args: { _s: string }; Returns: string }
       normalize_phone: { Args: { _raw: string }; Returns: string }
       recompute_own_matches: { Args: { _event_id: string }; Returns: number }
@@ -1129,6 +1130,15 @@ export type Database = {
         }[]
       }
       store_computed_matches: { Args: { _matches: Json }; Returns: number }
+      taxonomy_match: {
+        Args: {
+          _a_label: string
+          _a_tax: string
+          _b_label: string
+          _b_tax: string
+        }
+        Returns: boolean
+      }
       upsert_own_profile: {
         Args: {
           _city: string
