@@ -174,8 +174,7 @@ function WizardPage() {
   }
 
   function confirmCodeSaved() {
-    // Consome do storage e navega apenas após confirmação do usuário.
-    store.consumeLastRecoveryCode();
+    // Código estava apenas em memória — descartar simplesmente basta.
     setRecoveryCode(null);
     toast.success("Perfil criado! Buscando conexões…");
     navigate({ to: "/participante" });

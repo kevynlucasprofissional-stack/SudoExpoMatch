@@ -404,9 +404,34 @@ function ConnectionsList({
   );
 }
 
+const CONN_LABEL: Record<string, string> = {
+  aguardando: "Aguardando equipe",
+  em_atendimento: "Equipe organizando",
+  apresentados: "Apresentados",
+  contato_trocado: "Contato trocado",
+  concluido: "Concluída",
+  cancelado: "Cancelada",
+};
+const CONN_TONE: Record<string, string> = {
+  aguardando: "bg-warning/15 text-warning-foreground border-warning/40",
+  em_atendimento: "bg-accent/15 text-accent-foreground border-accent/40",
+  apresentados: "bg-primary/15 text-primary border-primary/30",
+  contato_trocado: "bg-secondary/15 text-secondary-foreground border-secondary/40",
+  concluido: "bg-success/15 text-success-foreground border-success/40",
+  cancelado: "bg-muted text-muted-foreground border-muted",
+};
+
 function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) {
   const { contact, error, loading, reveal, clear } = useRevealContact();
   const [open, setOpen] = useState(false);
+
+  // Status real derivado do store (reflete Realtime da equipe).
+  const conn = useStoreSelector(() => store.connectionForMatch(matchId));
+  const status = conn?.status ?? "aguardando";
+  const canReveal =
+    status === "apresentados" ||
+    status === "contato_trocado" ||
+    status === "concluido";
 
   async function handleReveal() {
     setOpen(true);
@@ -416,13 +441,29 @@ function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) 
   return (
     <Card className="p-4">
       <div className="flex items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <h4 className="font-display font-semibold">{other.company}</h4>
           <p className="text-sm text-muted-foreground">
             {other.name} · {other.city}
           </p>
+          <Badge
+            variant="outline"
+            className={`mt-2 border ${CONN_TONE[status]}`}
+          >
+            {CONN_LABEL[status]}
+          </Badge>
         </div>
-        <Button variant="outline" size="sm" onClick={handleReveal} disabled={loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleReveal}
+          disabled={loading || !canReveal}
+          title={
+            canReveal
+              ? "Ver contato"
+              : "A equipe da ACIRV vai apresentar vocês no evento."
+          }
+        >
           {loading ? (
             <Loader2 className="mr-1 h-4 w-4 animate-spin" />
           ) : (
