@@ -9,7 +9,9 @@ import { supabase } from "@/integrations/supabase/client";
 import type { ConnectionStatus } from "@/lib/types";
 
 // --------------------------------------------------------------------------
-// Schemas Zod para respostas das RPCs v2 (Onda D).
+// Schemas Zod para respostas das RPCs v2 (Onda D — hardening).
+// Campos nullable espelham o JSON real das RPCs (perfis podem ter cidade
+// vazia, segmento pode faltar, e-mail do responsável pode ser nulo).
 // --------------------------------------------------------------------------
 
 const statusEnum = z.enum([
@@ -20,6 +22,11 @@ const statusEnum = z.enum([
   "concluido",
   "cancelado",
 ]);
+
+// Coerção suave para números vindos do PostgreSQL (int/bigint) que a v2
+// devolve como number, mas o driver pode entregar como string em alguns
+// caminhos (`extract epoch` em versões antigas).
+const nonNegativeInt = z.coerce.number().int().nonnegative();
 
 const queueItemSchema = z.object({
   id: z.string(),
@@ -37,16 +44,16 @@ const queueItemSchema = z.object({
   notes: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
-  seconds_in_stage: z.number().int().nonnegative(),
-  seconds_waiting: z.number().int().nonnegative(),
+  seconds_in_stage: nonNegativeInt,
+  seconds_waiting: nonNegativeInt,
   a_name: z.string(),
-  a_company: z.string(),
-  a_city: z.string(),
-  a_segment: z.string(),
+  a_company: z.string().nullable().default(""),
+  a_city: z.string().nullable().default(""),
+  a_segment: z.string().nullable(),
   b_name: z.string(),
-  b_company: z.string(),
-  b_city: z.string(),
-  b_segment: z.string(),
+  b_company: z.string().nullable().default(""),
+  b_city: z.string().nullable().default(""),
+  b_segment: z.string().nullable(),
 });
 
 const queueResponseSchema = z.object({
@@ -54,7 +61,9 @@ const queueResponseSchema = z.object({
   total: z.number().int().nonnegative(),
   limit: z.number().int().positive(),
   offset: z.number().int().nonnegative(),
-  counts_by_status: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  counts_by_status: z
+    .record(z.string(), z.number().int().nonnegative())
+    .default({}),
   counts_by_scope: z
     .record(z.string(), z.number().int().nonnegative())
     .default({}),
@@ -62,9 +71,28 @@ const queueResponseSchema = z.object({
 
 export type QueueScope = "all" | "mine" | "unassigned" | "pending" | "closed";
 export type QueueSort = "priority" | "waiting" | "updated" | "created";
+export const QUEUE_SCOPES: QueueScope[] = [
+  "all",
+  "mine",
+  "unassigned",
+  "pending",
+  "closed",
+];
+export const QUEUE_SORTS: QueueSort[] = [
+  "priority",
+  "waiting",
+  "updated",
+  "created",
+];
+export const QUEUE_SORT_LABEL: Record<QueueSort, string> = {
+  priority: "Prioridade",
+  waiting: "Maior espera",
+  updated: "Atualização recente",
+  created: "Criação recente",
+};
 
-export interface QueueItem extends z.infer<typeof queueItemSchema> {}
-export interface QueueResponse extends z.infer<typeof queueResponseSchema> {}
+export type QueueItem = z.infer<typeof queueItemSchema>;
+export type QueueResponse = z.infer<typeof queueResponseSchema>;
 
 export interface QueueQueryInput {
   eventId: string;
@@ -95,6 +123,12 @@ async function fetchQueue(input: QueueQueryInput): Promise<QueueResponse> {
   return queueResponseSchema.parse(data);
 }
 
+/**
+ * Fila operacional server-side com:
+ *  - polling fallback de 20s (garante progresso mesmo sem Realtime);
+ *  - uma única subscription de Realtime por eventId, com filtro por event_id
+ *    (postgres_changes filter) e validação do payload antes de invalidar.
+ */
 export function useOperationalQueue(input: QueueQueryInput, enabled: boolean) {
   const qc = useQueryClient();
   const { eventId, ...rest } = input;
@@ -105,17 +139,29 @@ export function useOperationalQueue(input: QueueQueryInput, enabled: boolean) {
     queryFn: () => fetchQueue(input),
     enabled,
     staleTime: 5_000,
+    refetchInterval: enabled ? 20_000 : false,
+    refetchIntervalInBackground: false,
     placeholderData: (prev) => prev,
   });
 
   useEffect(() => {
     if (!enabled) return;
+    const channelName = `staff-queue-v2-${eventId}`;
     const ch = supabase
-      .channel(`staff-queue-v2-${eventId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "connections" },
-        () => {
+        {
+          event: "*",
+          schema: "public",
+          table: "connections",
+          filter: `event_id=eq.${eventId}`,
+        },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as
+            | { event_id?: string }
+            | null;
+          if (row && row.event_id && row.event_id !== eventId) return;
           qc.invalidateQueries({ queryKey: ["staff", "queue", eventId] });
           qc.invalidateQueries({ queryKey: ["staff", "op-stats", eventId] });
         },
@@ -152,18 +198,18 @@ const detailSchema = z.object({
   a: z.object({
     id: z.string(),
     name: z.string(),
-    company: z.string(),
-    city: z.string(),
-    segment_id: z.string(),
-    summary: z.string(),
+    company: z.string().nullable().default(""),
+    city: z.string().nullable().default(""),
+    segment_id: z.string().nullable(),
+    summary: z.string().nullable().default(""),
   }),
   b: z.object({
     id: z.string(),
     name: z.string(),
-    company: z.string(),
-    city: z.string(),
-    segment_id: z.string(),
-    summary: z.string(),
+    company: z.string().nullable().default(""),
+    city: z.string().nullable().default(""),
+    segment_id: z.string().nullable(),
+    summary: z.string().nullable().default(""),
   }),
   reasons: z.array(
     z.object({
