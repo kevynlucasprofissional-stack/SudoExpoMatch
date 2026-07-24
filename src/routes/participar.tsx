@@ -378,11 +378,24 @@ function WizardPage() {
   }, [navigate]);
 
   // ------------------------------------------------------------------
-  // Guardas de renderização — ORDEM IMPORTA:
-  // 1) session error, 2) session loading, 3) profile error, 4) profile loading,
-  // 5) hidratação, 6) catálogo (bloqueio SÓ se sem segmento autoritativo).
+  // Guardas de renderização — precedência resolvida por helper puro.
   // ------------------------------------------------------------------
-  if (session.status === "error") {
+  const pageState = resolveWizardPageState({
+    session:
+      session.status === "error"
+        ? "error"
+        : session.status === "loading"
+          ? "loading"
+          : "ready",
+    profile: profileQuery.isError
+      ? "error"
+      : profileQuery.isPending
+        ? "pending"
+        : "success",
+    hydrated,
+  });
+
+  if (pageState === "session_error") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -391,11 +404,7 @@ function WizardPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Não foi possível iniciar sua sessão. Verifique sua internet.
             </p>
-            <Button
-              className="mt-4"
-              onClick={() => void session.retry()}
-              disabled={session.status !== "error"}
-            >
+            <Button className="mt-4" onClick={() => void session.retry()}>
               Tentar novamente
             </Button>
           </Card>
@@ -403,7 +412,7 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (session.status === "loading") {
+  if (pageState === "session_loading") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -413,7 +422,7 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (profileQuery.isError) {
+  if (pageState === "profile_error") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -438,7 +447,7 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (profileQuery.isPending || !hydrated) {
+  if (pageState === "profile_loading" || pageState === "hydrating") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -448,6 +457,7 @@ function WizardPage() {
       </PageShell>
     );
   }
+
   if (catalogQuery.isPending && !effectiveCatalog) {
     return (
       <PageShell>
