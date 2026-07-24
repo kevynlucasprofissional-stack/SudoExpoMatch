@@ -67,12 +67,18 @@ function PublicBoard() {
           </div>
         </header>
 
-        <div className="grid gap-6 md:grid-cols-4">
-          <StatCard icon={Users} label="Participantes" value={stats.totalProfiles} tone="secondary" />
-          <StatCard icon={Sparkles} label="Matches gerados" value={stats.totalMatches} tone="accent" />
-          <StatCard icon={HeartHandshake} label="Interesse mútuo" value={stats.mutualMatches} tone="warning" />
-          <StatCard icon={Handshake} label="Conexões concluídas" value={stats.completedConnections} tone="success" />
-        </div>
+        {statsQuery.isError ? (
+          <div className="rounded-3xl border border-white/30 bg-white/10 p-6 text-center text-sm backdrop-blur">
+            Não conseguimos atualizar as estatísticas agora. Tentando novamente…
+          </div>
+        ) : (
+          <div className="grid gap-6 md:grid-cols-4">
+            <StatCard icon={Users} label="Participantes" value={stats.totalProfiles} tone="secondary" />
+            <StatCard icon={Sparkles} label="Matches gerados" value={stats.totalMatches} tone="accent" />
+            <StatCard icon={HeartHandshake} label="Interesse mútuo" value={stats.mutualMatches} tone="warning" />
+            <StatCard icon={Handshake} label="Conexões concluídas" value={stats.completedConnections} tone="success" />
+          </div>
+        )}
 
         <footer className="text-center">
           <p className="font-display text-2xl font-semibold md:text-3xl">

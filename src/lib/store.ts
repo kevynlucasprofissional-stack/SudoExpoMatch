@@ -21,7 +21,6 @@ import type {
 } from "./types";
 
 const KEY = "sudoexpo:v3";
-const LAST_CODE_KEY = "sudoexpo:lastCode";
 
 interface DB {
   profiles: Profile[];
@@ -303,7 +302,6 @@ export const store = {
   async reset() {
     if (!isBrowser()) return;
     window.localStorage.removeItem(KEY);
-    window.localStorage.removeItem(LAST_CODE_KEY);
     cache = { ...EMPTY };
     lastDbSignature = "";
     hydrated = false;
@@ -314,6 +312,11 @@ export const store = {
     window.dispatchEvent(new CustomEvent("sudoexpo:db"));
     window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     void hydrate();
+  },
+
+  /** Retorna a conexão associada a um match, se já existir. */
+  connectionForMatch(matchId: string): Connection | undefined {
+    return loadCache().connections.find((c) => c.matchId === matchId);
   },
 
   all(): DB { return loadCache(); },
@@ -349,12 +352,12 @@ export const store = {
     let code = "";
     try { code = await callRotateRecovery(); }
     catch (err) { console.warn("[sudoexpo] rotate_recovery:", err); }
-    if (isBrowser() && code) window.localStorage.setItem(LAST_CODE_KEY, code);
     ownProfileId = id;
     await refreshCards();
     // Recalcula matches localmente e envia via RPC
     await recomputeMatchesFor(id);
     const p = loadCache().profiles.find((x) => x.id === id);
+    // recoveryCode fica APENAS em memória, retornado uma única vez ao chamador.
     return { ...(p ?? ({} as Profile)), id, recoveryCode: code, whatsapp: input.whatsapp };
   },
 
@@ -415,12 +418,12 @@ export const store = {
     void callRecordDecision(matchId, decision).then(() => refreshTable("matches").then(() => refreshTable("connections")));
   },
 
-  /** Retorna e limpa o código exibido uma única vez. */
+  /**
+   * @deprecated Código de recuperação nunca é persistido no cliente.
+   * O código é retornado apenas em memória por createProfile()/rotateRecoveryCode().
+   */
   consumeLastRecoveryCode(): string | null {
-    if (!isBrowser()) return null;
-    const v = window.localStorage.getItem(LAST_CODE_KEY);
-    if (v) window.localStorage.removeItem(LAST_CODE_KEY);
-    return v;
+    return null;
   },
 
   session: {

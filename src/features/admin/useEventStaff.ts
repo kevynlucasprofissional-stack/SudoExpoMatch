@@ -93,5 +93,9 @@ export function translateStaffError(err: unknown): string {
   if (msg.includes("forbidden")) return "Acesso negado. Apenas administradores do evento podem executar esta ação.";
   if (msg.includes("invalid_role")) return "Papel inválido.";
   if (msg.includes("not_a_member")) return "Essa pessoa não faz parte da equipe.";
+  if (msg.includes("already_member_different_role"))
+    return "Essa pessoa já está na equipe com outro papel. Use \"alterar papel\" em vez de adicionar novamente.";
+  if (msg.includes("already_member")) return "Essa pessoa já faz parte da equipe com este papel.";
+  if (msg.includes("same_role")) return "A pessoa já possui esse papel.";
   return msg || "Erro inesperado.";
 }

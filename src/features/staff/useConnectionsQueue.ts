@@ -115,13 +115,27 @@ export function useAdvanceConnection(eventId: string) {
         _new_status: input.newStatus,
         _note: input.note ?? undefined,
       });
-      if (error) throw error;
+      if (error) throw new Error(translateQueueError(error.message));
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queueKey(eventId) });
       qc.invalidateQueries({ queryKey: ["stats", eventId] });
     },
   });
+}
+
+function translateQueueError(msg: string): string {
+  if (msg.includes("invalid_transition"))
+    return "Transição inválida: siga a ordem aguardando → em atendimento → apresentados → contato trocado → concluído.";
+  if (msg.includes("note_required"))
+    return "Cancelar exige uma observação de 3 a 500 caracteres.";
+  if (msg.includes("forbidden"))
+    return "Acesso negado. Você não faz parte da equipe deste evento.";
+  if (msg.includes("connection_not_found"))
+    return "Conexão não encontrada. Atualize a fila.";
+  if (msg.includes("not_authenticated"))
+    return "Sessão expirada. Entre novamente.";
+  return msg || "Falha ao atualizar a conexão.";
 }
 
 export interface StaffContactPair {

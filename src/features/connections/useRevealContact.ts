@@ -12,6 +12,9 @@ export type RevealError =
   | "not_mutual"
   | "not_yet_introduced"
   | "contact_sharing_disabled"
+  | "contact_unavailable"
+  | "not_a_participant"
+  | "not_authenticated"
   | "network"
   | "unknown";
 
@@ -33,12 +36,15 @@ export function useRevealContact() {
         if (m.includes("not_mutual")) setError("not_mutual");
         else if (m.includes("not_yet_introduced")) setError("not_yet_introduced");
         else if (m.includes("contact_sharing_disabled")) setError("contact_sharing_disabled");
+        else if (m.includes("contact_unavailable")) setError("contact_unavailable");
+        else if (m.includes("not_a_participant")) setError("not_a_participant");
+        else if (m.includes("not_authenticated")) setError("not_authenticated");
         else setError("unknown");
         return;
       }
       const row = data?.[0];
       if (!row) {
-        setError("unknown");
+        setError("contact_unavailable");
         return;
       }
       setContact({
@@ -67,6 +73,9 @@ export function translateRevealError(e: RevealError): string {
     case "not_mutual": return "Ainda não houve interesse mútuo.";
     case "not_yet_introduced": return "A equipe da ACIRV ainda vai apresentar vocês. Aguarde no estande.";
     case "contact_sharing_disabled": return "Esta pessoa desativou o compartilhamento de contato.";
+    case "contact_unavailable": return "Contato ainda não disponibilizado por esta pessoa.";
+    case "not_a_participant": return "Você não faz parte deste match.";
+    case "not_authenticated": return "Faça login novamente para ver o contato.";
     case "network": return "Sem conexão. Tente novamente.";
     default: return "Não foi possível carregar o contato. Tente novamente.";
   }
