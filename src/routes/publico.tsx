@@ -48,28 +48,29 @@ function PublicBoard() {
           <StatCard
             icon={Users}
             label="Participantes"
-            value={stats.profiles}
+            value={hydrated ? stats.profiles : 0}
             tone="secondary"
           />
           <StatCard
             icon={Sparkles}
             label="Matches gerados"
-            value={stats.matches}
+            value={hydrated ? stats.matches : 0}
             tone="accent"
           />
           <StatCard
             icon={HeartHandshake}
             label="Interesse mútuo"
-            value={stats.mutualMatches}
+            value={hydrated ? stats.mutualMatches : 0}
             tone="warning"
           />
           <StatCard
             icon={Handshake}
             label="Conexões concluídas"
-            value={stats.completedConnections}
+            value={hydrated ? stats.completedConnections : 0}
             tone="success"
           />
         </div>
+
 
         <footer className="text-center">
           <p className="font-display text-2xl font-semibold md:text-3xl">
