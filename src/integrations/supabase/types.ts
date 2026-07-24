@@ -1289,27 +1289,16 @@ export type Database = {
         Args: { _connection_id: string; _note?: string }
         Returns: undefined
       }
-      staff_reveal_contact_for_match:
-        | {
-            Args: { _match_id: string }
-            Returns: {
-              company: string
-              email: string
-              name: string
-              phone_e164: string
-              profile_id: string
-            }[]
-          }
-        | {
-            Args: { _match_id: string; _override_reason?: string }
-            Returns: {
-              company: string
-              email: string
-              name: string
-              phone_e164: string
-              profile_id: string
-            }[]
-          }
+      staff_reveal_contact_for_match: {
+        Args: { _match_id: string; _override_reason?: string }
+        Returns: {
+          company: string
+          email: string
+          name: string
+          phone_e164: string
+          profile_id: string
+        }[]
+      }
       store_computed_matches: { Args: { _matches: Json }; Returns: number }
       taxonomy_match: {
         Args: {

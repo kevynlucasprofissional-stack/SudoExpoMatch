@@ -34,6 +34,7 @@ import { useEventRole } from "@/features/staff/useEventRole";
 import { signOut } from "@/features/auth/actions";
 import {
   addMemberSchema,
+  parseActiveConnectionsCount,
   translateStaffError,
   useAddStaffMember,
   useChangeStaffRole,
@@ -124,11 +125,18 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
   const [roleInput, setRoleInput] = useState<AppRole>("staff");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toRemove, setToRemove] = useState<StaffMember | null>(null);
+  const [reassignTo, setReassignTo] = useState<string>("");
+  const [pendingActiveCount, setPendingActiveCount] = useState<number | null>(
+    null,
+  );
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
-    const parsed = addMemberSchema.safeParse({ email: emailInput, role: roleInput });
+    const parsed = addMemberSchema.safeParse({
+      email: emailInput,
+      role: roleInput,
+    });
     if (!parsed.success) {
       const errs: Record<string, string> = {};
       for (const i of parsed.error.issues) errs[String(i.path[0])] = i.message;
@@ -157,13 +165,28 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
 
   async function handleRemove() {
     if (!toRemove) return;
+    const isSelf = toRemove.userId === userId;
     try {
-      await remove.mutateAsync(toRemove.userId);
+      await remove.mutateAsync({
+        userId: toRemove.userId,
+        reassignTo: reassignTo || undefined,
+        confirmSelf: isSelf,
+      });
       toast.success(`${toRemove.email} removido da equipe.`);
-    } catch (err) {
-      toast.error(translateStaffError(err));
-    } finally {
       setToRemove(null);
+      setReassignTo("");
+      setPendingActiveCount(null);
+    } catch (err) {
+      const count = parseActiveConnectionsCount(err);
+      if (count !== null) {
+        // Não fechamos o diálogo — o usuário precisa escolher um substituto.
+        setPendingActiveCount(count);
+        toast.error(translateStaffError(err));
+        return;
+      }
+      toast.error(translateStaffError(err));
+      setToRemove(null);
+      setReassignTo("");
     }
   }
 
@@ -293,19 +316,59 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
         </div>
       </section>
 
-      <AlertDialog open={toRemove !== null} onOpenChange={(o) => !o && setToRemove(null)}>
+      <AlertDialog
+        open={toRemove !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setToRemove(null);
+            setReassignTo("");
+            setPendingActiveCount(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover da equipe?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {toRemove?.userId === userId
+                ? "Remover você mesmo da equipe?"
+                : "Remover da equipe?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {toRemove?.email} perderá o acesso à fila de conexões e às ações de equipe deste
-              evento. Esta ação pode ser desfeita adicionando-o(a) novamente.
+              {toRemove?.email} perderá o acesso à fila de conexões e às ações
+              de equipe deste evento. Esta ação pode ser desfeita adicionando-
+              o(a) novamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {pendingActiveCount !== null && (
+            <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p>
+                Este membro tem <strong>{pendingActiveCount}</strong> conexão
+                (ões) em andamento. Escolha quem receberá:
+              </p>
+              <Select value={reassignTo} onValueChange={setReassignTo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um membro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(listQuery.data ?? [])
+                    .filter((m) => m.userId !== toRemove?.userId)
+                    .map((m) => (
+                      <SelectItem key={m.userId} value={m.userId}>
+                        {m.email} ({m.role})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemove}
+              disabled={
+                remove.isPending ||
+                (pendingActiveCount !== null && !reassignTo)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remover
