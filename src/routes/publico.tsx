@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { store, subscribe } from "@/lib/store";
+import { useEffect, useState } from "react";
+import { store, useStoreSelector } from "@/lib/store";
 import { EVENT_NAME } from "@/lib/mock-data";
 import { HeartHandshake, Sparkles, Users, Handshake } from "lucide-react";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
@@ -19,33 +19,10 @@ export const Route = createFileRoute("/publico")({
   component: PublicBoard,
 });
 
-function useStats() {
-  const cache = useRef<ReturnType<typeof store.stats> | null>(null);
-  const getSnapshot = () => {
-    const next = store.stats();
-    const prev = cache.current;
-    if (
-      prev &&
-      prev.profiles === next.profiles &&
-      prev.matches === next.matches &&
-      prev.mutualMatches === next.mutualMatches &&
-      prev.connections === next.connections &&
-      prev.completedConnections === next.completedConnections &&
-      prev.segments === next.segments &&
-      prev.taxonomySize === next.taxonomySize
-    ) {
-      return prev;
-    }
-    cache.current = next;
-    return next;
-  };
-  return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
-}
-
 function PublicBoard() {
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
-  const stats = useStats();
+  const stats = useStoreSelector(() => store.stats());
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-hero-gradient text-primary-foreground">
