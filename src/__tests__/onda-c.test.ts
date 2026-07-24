@@ -486,6 +486,13 @@ function read(rel: string): string {
   return readFileSync(resolve(__dirname, "..", "..", rel), "utf8");
 }
 
+/** Remove block/line comments para permitir menções em JSDoc sem falso positivo. */
+function readCode(rel: string): string {
+  return read(rel)
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/(^|[^:])\/\/[^\n]*/g, "$1");
+}
+
 describe("static guards — /participante e componentes", () => {
   const files = [
     "src/routes/participante.tsx",
