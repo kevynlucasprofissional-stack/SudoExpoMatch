@@ -54,16 +54,6 @@ import {
 import {
   translateRevealError,
   useRevealContact,
-
-import { store, useStoreSelector } from "@/lib/store";
-import { supabase } from "@/integrations/supabase/client";
-import { LABEL_TEXT } from "@/domains/matching/score";
-import { SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
-import type { Match, Profile } from "@/lib/types";
-import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
-import {
-  translateRevealError,
-  useRevealContact,
   type RevealedContact,
 } from "@/features/connections/useRevealContact";
 
