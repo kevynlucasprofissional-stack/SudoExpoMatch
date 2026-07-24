@@ -46,23 +46,37 @@ let cache: DB | null = null;
 let hydrated = false;
 let hydrating: Promise<void> | null = null;
 
+// Version counters — increment ONLY on real data changes.
+// Snapshots consumed by useSyncExternalStore are plain numbers,
+// giving a stable identity between mutations.
+let dbVersion = 0;
+let sessionVersion = 0;
+let lastDbSignature = "";
+
 function loadCache(): DB {
   if (cache) return cache;
   if (!isBrowser()) return EMPTY;
   try {
     const raw = window.localStorage.getItem(KEY);
     cache = raw ? (JSON.parse(raw) as DB) : { ...EMPTY };
+    lastDbSignature = raw ?? "";
   } catch {
     cache = { ...EMPTY };
+    lastDbSignature = "";
   }
   return cache!;
 }
 
 function persist() {
   if (!isBrowser() || !cache) return;
-  window.localStorage.setItem(KEY, JSON.stringify(cache));
+  const json = JSON.stringify(cache);
+  if (json === lastDbSignature) return; // dedup: nothing actually changed
+  lastDbSignature = json;
+  window.localStorage.setItem(KEY, json);
+  dbVersion++;
   window.dispatchEvent(new CustomEvent("sudoexpo:db"));
 }
+
 
 // -------- Mapping between DB rows and domain types --------
 type DBProfile = Database["public"]["Tables"]["profiles"]["Row"];
