@@ -226,64 +226,77 @@ function WizardPage() {
   }, [mode, navigate, qc]);
 
   // ------------------------------------------------------------------
-  // Submit — sempre revalida antes de disparar qualquer RPC.
+  // Submit — delega ao orchestrator puro (`runWizardSubmit`) e aplica os
+  // eventos no reducer + toasts. Isso torna a garantia "sem RPC sem WhatsApp"
+  // testável em unidade sem simular a rota inteira.
   // ------------------------------------------------------------------
   const startSubmit = useCallback(async () => {
     if (runningRef.current) return;
-
-    // Defesa em profundidade: mesmo com botão habilitado, revalida.
-    const v = validateWizardForSubmit({ draft, mode, phone });
-    if (!v.ok) {
-      toast.error(v.message);
-      if (v.reason === "phone") goToIdentity();
-      return;
-    }
-
     runningRef.current = true;
     try {
-      const phoneE164 = phone.trim() ? normalizePhoneE164(phone) : null;
-      const withContact = mode === "create" ? true : !!phoneE164;
-      dispatch({ type: "START", mode, withContact });
-
-      try {
-        const input = mapWizardToSaveProfileInput(draft, EVENT_ID);
-        await saveOwnProfile(input);
-      } catch (err) {
-        dispatch({ type: "PROFILE_FAIL" });
-        toast.error(errorToUserMessage(err, "Não foi possível salvar seu perfil."));
-        return;
-      }
-      qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
-      dispatch({ type: "PROFILE_OK" });
-
-      if (mode === "create" || (mode === "edit" && phoneE164)) {
-        try {
-          await setOwnContact({ phone_e164: phoneE164!, sharing: true });
-        } catch (err) {
+      const withContactUpfront =
+        mode === "create" ? true : !!phone.trim();
+      dispatch({ type: "START", mode, withContact: withContactUpfront });
+      const events = await runWizardSubmit({
+        draft,
+        mode,
+        phone,
+        eventId: EVENT_ID,
+        deps: {
+          saveOwnProfile,
+          setOwnContact,
+          rotateOwnRecoveryCode,
+          recomputeOwnMatches,
+        },
+      });
+      for (const evt of events) {
+        if (evt.type === "PRE_FAIL") {
+          dispatch({ type: "RESET" });
+          toast.error(evt.message);
+          if (evt.reason === "phone") goToIdentity();
+          return;
+        }
+        if (evt.type === "PROFILE_OK") {
+          qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
+          dispatch({ type: "PROFILE_OK" });
+        } else if (evt.type === "PROFILE_FAIL") {
+          dispatch({ type: "PROFILE_FAIL" });
+          toast.error(errorToUserMessage(evt.error, "Não foi possível salvar seu perfil."));
+          return;
+        } else if (evt.type === "CONTACT_OK") {
+          dispatch({ type: "CONTACT_OK" });
+        } else if (evt.type === "CONTACT_FAIL") {
           dispatch({ type: "CONTACT_FAIL" });
-          toast.error(errorToUserMessage(err, "Perfil salvo, contato não."));
+          toast.error(errorToUserMessage(evt.error, "Perfil salvo, contato não."));
           return;
-        }
-        dispatch({ type: "CONTACT_OK" });
-      }
-
-      if (mode === "create") {
-        try {
-          const code = await rotateOwnRecoveryCode();
-          dispatch({ type: "CODE_OK", code });
-          return; // aguarda “Já salvei”
-        } catch (err) {
+        } else if (evt.type === "CODE_OK") {
+          dispatch({ type: "CODE_OK", code: evt.code });
+        } else if (evt.type === "CODE_FAIL") {
           dispatch({ type: "CODE_FAIL" });
-          toast.error(errorToUserMessage(err, "Não gerou código."));
+          toast.error(errorToUserMessage(evt.error, "Não gerou código."));
           return;
+        } else if (evt.type === "AWAIT_CODE_CONFIRMATION") {
+          return;
+        } else if (evt.type === "MATCH_OK") {
+          qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+          dispatch({ type: "MATCH_OK" });
+          clearWizardDraft();
+          toast.success(
+            mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
+          );
+          navigate({ to: "/participante" });
+        } else if (evt.type === "MATCH_FAIL") {
+          dispatch({ type: "MATCH_FAIL" });
+          toast.error(
+            errorToUserMessage(evt.error, "Não conseguimos calcular seus matches agora."),
+          );
         }
       }
-
-      await runRecompute();
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, runRecompute, goToIdentity]);
+  }, [draft, mode, phone, qc, navigate, goToIdentity]);
+
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
