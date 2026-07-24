@@ -1198,8 +1198,9 @@ function ConnectionDetailDrawer({
                   <ArrowRightLeft className="h-4 w-4" /> Reatribuir
                 </h3>
                 {(() => {
-                  const eligible = (staffMembers.data ?? []).filter(
-                    (m) => m.userId !== q.data.assigned_to,
+                  const eligible = eligibleReassignees(
+                    staffMembers.data ?? [],
+                    q.data.assigned_to,
                   );
                   if (eligible.length === 0) {
                     return (
