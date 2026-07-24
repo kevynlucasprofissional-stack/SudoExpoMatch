@@ -722,10 +722,8 @@ export function StepNeeds({
 // StepPriority
 // ============================================================================
 export function StepPriority({ draft, update, onNext, onBack }: BaseProps) {
-  const priorityId =
-    draft.needs.find((n) => n.isPriority)?.localId ??
-    draft.needs[0]?.localId ??
-    "";
+  const priorityId = currentPriorityId(draft);
+  const hasPriority = priorityId !== "";
   return (
     <Card className="p-6">
       <h2 className="font-display text-2xl font-semibold">
@@ -761,11 +759,19 @@ export function StepPriority({ draft, update, onNext, onBack }: BaseProps) {
         ))}
       </RadioGroup>
 
+      {!hasPriority && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Escolha uma prioridade para continuar.
+        </p>
+      )}
+
       <div className="mt-6 flex justify-between">
         <Button variant="outline" onClick={onBack}>
           Voltar
         </Button>
-        <Button onClick={onNext}>Continuar</Button>
+        <Button onClick={onNext} disabled={!hasPriority}>
+          Continuar
+        </Button>
       </div>
     </Card>
   );
