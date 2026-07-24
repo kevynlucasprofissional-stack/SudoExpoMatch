@@ -16,10 +16,10 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
-import { NEED_KIND_LABELS, SEGMENTS, TAXONOMY } from "@/lib/mock-data";
-import { store } from "@/lib/store";
+import { EVENT_ID, NEED_KIND_LABELS, SEGMENTS, TAXONOMY } from "@/lib/mock-data";
+import { useSaveOwnProfile } from "@/features/participant/useOwnProfile";
 import { suggestFromSummary, type AISuggestion } from "@/domains/ai/mock";
-import type { NeedItem, NeedKind, OfferItem, Profile } from "@/lib/types";
+import type { NeedItem, NeedKind, OfferItem } from "@/lib/types";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
 
 export const Route = createFileRoute("/participar")({
@@ -117,6 +117,7 @@ function WizardPage() {
   const [draft, setDraft] = useState<Draft>(() => emptyDraft());
   const [hydrated, setHydrated] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
+  const saveMutation = useSaveOwnProfile();
 
   useEffect(() => {
     setDraft(loadDraft());
@@ -141,40 +142,39 @@ function WizardPage() {
   }
 
   async function submit() {
-    const profileData: Omit<
-      Profile,
-      "id" | "createdAt" | "updatedAt" | "recoveryCode" | "eventId"
-    > = {
-      name: draft.name.trim(),
-      company: draft.company.trim(),
-      city: draft.city.trim(),
-      neighborhood: draft.neighborhood.trim() || undefined,
-      whatsapp: draft.whatsapp.trim(),
-      segmentId: draft.segmentId,
-      summary: draft.summary.trim(),
-      offers: draft.offers,
-      needs: draft.needs,
-      consent: draft.consent,
-    };
     try {
-      const profile = await store.createProfile(profileData);
-      store.session.set(profile.id);
+      const result = await saveMutation.mutateAsync({
+        eventId: EVENT_ID,
+        name: draft.name.trim(),
+        company: draft.company.trim(),
+        city: draft.city.trim(),
+        neighborhood: draft.neighborhood.trim() || undefined,
+        whatsapp: draft.whatsapp.trim(),
+        segmentId: draft.segmentId,
+        summary: draft.summary.trim(),
+        offers: draft.offers.map((o) => ({ label: o.label, detail: o.detail })),
+        needs: draft.needs.map((n) => ({
+          label: n.label,
+          detail: n.detail,
+          need_kind: n.kind,
+          is_priority: n.isPriority,
+        })),
+        consent: draft.consent,
+      });
       if (typeof window !== "undefined") window.localStorage.removeItem(DRAFT_KEY);
-      // Exige que o usuário confirme que salvou o código antes de avançar.
-      if (profile.recoveryCode) {
-        setRecoveryCode(profile.recoveryCode);
+      if (result.recoveryCode) {
+        setRecoveryCode(result.recoveryCode);
       } else {
         toast.success("Perfil criado! Buscando conexões…");
         navigate({ to: "/participante" });
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      toast.error(`Não foi possível salvar seu perfil: ${msg}`);
+      toast.error(msg);
     }
   }
 
   function confirmCodeSaved() {
-    // Código estava apenas em memória — descartar simplesmente basta.
     setRecoveryCode(null);
     toast.success("Perfil criado! Buscando conexões…");
     navigate({ to: "/participante" });
