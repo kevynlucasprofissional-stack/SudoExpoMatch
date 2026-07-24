@@ -348,7 +348,7 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
                 key={c.id}
                 c={c}
                 onAdvance={handleAdvance}
-                onCancel={() => handleAdvance(c, "cancelado")}
+                onCancel={() => { setCancelTarget(c); setCancelNote(""); }}
                 onReveal={() => setRevealMatchId(c.matchId)}
                 busy={advance.isPending}
               />
@@ -361,6 +361,48 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
         matchId={revealMatchId}
         onClose={() => setRevealMatchId(null)}
       />
+
+      <Dialog
+        open={cancelTarget !== null}
+        onOpenChange={(o) => { if (!o) { setCancelTarget(null); setCancelNote(""); } }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Cancelar conexão</DialogTitle>
+            <DialogDescription>
+              {cancelTarget && (
+                <>Explique brevemente o motivo (3 a 500 caracteres). Fica registrado no histórico.</>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={cancelNote}
+            onChange={(e) => setCancelNote(e.target.value)}
+            placeholder="Ex.: participante desistiu de comparecer ao evento."
+            maxLength={500}
+            rows={4}
+          />
+          <p className="text-xs text-muted-foreground">
+            {cancelNote.trim().length}/500
+          </p>
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => { setCancelTarget(null); setCancelNote(""); }}
+              disabled={advance.isPending}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancel}
+              disabled={advance.isPending || cancelNote.trim().length < 3}
+            >
+              Cancelar conexão
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
   );
 }
