@@ -470,10 +470,10 @@ describe("recompute mutation invalida matches e public stats", () => {
     const mutation = mod.useRecomputeMatchesMutation("evt");
     await mutation.mutate(undefined);
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["participant", "matches", "evt"],
+      queryKey: ["own-matches", "evt"],
     });
     expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: ["public", "event-stats", "evt"],
+      queryKey: ["stats", "evt"],
     });
   });
 });
