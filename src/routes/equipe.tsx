@@ -1,10 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
+
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { store, subscribe } from "@/lib/store";
+import { store, useStoreSelector } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Connection, ConnectionStatus } from "@/lib/types";
@@ -42,12 +43,24 @@ const LABELS: Record<ConnectionStatus, string> = {
 };
 
 function StaffQueue() {
-  const snap = useSyncExternalStore(subscribe, () => store.all(), () => store.all());
-  const stats = store.stats();
-  const conns = [...snap.connections].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-  const byId = new Map(snap.profiles.map((p) => [p.id, p]));
+  const view = useStoreSelector(() => {
+    const snap = store.all();
+    return {
+      stats: store.stats(),
+      conns: [...snap.connections].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+      byId: new Map(snap.profiles.map((p) => [p.id, p])),
+    };
+  });
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
+  const { stats, conns, byId } = view;
+  const showStats = hydrated ? stats : { profiles: 0, matches: 0, mutualMatches: 0, completedConnections: 0 };
+  const showConns = hydrated ? conns : [];
+
+
+
 
   async function advance(c: Connection) {
     const next = NEXT_STATUS[c.status];
@@ -78,20 +91,20 @@ function StaffQueue() {
         </header>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <Stat label="Perfis" value={stats.profiles} />
-          <Stat label="Matches" value={stats.matches} />
-          <Stat label="Mútuos" value={stats.mutualMatches} />
-          <Stat label="Concluídas" value={stats.completedConnections} />
+          <Stat label="Perfis" value={showStats.profiles} />
+          <Stat label="Matches" value={showStats.matches} />
+          <Stat label="Mútuos" value={showStats.mutualMatches} />
+          <Stat label="Concluídas" value={showStats.completedConnections} />
         </div>
 
-        {conns.length === 0 ? (
+        {showConns.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
             Ainda não há conexões mútuas. Assim que dois participantes marcarem
             interesse recíproco, aparecerão aqui em tempo real.
           </Card>
         ) : (
           <ul className="space-y-3">
-            {conns.map((c) => {
+            {showConns.map((c) => {
               const a = byId.get(c.aProfileId);
               const b = byId.get(c.bProfileId);
               return (

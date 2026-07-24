@@ -2,6 +2,9 @@
 // Mantém a API síncrona que os componentes usam via useSyncExternalStore,
 // mas hidrata do banco na primeira leitura e espelha escritas para o backend.
 
+import { useMemo, useRef, useSyncExternalStore } from "react";
+
+
 import { EVENT_ID, SEGMENTS, TAXONOMY } from "./mock-data";
 import { computeMatchesFor } from "@/domains/matching/score";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,23 +49,37 @@ let cache: DB | null = null;
 let hydrated = false;
 let hydrating: Promise<void> | null = null;
 
+// Version counters — increment ONLY on real data changes.
+// Snapshots consumed by useSyncExternalStore are plain numbers,
+// giving a stable identity between mutations.
+let dbVersion = 0;
+let sessionVersion = 0;
+let lastDbSignature = "";
+
 function loadCache(): DB {
   if (cache) return cache;
   if (!isBrowser()) return EMPTY;
   try {
     const raw = window.localStorage.getItem(KEY);
     cache = raw ? (JSON.parse(raw) as DB) : { ...EMPTY };
+    lastDbSignature = raw ?? "";
   } catch {
     cache = { ...EMPTY };
+    lastDbSignature = "";
   }
   return cache!;
 }
 
 function persist() {
   if (!isBrowser() || !cache) return;
-  window.localStorage.setItem(KEY, JSON.stringify(cache));
+  const json = JSON.stringify(cache);
+  if (json === lastDbSignature) return; // dedup: nothing actually changed
+  lastDbSignature = json;
+  window.localStorage.setItem(KEY, json);
+  dbVersion++;
   window.dispatchEvent(new CustomEvent("sudoexpo:db"));
 }
+
 
 // -------- Mapping between DB rows and domain types --------
 type DBProfile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -249,10 +266,15 @@ export const store = {
     window.localStorage.removeItem(KEY);
     window.localStorage.removeItem(SESSION_KEY);
     cache = { ...EMPTY };
+    lastDbSignature = "";
     hydrated = false;
+    dbVersion++;
+    sessionVersion++;
     window.dispatchEvent(new CustomEvent("sudoexpo:db"));
+    window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     hydrate();
   },
+
   all(): DB {
     return loadCache();
   },
@@ -360,7 +382,9 @@ export const store = {
   session: {
     set(profileId: string) {
       if (!isBrowser()) return;
+      if (window.localStorage.getItem(SESSION_KEY) === profileId) return;
       window.localStorage.setItem(SESSION_KEY, profileId);
+      sessionVersion++;
       window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     },
     get(): string | null {
@@ -369,10 +393,13 @@ export const store = {
     },
     clear() {
       if (!isBrowser()) return;
+      if (window.localStorage.getItem(SESSION_KEY) == null) return;
       window.localStorage.removeItem(SESSION_KEY);
+      sessionVersion++;
       window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     },
   },
+
   stats(eventId = EVENT_ID) {
     const db = loadCache();
     const profiles = db.profiles.filter((p) => p.eventId === eventId);
@@ -454,4 +481,61 @@ export function subscribe(cb: () => void) {
     window.removeEventListener("sudoexpo:session", handler);
     window.removeEventListener("storage", handler);
   };
+}
+
+// ===== Stable snapshot helpers for useSyncExternalStore =====
+
+export function getDbVersion(): number {
+  return dbVersion;
+}
+export function getSessionVersion(): number {
+  return sessionVersion;
+}
+// Combined version bumps on any change; 0 during SSR.
+function getCombinedVersion(): number {
+  return dbVersion * 1_000_003 + sessionVersion;
+}
+function getServerVersion(): number {
+  return 0;
+}
+
+/**
+ * Subscribe to the store and derive a memoized value from it.
+ * The selector runs synchronously and its return value is cached
+ * until the store version changes, so the identity is stable across
+ * renders — safe for useSyncExternalStore.
+ */
+export function useStoreSelector<T>(selector: () => T): T {
+  const version = useSyncExternalStore(
+    subscribe,
+    getCombinedVersion,
+    getServerVersion,
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => selector(), [version]);
+}
+
+/**
+ * Compares selector output with a shallow equality function; keeps
+ * previous reference when equal to further reduce re-renders.
+ */
+export function useStoreSelectorEq<T>(
+  selector: () => T,
+  isEqual: (a: T, b: T) => boolean,
+): T {
+  const version = useSyncExternalStore(
+    subscribe,
+    getCombinedVersion,
+    getServerVersion,
+  );
+  const ref = useRef<{ v: number; value: T } | null>(null);
+  if (!ref.current || ref.current.v !== version) {
+    const next = selector();
+    if (ref.current && isEqual(ref.current.value, next)) {
+      ref.current = { v: version, value: ref.current.value };
+    } else {
+      ref.current = { v: version, value: next };
+    }
+  }
+  return ref.current.value;
 }
