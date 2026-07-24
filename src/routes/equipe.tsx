@@ -313,7 +313,7 @@ function StaffDashboard({
       const trimmed = searchInput.trim().slice(0, 200);
       if (trimmed === search.q) return;
       navigate({
-        search: (prev) => ({ ...(prev as EquipeSearch), q: trimmed, page: 1 }),
+        search: (prev: EquipeSearch) => ({ ...prev, q: trimmed, page: 1 }),
         replace: true,
       });
     }, 300);
