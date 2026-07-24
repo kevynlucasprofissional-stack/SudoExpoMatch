@@ -482,3 +482,60 @@ export function subscribe(cb: () => void) {
     window.removeEventListener("storage", handler);
   };
 }
+
+// ===== Stable snapshot helpers for useSyncExternalStore =====
+
+export function getDbVersion(): number {
+  return dbVersion;
+}
+export function getSessionVersion(): number {
+  return sessionVersion;
+}
+// Combined version bumps on any change; 0 during SSR.
+function getCombinedVersion(): number {
+  return dbVersion * 1_000_003 + sessionVersion;
+}
+function getServerVersion(): number {
+  return 0;
+}
+
+/**
+ * Subscribe to the store and derive a memoized value from it.
+ * The selector runs synchronously and its return value is cached
+ * until the store version changes, so the identity is stable across
+ * renders — safe for useSyncExternalStore.
+ */
+export function useStoreSelector<T>(selector: () => T): T {
+  const version = useSyncExternalStore(
+    subscribe,
+    getCombinedVersion,
+    getServerVersion,
+  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => selector(), [version]);
+}
+
+/**
+ * Compares selector output with a shallow equality function; keeps
+ * previous reference when equal to further reduce re-renders.
+ */
+export function useStoreSelectorEq<T>(
+  selector: () => T,
+  isEqual: (a: T, b: T) => boolean,
+): T {
+  const version = useSyncExternalStore(
+    subscribe,
+    getCombinedVersion,
+    getServerVersion,
+  );
+  const ref = useRef<{ v: number; value: T } | null>(null);
+  if (!ref.current || ref.current.v !== version) {
+    const next = selector();
+    if (ref.current && isEqual(ref.current.value, next)) {
+      ref.current = { v: version, value: ref.current.value };
+    } else {
+      ref.current = { v: version, value: next };
+    }
+  }
+  return ref.current.value;
+}
