@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -44,7 +44,6 @@ import {
 } from "@/features/onboarding/draft";
 import {
   mapProfileToWizardDraft,
-  mapWizardToSaveProfileInput,
   normalizePhoneE164,
   WizardMappingError,
 } from "@/features/onboarding/mappers";
