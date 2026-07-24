@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Copy, Check, ShieldAlert } from "lucide-react";
 import {
   Dialog,
@@ -30,6 +30,15 @@ export function RecoveryCodeDialog({
 }: Props) {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
+
+  // Reseta o estado sempre que o diálogo abre ou o código muda — evita que a
+  // confirmação da primeira exibição permaneça marcada em uma segunda rotação.
+  useEffect(() => {
+    if (open) {
+      setSaved(false);
+      setCopied(false);
+    }
+  }, [open, code]);
 
   async function copy() {
     if (!code) return;
