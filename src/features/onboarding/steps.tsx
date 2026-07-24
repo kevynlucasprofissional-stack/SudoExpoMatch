@@ -26,12 +26,12 @@ import type {
 import { cryptoUid } from "./draft";
 import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
-import {
-  phoneCreateSchema,
-  phoneEditSchema,
-  wizardCreateSchema,
-} from "./schemas";
+import { phoneCreateSchema, phoneEditSchema } from "./schemas";
 import { isSubmitting, reviewIsActionable } from "./submitMachine";
+import {
+  currentPriorityId,
+  type WizardValidation,
+} from "./validate";
 
 const NEED_KIND_OPTIONS: { value: NeedKind; label: string }[] = [
   { value: "servico", label: "Um serviço" },
