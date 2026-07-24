@@ -321,12 +321,15 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
           </div>
         </header>
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
           <Stat label="Perfis" value={stats.totalProfiles} />
           <Stat label="Matches" value={stats.totalMatches} />
           <Stat label="Mútuos" value={stats.mutualMatches} />
-          <Stat label="Conexões" value={stats.totalConnections} />
-          <Stat label="Concluídas" value={stats.completedConnections} />
+          <Stat label="Aguardando" value={queueCounts.aguardando} />
+          <Stat label="Em atendimento" value={queueCounts.em_atendimento} />
+          <Stat label="Apresentados" value={queueCounts.apresentados} />
+          <Stat label="Contato trocado" value={queueCounts.contato_trocado} />
+          <Stat label="Concluídas" value={queueCounts.concluido} />
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
@@ -341,8 +344,11 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
               {f}
             </Button>
           ))}
-          <span className="ml-auto self-center text-xs text-muted-foreground">
-            {items.length} conexõe(s) · Realtime ativo
+          <span
+            className="ml-auto self-center text-xs text-muted-foreground"
+            title="A fila é revalidada automaticamente quando o servidor envia mudanças."
+          >
+            {items.length} conexõe(s) · Atualização automática
           </span>
         </div>
 
@@ -351,6 +357,25 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
           </div>
+        ) : queueQuery.isError ? (
+          <Card className="p-6">
+            <p className="text-sm font-medium text-destructive">
+              Não foi possível carregar a fila.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {queueQuery.error instanceof Error ? queueQuery.error.message : "Erro desconhecido"}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={() => queueQuery.refetch()}
+              disabled={queueQuery.isFetching}
+            >
+              <RefreshCw className={`mr-1 h-4 w-4 ${queueQuery.isFetching ? "animate-spin" : ""}`} />
+              Tentar novamente
+            </Button>
+          </Card>
         ) : items.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
             {filter === "pendentes"
