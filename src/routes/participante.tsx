@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { LABEL_TEXT } from "@/domains/matching/score";
+import { LABEL_TEXT } from "@/features/matching/presentation";
 import { EVENT_ID, SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
 import type { ConnectionStatus } from "@/lib/types";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
