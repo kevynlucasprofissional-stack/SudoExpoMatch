@@ -1,9 +1,8 @@
-// Repositório híbrido: cache em memória/localStorage + persistência real no Supabase.
-// Mantém a API síncrona que os componentes usam via useSyncExternalStore,
-// mas hidrata do banco na primeira leitura e espelha escritas para o backend.
+// Repositório híbrido: cache em memória/localStorage + persistência real via RPCs Supabase.
+// Fase 1: leitura/escrita passam por RPCs SECURITY DEFINER; anon sign-in garante auth.uid().
+// Colunas whatsapp/recovery_code em public.profiles estão deprecated e não são mais lidas do cliente.
 
 import { useMemo, useRef, useSyncExternalStore } from "react";
-
 
 import { EVENT_ID, SEGMENTS, TAXONOMY } from "./mock-data";
 import { computeMatchesFor } from "@/domains/matching/score";
@@ -21,8 +20,8 @@ import type {
   Profile,
 } from "./types";
 
-const KEY = "sudoexpo:v2";
-const SESSION_KEY = "sudoexpo:session";
+const KEY = "sudoexpo:v3";
+const LAST_CODE_KEY = "sudoexpo:lastCode";
 
 interface DB {
   profiles: Profile[];
@@ -33,14 +32,9 @@ interface DB {
 function isBrowser() {
   return typeof window !== "undefined";
 }
-
 function uid() {
   if (isBrowser() && "randomUUID" in crypto) return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
-}
-
-function shortCode() {
-  return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
 const EMPTY: DB = { profiles: [], matches: [], connections: [] };
@@ -48,10 +42,8 @@ const EMPTY: DB = { profiles: [], matches: [], connections: [] };
 let cache: DB | null = null;
 let hydrated = false;
 let hydrating: Promise<void> | null = null;
+let ownProfileId: string | null = null;
 
-// Version counters — increment ONLY on real data changes.
-// Snapshots consumed by useSyncExternalStore are plain numbers,
-// giving a stable identity between mutations.
 let dbVersion = 0;
 let sessionVersion = 0;
 let lastDbSignature = "";
@@ -69,24 +61,50 @@ function loadCache(): DB {
   }
   return cache!;
 }
-
 function persist() {
   if (!isBrowser() || !cache) return;
   const json = JSON.stringify(cache);
-  if (json === lastDbSignature) return; // dedup: nothing actually changed
+  if (json === lastDbSignature) return;
   lastDbSignature = json;
   window.localStorage.setItem(KEY, json);
   dbVersion++;
   window.dispatchEvent(new CustomEvent("sudoexpo:db"));
 }
 
+// -------- Auth: sessão anônima ----------
+let ensuringAuth: Promise<void> | null = null;
+async function ensureAnonSession() {
+  if (!isBrowser()) return;
+  if (ensuringAuth) return ensuringAuth;
+  ensuringAuth = (async () => {
+    const { data } = await supabase.auth.getSession();
+    if (data.session) return;
+    try {
+      await supabase.auth.signInAnonymously();
+    } catch (err) {
+      console.warn("[sudoexpo] anon sign-in falhou:", err);
+    }
+  })();
+  return ensuringAuth;
+}
 
-// -------- Mapping between DB rows and domain types --------
-type DBProfile = Database["public"]["Tables"]["profiles"]["Row"];
-type DBMatch = Database["public"]["Tables"]["matches"]["Row"];
-type DBConnection = Database["public"]["Tables"]["connections"]["Row"];
-
-function fromDBProfile(r: DBProfile): Profile {
+// -------- Mapping --------
+type CardRow = {
+  id: string;
+  event_id: string;
+  name: string;
+  company: string;
+  city: string;
+  neighborhood: string | null;
+  segment_id: string;
+  summary: string;
+  offers: unknown;
+  needs: unknown;
+  is_demo: boolean;
+  created_at: string;
+  updated_at: string;
+};
+function fromCard(r: CardRow): Profile {
   return {
     id: r.id,
     eventId: r.event_id,
@@ -94,37 +112,21 @@ function fromDBProfile(r: DBProfile): Profile {
     company: r.company,
     city: r.city,
     neighborhood: r.neighborhood ?? undefined,
-    whatsapp: r.whatsapp,
+    whatsapp: "", // não exposto pelo Data API na Fase 1
     segmentId: r.segment_id,
     summary: r.summary,
-    offers: (r.offers as unknown as OfferItem[]) ?? [],
-    needs: (r.needs as unknown as NeedItem[]) ?? [],
-    consent: r.consent,
+    offers: (r.offers as OfferItem[]) ?? [],
+    needs: (r.needs as NeedItem[]) ?? [],
+    consent: true,
     isDemo: r.is_demo,
     createdAt: r.created_at,
     updatedAt: r.updated_at,
-    recoveryCode: r.recovery_code,
+    recoveryCode: "", // só é exposto uma vez após rotate
   };
 }
 
-function toDBProfileInsert(p: Profile): Database["public"]["Tables"]["profiles"]["Insert"] {
-  return {
-    id: p.id,
-    event_id: p.eventId,
-    name: p.name,
-    company: p.company,
-    city: p.city,
-    neighborhood: p.neighborhood ?? null,
-    whatsapp: p.whatsapp,
-    segment_id: p.segmentId,
-    summary: p.summary,
-    offers: p.offers as unknown as Database["public"]["Tables"]["profiles"]["Insert"]["offers"],
-    needs: p.needs as unknown as Database["public"]["Tables"]["profiles"]["Insert"]["needs"],
-    consent: p.consent,
-    is_demo: p.isDemo ?? false,
-    recovery_code: p.recoveryCode,
-  };
-}
+type DBMatch = Database["public"]["Tables"]["matches"]["Row"];
+type DBConnection = Database["public"]["Tables"]["connections"]["Row"];
 
 function fromDBMatch(r: DBMatch): Match {
   return {
@@ -144,7 +146,6 @@ function fromDBMatch(r: DBMatch): Match {
     updatedAt: r.updated_at,
   };
 }
-
 function fromDBConnection(r: DBConnection): Connection {
   return {
     id: r.id,
@@ -159,9 +160,8 @@ function fromDBConnection(r: DBConnection): Connection {
   };
 }
 
-// Ensures a match row exists with normalized (a<b) ordering to satisfy CHECK.
-function orderedPair(aId: string, bId: string): [string, string, boolean] {
-  return aId < bId ? [aId, bId, false] : [bId, aId, true];
+function orderedPair(a: string, b: string): [string, string, boolean] {
+  return a < b ? [a, b, false] : [b, a, true];
 }
 
 async function hydrate() {
@@ -169,24 +169,33 @@ async function hydrate() {
   if (hydrating) return hydrating;
   hydrating = (async () => {
     try {
-      const [profilesRes, matchesRes, connsRes] = await Promise.all([
-        supabase.from("profiles").select("*").eq("event_id", EVENT_ID),
+      await ensureAnonSession();
+      const [cardsRes, matchesRes, connsRes] = await Promise.all([
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (supabase.rpc as any)("list_event_profile_cards", { _event_id: EVENT_ID }),
         supabase.from("matches").select("*").eq("event_id", EVENT_ID),
         supabase.from("connections").select("*").eq("event_id", EVENT_ID),
       ]);
       const db = loadCache();
-      const remoteProfiles = (profilesRes.data ?? []).map(fromDBProfile);
-      const localOnly = db.profiles.filter(
-        (p) => !remoteProfiles.some((r) => r.id === p.id),
-      );
-      db.profiles = [...remoteProfiles, ...localOnly];
+      db.profiles = ((cardsRes.data ?? []) as CardRow[]).map(fromCard);
       db.matches = (matchesRes.data ?? []).map(fromDBMatch);
       db.connections = (connsRes.data ?? []).map(fromDBConnection);
       hydrated = true;
+      // Localiza próprio perfil pelo auth.uid()
+      const { data: u } = await supabase.auth.getUser();
+      if (u.user) {
+        const { data: mine } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("owner_id", u.user.id)
+          .eq("event_id", EVENT_ID)
+          .eq("is_demo", false)
+          .maybeSingle();
+        if (mine) ownProfileId = mine.id;
+      }
       persist();
       subscribeRealtime();
     } catch (err) {
-      // Falha de rede: mantém cache local; próxima operação retentará.
       console.warn("[sudoexpo] hydrate falhou:", err);
     } finally {
       hydrating = null;
@@ -200,30 +209,13 @@ function subscribeRealtime() {
   if (!isBrowser() || realtimeChannel) return;
   realtimeChannel = supabase
     .channel("sudoexpo-live")
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "profiles" },
-      () => refreshFromDB("profiles"),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "matches" },
-      () => refreshFromDB("matches"),
-    )
-    .on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "connections" },
-      () => refreshFromDB("connections"),
-    )
+    .on("postgres_changes", { event: "*", schema: "public", table: "matches" }, () => refreshTable("matches"))
+    .on("postgres_changes", { event: "*", schema: "public", table: "connections" }, () => refreshTable("connections"))
     .subscribe();
 }
-
-async function refreshFromDB(table: "profiles" | "matches" | "connections") {
+async function refreshTable(t: "matches" | "connections") {
   const db = loadCache();
-  if (table === "profiles") {
-    const { data } = await supabase.from("profiles").select("*").eq("event_id", EVENT_ID);
-    db.profiles = (data ?? []).map(fromDBProfile);
-  } else if (table === "matches") {
+  if (t === "matches") {
     const { data } = await supabase.from("matches").select("*").eq("event_id", EVENT_ID);
     db.matches = (data ?? []).map(fromDBMatch);
   } else {
@@ -232,111 +224,184 @@ async function refreshFromDB(table: "profiles" | "matches" | "connections") {
   }
   persist();
 }
-
-// Kick off hydration on module load (browser only).
-if (isBrowser()) {
-  loadCache();
-  hydrate();
+async function refreshCards() {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabase.rpc as any)("list_event_profile_cards", { _event_id: EVENT_ID });
+  const db = loadCache();
+  db.profiles = ((data ?? []) as CardRow[]).map(fromCard);
+  persist();
 }
 
-async function upsertMatchRemote(m: Match) {
-  const [a, b, swapped] = orderedPair(m.aProfileId, m.bProfileId);
-  const row = {
-    id: m.id,
-    event_id: m.eventId,
-    a_profile_id: a,
-    b_profile_id: b,
-    kind: m.kind,
-    score_for_a: swapped ? m.scoreForB : m.scoreForA,
-    score_for_b: swapped ? m.scoreForA : m.scoreForB,
-    label: m.label,
-    reasons_for_a: (swapped ? m.reasonsForB : m.reasonsForA) as unknown as Database["public"]["Tables"]["matches"]["Insert"]["reasons_for_a"],
-    reasons_for_b: (swapped ? m.reasonsForA : m.reasonsForB) as unknown as Database["public"]["Tables"]["matches"]["Insert"]["reasons_for_b"],
-    decision_a: swapped ? m.decisionB : m.decisionA,
-    decision_b: swapped ? m.decisionA : m.decisionB,
-  };
-  await supabase.from("matches").upsert(row, { onConflict: "a_profile_id,b_profile_id" });
+if (isBrowser()) {
+  loadCache();
+  void hydrate();
+}
+
+// -------- Helpers de escrita via RPC --------
+async function callUpsertOwnProfile(p: {
+  eventId: string; name: string; company: string; city: string;
+  neighborhood?: string; segmentId: string; summary: string; consent: boolean;
+  offers: OfferItem[]; needs: NeedItem[];
+}): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)("upsert_own_profile", {
+    _event_id: p.eventId,
+    _name: p.name,
+    _company: p.company,
+    _city: p.city,
+    _neighborhood: p.neighborhood ?? null,
+    _segment_id: p.segmentId,
+    _summary: p.summary,
+    _consent: p.consent,
+    _offers: p.offers,
+    _needs: p.needs,
+  });
+  if (error) throw error;
+  return data as string;
+}
+async function callSetOwnContact(phone: string) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.rpc as any)("set_own_contact", { _phone_e164: phone, _email: null, _sharing: true });
+  if (error) throw error;
+}
+async function callRotateRecovery(): Promise<string> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase.rpc as any)("rotate_own_recovery_code");
+  if (error) throw error;
+  return data as string;
+}
+async function callStoreMatches(rows: Match[]) {
+  if (rows.length === 0) return;
+  const payload = rows.map((m) => {
+    const [a, b, swapped] = orderedPair(m.aProfileId, m.bProfileId);
+    return {
+      event_id: m.eventId,
+      a_profile_id: a,
+      b_profile_id: b,
+      kind: m.kind,
+      score_for_a: swapped ? m.scoreForB : m.scoreForA,
+      score_for_b: swapped ? m.scoreForA : m.scoreForB,
+      label: m.label,
+      reasons_for_a: swapped ? m.reasonsForB : m.reasonsForA,
+      reasons_for_b: swapped ? m.reasonsForA : m.reasonsForB,
+    };
+  });
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.rpc as any)("store_computed_matches", { _matches: payload });
+  if (error) console.warn("[sudoexpo] store_computed_matches:", error.message);
+}
+async function callRecordDecision(matchId: string, decision: Decision) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase.rpc as any)("record_match_decision", { _match_id: matchId, _decision: decision });
+  if (error) console.warn("[sudoexpo] record_match_decision:", error.message);
 }
 
 export const store = {
   hydrate,
   isHydrated: () => hydrated,
-  reset() {
+  ownProfileId: () => ownProfileId,
+  async reset() {
     if (!isBrowser()) return;
     window.localStorage.removeItem(KEY);
-    window.localStorage.removeItem(SESSION_KEY);
+    window.localStorage.removeItem(LAST_CODE_KEY);
     cache = { ...EMPTY };
     lastDbSignature = "";
     hydrated = false;
-    dbVersion++;
-    sessionVersion++;
+    ownProfileId = null;
+    await supabase.auth.signOut();
+    ensuringAuth = null;
+    dbVersion++; sessionVersion++;
     window.dispatchEvent(new CustomEvent("sudoexpo:db"));
     window.dispatchEvent(new CustomEvent("sudoexpo:session"));
-    hydrate();
+    void hydrate();
   },
 
-  all(): DB {
-    return loadCache();
-  },
-  listProfiles(): Profile[] {
-    return loadCache().profiles;
-  },
+  all(): DB { return loadCache(); },
+  listProfiles(): Profile[] { return loadCache().profiles; },
   getProfile(id: string): Profile | undefined {
     return loadCache().profiles.find((p) => p.id === id);
   },
-  createProfile(
+
+  /**
+   * Cria/atualiza o próprio perfil via RPC segura.
+   * Retorna Profile enriquecido com recoveryCode (mostrado UMA vez).
+   */
+  async createProfile(
     input: Omit<Profile, "id" | "createdAt" | "updatedAt" | "recoveryCode" | "eventId">,
-  ) {
-    const db = loadCache();
-    const now = new Date().toISOString();
-    const profile: Profile = {
-      ...input,
-      id: uid(),
+  ): Promise<Profile> {
+    await ensureAnonSession();
+    const id = await callUpsertOwnProfile({
       eventId: EVENT_ID,
-      recoveryCode: shortCode(),
-      createdAt: now,
-      updatedAt: now,
-    };
-    db.profiles.push(profile);
-    persist();
-    // Persistência remota (fire-and-forget) e recomputo de matches
-    void (async () => {
-      const { error } = await supabase.from("profiles").insert(toDBProfileInsert(profile));
-      if (error) console.warn("[sudoexpo] insert profile:", error.message);
-      await recomputeMatchesFor(profile.id);
-    })();
-    return profile;
+      name: input.name,
+      company: input.company,
+      city: input.city,
+      neighborhood: input.neighborhood,
+      segmentId: input.segmentId,
+      summary: input.summary,
+      consent: input.consent,
+      offers: input.offers,
+      needs: input.needs,
+    });
+    if (input.whatsapp) {
+      try { await callSetOwnContact(input.whatsapp); }
+      catch (err) { console.warn("[sudoexpo] set_own_contact:", err); }
+    }
+    let code = "";
+    try { code = await callRotateRecovery(); }
+    catch (err) { console.warn("[sudoexpo] rotate_recovery:", err); }
+    if (isBrowser() && code) window.localStorage.setItem(LAST_CODE_KEY, code);
+    ownProfileId = id;
+    await refreshCards();
+    // Recalcula matches localmente e envia via RPC
+    await recomputeMatchesFor(id);
+    const p = loadCache().profiles.find((x) => x.id === id);
+    return { ...(p ?? ({} as Profile)), id, recoveryCode: code, whatsapp: input.whatsapp };
   },
-  updateProfile(id: string, patch: Partial<Profile>) {
-    const db = loadCache();
-    const idx = db.profiles.findIndex((p) => p.id === id);
-    if (idx < 0) return undefined;
-    db.profiles[idx] = {
-      ...db.profiles[idx],
-      ...patch,
-      updatedAt: new Date().toISOString(),
-    };
-    persist();
-    void (async () => {
-      const p = db.profiles[idx];
-      await supabase.from("profiles").update(toDBProfileInsert(p)).eq("id", id);
-      await recomputeMatchesFor(id);
-    })();
-    return db.profiles[idx];
+
+  async updateProfile(id: string, patch: Partial<Profile>): Promise<Profile | undefined> {
+    const cur = loadCache().profiles.find((p) => p.id === id);
+    if (!cur) return undefined;
+    const merged = { ...cur, ...patch };
+    await callUpsertOwnProfile({
+      eventId: merged.eventId,
+      name: merged.name, company: merged.company, city: merged.city,
+      neighborhood: merged.neighborhood, segmentId: merged.segmentId,
+      summary: merged.summary, consent: merged.consent,
+      offers: merged.offers, needs: merged.needs,
+    });
+    if (patch.whatsapp) await callSetOwnContact(patch.whatsapp).catch(console.warn);
+    await refreshCards();
+    await recomputeMatchesFor(id);
+    return loadCache().profiles.find((p) => p.id === id);
   },
-  findByRecovery(whatsapp: string, code: string): Profile | undefined {
-    const clean = (s: string) => s.replace(/\D/g, "");
-    return loadCache().profiles.find(
-      (p) =>
-        clean(p.whatsapp) === clean(whatsapp) &&
-        p.recoveryCode.toUpperCase() === code.toUpperCase(),
-    );
+
+  /**
+   * Recuperação segura via RPC (hash comparado no servidor + rate limit).
+   */
+  async recoverProfile(whatsapp: string, code: string): Promise<Profile | undefined> {
+    await ensureAnonSession();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data, error } = await (supabase.rpc as any)("recover_profile", {
+      _event_id: EVENT_ID,
+      _phone_e164: whatsapp,
+      _code: code,
+    });
+    if (error) return undefined;
+    const pid = data as string;
+    ownProfileId = pid;
+    await refreshCards();
+    return loadCache().profiles.find((p) => p.id === pid);
   },
+
+  // Compat: caller síncrono legado — retorna undefined; use recoverProfile()
+  findByRecovery(_w: string, _c: string): Profile | undefined { return undefined; },
+
   matchesFor(profileId: string): Match[] {
     return loadCache().matches.filter(
       (m) => m.aProfileId === profileId || m.bProfileId === profileId,
     );
   },
+
   decideMatch(matchId: string, byProfileId: string, decision: Decision) {
     const db = loadCache();
     const idx = db.matches.findIndex((m) => m.id === matchId);
@@ -346,55 +411,30 @@ export const store = {
     else if (byProfileId === m.bProfileId) m.decisionB = decision;
     m.updatedAt = new Date().toISOString();
     db.matches[idx] = m;
-
-    if (
-      m.decisionA === "interesse" &&
-      m.decisionB === "interesse" &&
-      !db.connections.some((c) => c.matchId === m.id)
-    ) {
-      const now = new Date().toISOString();
-      db.connections.push({
-        id: uid(),
-        matchId: m.id,
-        eventId: m.eventId,
-        aProfileId: m.aProfileId,
-        bProfileId: m.bProfileId,
-        status: "aguardando",
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
     persist();
-    void (async () => {
-      const [, , swapped] = orderedPair(m.aProfileId, m.bProfileId);
-      const patch: Partial<Database["public"]["Tables"]["matches"]["Update"]> = {};
-      const targetDecision = decision;
-      if (byProfileId === m.aProfileId) {
-        if (swapped) patch.decision_b = targetDecision;
-        else patch.decision_a = targetDecision;
-      } else {
-        if (swapped) patch.decision_a = targetDecision;
-        else patch.decision_b = targetDecision;
-      }
-      await supabase.from("matches").update(patch).eq("id", matchId);
-    })();
+    void callRecordDecision(matchId, decision).then(() => refreshTable("matches").then(() => refreshTable("connections")));
   },
+
+  /** Retorna e limpa o código exibido uma única vez. */
+  consumeLastRecoveryCode(): string | null {
+    if (!isBrowser()) return null;
+    const v = window.localStorage.getItem(LAST_CODE_KEY);
+    if (v) window.localStorage.removeItem(LAST_CODE_KEY);
+    return v;
+  },
+
   session: {
-    set(profileId: string) {
-      if (!isBrowser()) return;
-      if (window.localStorage.getItem(SESSION_KEY) === profileId) return;
-      window.localStorage.setItem(SESSION_KEY, profileId);
-      sessionVersion++;
-      window.dispatchEvent(new CustomEvent("sudoexpo:session"));
-    },
+    /** ID do próprio perfil derivado de auth.uid(); localStorage é apenas dica. */
     get(): string | null {
+      if (ownProfileId) return ownProfileId;
       if (!isBrowser()) return null;
-      return window.localStorage.getItem(SESSION_KEY);
+      return null;
     },
+    set(_profileId: string) { /* no-op: sessão vem do Supabase Auth */ },
     clear() {
       if (!isBrowser()) return;
-      if (window.localStorage.getItem(SESSION_KEY) == null) return;
-      window.localStorage.removeItem(SESSION_KEY);
+      ownProfileId = null;
+      void supabase.auth.signOut().then(() => { ensuringAuth = null; void hydrate(); });
       sessionVersion++;
       window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     },
@@ -404,9 +444,7 @@ export const store = {
     const db = loadCache();
     const profiles = db.profiles.filter((p) => p.eventId === eventId);
     const matches = db.matches.filter((m) => m.eventId === eventId);
-    const mutual = matches.filter(
-      (m) => m.decisionA === "interesse" && m.decisionB === "interesse",
-    );
+    const mutual = matches.filter((m) => m.decisionA === "interesse" && m.decisionB === "interesse");
     const connections = db.connections.filter((c) => c.eventId === eventId);
     return {
       profiles: profiles.length,
@@ -424,9 +462,7 @@ async function recomputeMatchesFor(profileId: string) {
   const db = loadCache();
   const me = db.profiles.find((p) => p.id === profileId);
   if (!me) return;
-  const others = db.profiles.filter(
-    (p) => p.id !== me.id && p.eventId === me.eventId,
-  );
+  const others = db.profiles.filter((p) => p.id !== me.id && p.eventId === me.eventId);
   const fresh = computeMatchesFor(me, others);
 
   const existing = new Map(
@@ -434,9 +470,7 @@ async function recomputeMatchesFor(profileId: string) {
       .filter((m) => m.aProfileId === me.id || m.bProfileId === me.id)
       .map((m) => [pairKey(m.aProfileId, m.bProfileId), m]),
   );
-  db.matches = db.matches.filter(
-    (m) => m.aProfileId !== me.id && m.bProfileId !== me.id,
-  );
+  db.matches = db.matches.filter((m) => m.aProfileId !== me.id && m.bProfileId !== me.id);
   const toUpsert: Match[] = [];
   for (const f of fresh) {
     const key = pairKey(f.aProfileId, f.bProfileId);
@@ -450,22 +484,10 @@ async function recomputeMatchesFor(profileId: string) {
     db.matches.push(merged);
     toUpsert.push(merged);
   }
-  for (const [key, prev] of existing) {
-    if (!db.matches.some((m) => pairKey(m.aProfileId, m.bProfileId) === key)) {
-      db.matches.push(prev);
-    }
-  }
   persist();
-  // Mirror to Supabase
-  for (const m of toUpsert) {
-    try {
-      await upsertMatchRemote(m);
-    } catch (err) {
-      console.warn("[sudoexpo] upsert match:", err);
-    }
-  }
+  await callStoreMatches(toUpsert);
+  await refreshTable("matches");
 }
-
 function pairKey(a: string, b: string) {
   return [a, b].sort().join("::");
 }
@@ -483,51 +505,18 @@ export function subscribe(cb: () => void) {
   };
 }
 
-// ===== Stable snapshot helpers for useSyncExternalStore =====
+export function getDbVersion(): number { return dbVersion; }
+export function getSessionVersion(): number { return sessionVersion; }
+function getCombinedVersion(): number { return dbVersion * 1_000_003 + sessionVersion; }
+function getServerVersion(): number { return 0; }
 
-export function getDbVersion(): number {
-  return dbVersion;
-}
-export function getSessionVersion(): number {
-  return sessionVersion;
-}
-// Combined version bumps on any change; 0 during SSR.
-function getCombinedVersion(): number {
-  return dbVersion * 1_000_003 + sessionVersion;
-}
-function getServerVersion(): number {
-  return 0;
-}
-
-/**
- * Subscribe to the store and derive a memoized value from it.
- * The selector runs synchronously and its return value is cached
- * until the store version changes, so the identity is stable across
- * renders — safe for useSyncExternalStore.
- */
 export function useStoreSelector<T>(selector: () => T): T {
-  const version = useSyncExternalStore(
-    subscribe,
-    getCombinedVersion,
-    getServerVersion,
-  );
+  const version = useSyncExternalStore(subscribe, getCombinedVersion, getServerVersion);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => selector(), [version]);
 }
-
-/**
- * Compares selector output with a shallow equality function; keeps
- * previous reference when equal to further reduce re-renders.
- */
-export function useStoreSelectorEq<T>(
-  selector: () => T,
-  isEqual: (a: T, b: T) => boolean,
-): T {
-  const version = useSyncExternalStore(
-    subscribe,
-    getCombinedVersion,
-    getServerVersion,
-  );
+export function useStoreSelectorEq<T>(selector: () => T, isEqual: (a: T, b: T) => boolean): T {
+  const version = useSyncExternalStore(subscribe, getCombinedVersion, getServerVersion);
   const ref = useRef<{ v: number; value: T } | null>(null);
   if (!ref.current || ref.current.v !== version) {
     const next = selector();

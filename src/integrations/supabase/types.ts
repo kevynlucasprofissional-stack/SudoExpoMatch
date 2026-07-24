@@ -14,6 +14,193 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_runs: {
+        Row: {
+          created_at: string
+          error: string | null
+          event_id: string | null
+          id: string
+          input: Json
+          latency_ms: number | null
+          model: string | null
+          output: Json
+          profile_id: string | null
+          run_kind: string
+          succeeded: boolean
+        }
+        Insert: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          input?: Json
+          latency_ms?: number | null
+          model?: string | null
+          output?: Json
+          profile_id?: string | null
+          run_kind: string
+          succeeded?: boolean
+        }
+        Update: {
+          created_at?: string
+          error?: string | null
+          event_id?: string | null
+          id?: string
+          input?: Json
+          latency_ms?: number | null
+          model?: string | null
+          output?: Json
+          profile_id?: string | null
+          run_kind?: string
+          succeeded?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_runs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_runs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      analytics_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          event_id: string | null
+          id: string
+          kind: string
+          payload: Json
+          profile_id: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          kind: string
+          payload?: Json
+          profile_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          kind?: string
+          payload?: Json
+          profile_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analytics_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "analytics_events_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      audit_logs: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          after: Json | null
+          before: Json | null
+          created_at: string
+          event_id: string | null
+          id: string
+          ip: unknown
+          target_id: string | null
+          target_table: string
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          ip?: unknown
+          target_id?: string | null
+          target_table: string
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          after?: Json | null
+          before?: Json | null
+          created_at?: string
+          event_id?: string | null
+          id?: string
+          ip?: unknown
+          target_id?: string | null
+          target_table?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connection_status_history: {
+        Row: {
+          actor_user_id: string | null
+          connection_id: string
+          created_at: string
+          from_status: Database["public"]["Enums"]["connection_status"] | null
+          id: string
+          note: string | null
+          to_status: Database["public"]["Enums"]["connection_status"]
+        }
+        Insert: {
+          actor_user_id?: string | null
+          connection_id: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["connection_status"] | null
+          id?: string
+          note?: string | null
+          to_status: Database["public"]["Enums"]["connection_status"]
+        }
+        Update: {
+          actor_user_id?: string | null
+          connection_id?: string
+          created_at?: string
+          from_status?: Database["public"]["Enums"]["connection_status"] | null
+          id?: string
+          note?: string | null
+          to_status?: Database["public"]["Enums"]["connection_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_status_history_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connections: {
         Row: {
           a_profile_id: string
@@ -82,6 +269,89 @@ export type Database = {
           },
         ]
       }
+      consents: {
+        Row: {
+          consent_type: string
+          created_at: string
+          event_id: string
+          granted: boolean
+          id: string
+          ip: unknown
+          profile_id: string
+          user_agent: string | null
+          version: string
+        }
+        Insert: {
+          consent_type: string
+          created_at?: string
+          event_id: string
+          granted: boolean
+          id?: string
+          ip?: unknown
+          profile_id: string
+          user_agent?: string | null
+          version?: string
+        }
+        Update: {
+          consent_type?: string
+          created_at?: string
+          event_id?: string
+          granted?: boolean
+          id?: string
+          ip?: unknown
+          profile_id?: string
+          user_agent?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consents_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consents_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      event_staff: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_staff_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           city: string
@@ -114,6 +384,128 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      match_decisions: {
+        Row: {
+          decided_at: string
+          decision: Database["public"]["Enums"]["decision"]
+          id: string
+          match_id: string
+          profile_id: string
+        }
+        Insert: {
+          decided_at?: string
+          decision: Database["public"]["Enums"]["decision"]
+          id?: string
+          match_id: string
+          profile_id: string
+        }
+        Update: {
+          decided_at?: string
+          decision?: Database["public"]["Enums"]["decision"]
+          id?: string
+          match_id?: string
+          profile_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_decisions_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_decisions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_reasons: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          label: string
+          match_id: string
+          perspective_profile_id: string
+          weight: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          label: string
+          match_id: string
+          perspective_profile_id: string
+          weight?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          label?: string
+          match_id?: string
+          perspective_profile_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_reasons_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_reasons_perspective_profile_id_fkey"
+            columns: ["perspective_profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      match_status_history: {
+        Row: {
+          actor_profile_id: string | null
+          actor_user_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          match_id: string
+          payload: Json
+        }
+        Insert: {
+          actor_profile_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          match_id: string
+          payload?: Json
+        }
+        Update: {
+          actor_profile_id?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          match_id?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_status_history_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       matches: {
         Row: {
@@ -184,6 +576,155 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_needs: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          profile_id: string
+          segment_id: string | null
+          sort_order: number
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          profile_id: string
+          segment_id?: string | null
+          sort_order?: number
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          profile_id?: string
+          segment_id?: string | null
+          sort_order?: number
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_needs_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_needs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_needs_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_offers: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          profile_id: string
+          segment_id: string | null
+          sort_order: number
+          text: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          profile_id: string
+          segment_id?: string | null
+          sort_order?: number
+          text: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          profile_id?: string
+          segment_id?: string | null
+          sort_order?: number
+          text?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_offers_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_offers_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_offers_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profile_segments: {
+        Row: {
+          created_at: string
+          id: string
+          is_primary: boolean
+          profile_id: string
+          segment_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          profile_id: string
+          segment_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_primary?: boolean
+          profile_id?: string
+          segment_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profile_segments_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_segments_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
             referencedColumns: ["id"]
           },
         ]
@@ -308,6 +849,30 @@ export type Database = {
         }
         Relationships: []
       }
+      taxonomy_items: {
+        Row: {
+          created_at: string
+          id: string
+          kind: string
+          label: string
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: string
+          label: string
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: string
+          label?: string
+          slug?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -324,6 +889,18 @@ export type Database = {
           total_segments: number
         }[]
       }
+      has_any_event_role: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: boolean
+      }
+      has_event_role: {
+        Args: {
+          _event_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -331,7 +908,49 @@ export type Database = {
         }
         Returns: boolean
       }
+      hash_phone: { Args: { _phone_e164: string }; Returns: string }
+      hash_recovery_code: { Args: { _code: string }; Returns: string }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      list_event_profile_cards: {
+        Args: { _event_id: string }
+        Returns: {
+          city: string
+          company: string
+          created_at: string
+          event_id: string
+          id: string
+          is_demo: boolean
+          name: string
+          needs: Json
+          neighborhood: string
+          offers: Json
+          segment_id: string
+          summary: string
+          updated_at: string
+        }[]
+      }
+      normalize_phone: { Args: { _raw: string }; Returns: string }
+      record_match_decision: {
+        Args: {
+          _decision: Database["public"]["Enums"]["decision"]
+          _match_id: string
+        }
+        Returns: undefined
+      }
+      recover_profile: {
+        Args: { _code: string; _event_id: string; _phone_e164: string }
+        Returns: string
+      }
+      reveal_contact_for_match: {
+        Args: { _match_id: string }
+        Returns: {
+          company: string
+          email: string
+          name: string
+          phone_e164: string
+        }[]
+      }
+      rotate_own_recovery_code: { Args: never; Returns: string }
       segment_distribution: {
         Args: { _event_id: string }
         Returns: {
@@ -340,6 +959,48 @@ export type Database = {
           segment_id: string
           total: number
         }[]
+      }
+      set_own_contact: {
+        Args: { _email?: string; _phone_e164: string; _sharing?: boolean }
+        Returns: undefined
+      }
+      staff_advance_connection: {
+        Args: {
+          _connection_id: string
+          _new_status: Database["public"]["Enums"]["connection_status"]
+          _note?: string
+        }
+        Returns: undefined
+      }
+      staff_reveal_contact_for_match: {
+        Args: { _match_id: string }
+        Returns: {
+          company: string
+          email: string
+          name: string
+          phone_e164: string
+          profile_id: string
+        }[]
+      }
+      store_computed_matches: { Args: { _matches: Json }; Returns: number }
+      upsert_own_profile: {
+        Args: {
+          _city: string
+          _company: string
+          _consent: boolean
+          _event_id: string
+          _name: string
+          _needs: Json
+          _neighborhood: string
+          _offers: Json
+          _segment_id: string
+          _summary: string
+        }
+        Returns: string
+      }
+      verify_recovery_code: {
+        Args: { _code: string; _hash: string }
+        Returns: boolean
       }
     }
     Enums: {

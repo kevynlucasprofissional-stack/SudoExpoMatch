@@ -65,19 +65,23 @@ function StaffQueue() {
   async function advance(c: Connection) {
     const next = NEXT_STATUS[c.status];
     if (!next) return;
-    const { error } = await supabase
-      .from("connections")
-      .update({ status: next })
-      .eq("id", c.id);
-    if (error) toast.error("Não foi possível atualizar (requer login de equipe).");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)("staff_advance_connection", {
+      _connection_id: c.id,
+      _new_status: next,
+      _note: null,
+    });
+    if (error) toast.error("Não foi possível atualizar (requer login de equipe deste evento).");
     else toast.success(`Status: ${LABELS[next]}`);
   }
   async function cancel(c: Connection) {
-    const { error } = await supabase
-      .from("connections")
-      .update({ status: "cancelado" })
-      .eq("id", c.id);
-    if (error) toast.error("Ação restrita à equipe autenticada.");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase.rpc as any)("staff_advance_connection", {
+      _connection_id: c.id,
+      _new_status: "cancelado",
+      _note: null,
+    });
+    if (error) toast.error("Ação restrita à equipe autorizada do evento.");
   }
 
   return (

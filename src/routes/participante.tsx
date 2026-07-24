@@ -426,10 +426,11 @@ function RecoveryView() {
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  function recover() {
-    const p = store.findByRecovery(whatsapp, code);
+  async function recover() {
+    setError(null);
+    const p = await store.recoverProfile(whatsapp, code);
     if (!p) {
-      setError("Não encontramos um perfil com esses dados. Verifique e tente de novo.");
+      setError("Não encontramos um perfil com esses dados, ou o código está bloqueado por tentativas. Tente novamente em alguns minutos.");
       return;
     }
     store.session.set(p.id);
