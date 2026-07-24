@@ -228,7 +228,7 @@ describe("draft: save/load/clear/hasValid", () => {
     saveWizardDraft(
       {
         ...goodDraft(),
-        // @ts-expect-error - simula uso indevido do call site
+        
         whatsapp: "(64) 99999-9999",
       } as WizardDraft,
       NOW,
