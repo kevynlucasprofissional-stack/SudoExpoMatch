@@ -650,7 +650,6 @@ function StaffDashboard({
       <ConnectionDetailDrawer
         connectionId={detailId}
         onClose={() => setDetailId(null)}
-        userId={userId}
         isAdmin={isAdmin}
       />
 
@@ -965,12 +964,10 @@ function ConnectionCard({
 function ConnectionDetailDrawer({
   connectionId,
   onClose,
-  userId: _userId,
   isAdmin,
 }: {
   connectionId: string | null;
   onClose: () => void;
-  userId: string;
   isAdmin: boolean;
 }) {
   const q = useConnectionDetail(connectionId);

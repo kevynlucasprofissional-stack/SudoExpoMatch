@@ -34,38 +34,11 @@ export const NEXT_CONNECTION_STATUS: Record<
   cancelado: null,
 };
 
-/**
- * Rótulo do CTA de avanço para cada status atual (spec Onda D).
- * Estados terminais NÃO oferecem avanço — retornam null.
- * Centralizado para poder ser testado independentemente da rota.
- */
-export const ADVANCE_CTA_LABEL: Record<ConnectionStatus, string | null> = {
-  aguardando: "Assumir atendimento",
-  em_atendimento: "Marcar como apresentados",
-  apresentados: "Registrar troca de contato",
-  contato_trocado: "Concluir conexão",
-  concluido: null,
-  cancelado: null,
-};
-
-export function advanceCtaLabel(s: ConnectionStatus): string | null {
-  return ADVANCE_CTA_LABEL[s];
-}
-
 /** Um status terminal não pode avançar nem ser cancelado. */
 export function isTerminalStatus(s: ConnectionStatus): boolean {
   return s === "concluido" || s === "cancelado";
 }
 
-/**
- * Permissão VISUAL para o formulário de nota interna no drawer.
- * Por decisão de produto (Onda D), qualquer membro staff/admin autorizado
- * no evento pode adicionar nota — mesmo em conexão de outro operador ou
- * em status terminal. O backend continua sendo a autoridade final via RLS.
- */
-export function canAddInternalNote(role: "admin" | "staff" | null): boolean {
-  return role === "admin" || role === "staff";
-}
 
 /** Uma conexão pode ser assumida quando ainda está livre na fila. */
 export function canAssume(status: ConnectionStatus, assignedTo: string | null): boolean {
