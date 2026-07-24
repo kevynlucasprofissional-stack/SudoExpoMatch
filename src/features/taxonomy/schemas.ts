@@ -1,0 +1,20 @@
+import { z } from "zod";
+
+export const catalogSegmentSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  emoji: z.string().nullable(),
+});
+
+export const catalogTaxonomyItemSchema = z.object({
+  id: z.string(),
+  segment_id: z.string(),
+  label: z.string(),
+  kind: z.enum(["offer", "need", "both"]),
+  synonyms: z.array(z.string()).default([]),
+});
+
+export const eventCatalogSchema = z.object({
+  segments: z.array(catalogSegmentSchema),
+  taxonomy: z.array(catalogTaxonomyItemSchema),
+});

@@ -42,7 +42,7 @@ import {
 } from "lucide-react";
 
 import { supabase } from "@/integrations/supabase/client";
-import { LABEL_TEXT } from "@/domains/matching/score";
+import { LABEL_TEXT } from "@/features/matching/presentation";
 import { EVENT_ID, SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
 import type { ConnectionStatus } from "@/lib/types";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
@@ -66,7 +66,7 @@ import {
   type OwnMatchDTO,
 } from "@/features/participant/useOwnMatches";
 import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
-import { ensureAnonSession } from "@/features/participant/session";
+import { useEnsureParticipantSession } from "@/features/participant/session";
 
 export const Route = createFileRoute("/participante")({
   head: () => ({
@@ -85,10 +85,9 @@ function ParticipantPage() {
   const navigate = useNavigate();
   const { user, isLoading: sessionLoading } = useSession();
 
-  // Garante sessão anônima assim que a página monta, caso não haja user.
-  useEffect(() => {
-    if (!sessionLoading && !user) void ensureAnonSession();
-  }, [sessionLoading, user]);
+  // Onda A: garante sessão anônima com propagação real de erro.
+  // O hook dedicado será conectado à UI na Onda B/C.
+  useEnsureParticipantSession();
 
   const profileQuery = useOwnProfile(EVENT_ID);
   const matchesQuery = useOwnMatches(EVENT_ID, { enabled: !!profileQuery.data });
