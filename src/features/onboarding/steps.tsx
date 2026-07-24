@@ -312,6 +312,12 @@ export function StepOffers({
 
   useEffect(() => {
     let cancelled = false;
+    if (catalog.taxonomy.length === 0) {
+      // Modo manual (catálogo indisponível) — sem sugestões.
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     heuristicSuggestionProvider
       .suggest({
