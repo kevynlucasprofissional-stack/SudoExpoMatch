@@ -53,7 +53,13 @@ function StaffQueue() {
       byId: new Map(snap.profiles.map((p) => [p.id, p])),
     };
   });
+  const [hydrated, setHydrated] = useState(false);
+  useEffect(() => setHydrated(true), []);
   const { stats, conns, byId } = view;
+  const showStats = hydrated ? stats : { profiles: 0, matches: 0, mutualMatches: 0, completedConnections: 0 };
+  const showConns = hydrated ? conns : [];
+
+
 
 
   async function advance(c: Connection) {
