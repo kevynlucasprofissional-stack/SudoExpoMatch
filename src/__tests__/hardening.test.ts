@@ -4,7 +4,7 @@ import path from "node:path";
 
 import { cancelNoteSchema, translateStaffRevealError } from "@/features/staff/schemas";
 import { translateStaffError } from "@/features/admin/useEventStaff";
-import { translateRevealError } from "@/features/connections/useRevealContact";
+import { translateRevealErrorCode as translateRevealError } from "@/features/participant/presentation";
 import { canParticipantRevealContact } from "@/features/connections/eligibility";
 
 describe("cancelNoteSchema", () => {
