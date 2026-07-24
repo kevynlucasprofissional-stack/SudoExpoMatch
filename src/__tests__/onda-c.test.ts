@@ -430,7 +430,7 @@ describe("ownMatchesQueryOptions — contrato de polling", () => {
     expect(opts.refetchIntervalInBackground).toBe(false);
     expect(opts.staleTime).toBe(5_000);
     expect(opts.enabled).toBe(true);
-    expect(opts.queryKey).toEqual(["participant", "matches", "evt"]);
+    expect(opts.queryKey).toEqual(["own-matches", "evt"]);
   });
   it("enabled=false quando pedido", () => {
     const opts = ownMatchesQueryOptions("evt", { enabled: false });
