@@ -510,12 +510,16 @@ export type Database = {
       matches: {
         Row: {
           a_profile_id: string
+          algorithm_version: string
           b_profile_id: string
           created_at: string
           decision_a: Database["public"]["Enums"]["decision"]
           decision_b: Database["public"]["Enums"]["decision"]
           event_id: string
+          expires_at: string | null
+          generated_at: string
           id: string
+          is_active: boolean
           kind: Database["public"]["Enums"]["match_kind"]
           label: Database["public"]["Enums"]["match_label"]
           reasons_for_a: Json
@@ -526,12 +530,16 @@ export type Database = {
         }
         Insert: {
           a_profile_id: string
+          algorithm_version?: string
           b_profile_id: string
           created_at?: string
           decision_a?: Database["public"]["Enums"]["decision"]
           decision_b?: Database["public"]["Enums"]["decision"]
           event_id: string
+          expires_at?: string | null
+          generated_at?: string
           id?: string
+          is_active?: boolean
           kind: Database["public"]["Enums"]["match_kind"]
           label: Database["public"]["Enums"]["match_label"]
           reasons_for_a?: Json
@@ -542,12 +550,16 @@ export type Database = {
         }
         Update: {
           a_profile_id?: string
+          algorithm_version?: string
           b_profile_id?: string
           created_at?: string
           decision_a?: Database["public"]["Enums"]["decision"]
           decision_b?: Database["public"]["Enums"]["decision"]
           event_id?: string
+          expires_at?: string | null
+          generated_at?: string
           id?: string
+          is_active?: boolean
           kind?: Database["public"]["Enums"]["match_kind"]
           label?: Database["public"]["Enums"]["match_label"]
           reasons_for_a?: Json
@@ -582,34 +594,58 @@ export type Database = {
       }
       profile_needs: {
         Row: {
+          active: boolean
           created_at: string
+          detail: string | null
           event_id: string
           id: string
+          is_priority: boolean
+          label: string
+          need_kind: string
           profile_id: string
           segment_id: string | null
           sort_order: number
+          source: string
+          taxonomy_item_id: string | null
           text: string
           updated_at: string
+          user_confirmed: boolean
         }
         Insert: {
+          active?: boolean
           created_at?: string
+          detail?: string | null
           event_id: string
           id?: string
+          is_priority?: boolean
+          label: string
+          need_kind?: string
           profile_id: string
           segment_id?: string | null
           sort_order?: number
+          source?: string
+          taxonomy_item_id?: string | null
           text: string
           updated_at?: string
+          user_confirmed?: boolean
         }
         Update: {
+          active?: boolean
           created_at?: string
+          detail?: string | null
           event_id?: string
           id?: string
+          is_priority?: boolean
+          label?: string
+          need_kind?: string
           profile_id?: string
           segment_id?: string | null
           sort_order?: number
+          source?: string
+          taxonomy_item_id?: string | null
           text?: string
           updated_at?: string
+          user_confirmed?: boolean
         }
         Relationships: [
           {
@@ -633,38 +669,63 @@ export type Database = {
             referencedRelation: "segments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profile_needs_taxonomy_item_id_fkey"
+            columns: ["taxonomy_item_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_items"
+            referencedColumns: ["id"]
+          },
         ]
       }
       profile_offers: {
         Row: {
+          active: boolean
           created_at: string
+          detail: string | null
           event_id: string
           id: string
+          label: string
           profile_id: string
           segment_id: string | null
           sort_order: number
+          source: string
+          taxonomy_item_id: string | null
           text: string
           updated_at: string
+          user_confirmed: boolean
         }
         Insert: {
+          active?: boolean
           created_at?: string
+          detail?: string | null
           event_id: string
           id?: string
+          label: string
           profile_id: string
           segment_id?: string | null
           sort_order?: number
+          source?: string
+          taxonomy_item_id?: string | null
           text: string
           updated_at?: string
+          user_confirmed?: boolean
         }
         Update: {
+          active?: boolean
           created_at?: string
+          detail?: string | null
           event_id?: string
           id?: string
+          label?: string
           profile_id?: string
           segment_id?: string | null
           sort_order?: number
+          source?: string
+          taxonomy_item_id?: string | null
           text?: string
           updated_at?: string
+          user_confirmed?: boolean
         }
         Relationships: [
           {
@@ -686,6 +747,13 @@ export type Database = {
             columns: ["segment_id"]
             isOneToOne: false
             referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profile_offers_taxonomy_item_id_fkey"
+            columns: ["taxonomy_item_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_items"
             referencedColumns: ["id"]
           },
         ]
@@ -851,27 +919,50 @@ export type Database = {
       }
       taxonomy_items: {
         Row: {
+          active: boolean
           created_at: string
+          description: string | null
           id: string
           kind: string
           label: string
+          segment_id: string | null
           slug: string
+          synonyms: string[]
+          updated_at: string
         }
         Insert: {
+          active?: boolean
           created_at?: string
+          description?: string | null
           id?: string
           kind: string
           label: string
+          segment_id?: string | null
           slug: string
+          synonyms?: string[]
+          updated_at?: string
         }
         Update: {
+          active?: boolean
           created_at?: string
+          description?: string | null
           id?: string
           kind?: string
           label?: string
+          segment_id?: string | null
           slug?: string
+          synonyms?: string[]
+          updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "taxonomy_items_segment_id_fkey"
+            columns: ["segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -918,6 +1009,7 @@ export type Database = {
           total_segments: number
         }[]
       }
+      get_own_profile_v2: { Args: { _event_id: string }; Returns: Json }
       has_any_event_role: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
@@ -958,7 +1050,14 @@ export type Database = {
           updated_at: string
         }[]
       }
+      list_event_segments_and_taxonomy: {
+        Args: { _event_id: string }
+        Returns: Json
+      }
+      list_own_matches_v2: { Args: { _event_id: string }; Returns: Json }
+      norm_label: { Args: { _s: string }; Returns: string }
       normalize_phone: { Args: { _raw: string }; Returns: string }
+      recompute_own_matches: { Args: { _event_id: string }; Returns: number }
       record_match_decision: {
         Args: {
           _decision: Database["public"]["Enums"]["decision"]
@@ -966,9 +1065,23 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_match_decision_v2: {
+        Args: {
+          _decision: Database["public"]["Enums"]["decision"]
+          _match_id: string
+        }
+        Returns: Json
+      }
       recover_profile: {
         Args: { _code: string; _event_id: string; _phone_e164: string }
         Returns: string
+      }
+      recover_profile_v2: {
+        Args: { _code: string; _event_id: string; _phone_e164: string }
+        Returns: {
+          new_recovery_code: string
+          profile_id: string
+        }[]
       }
       reveal_contact_for_match: {
         Args: { _match_id: string }
@@ -980,6 +1093,7 @@ export type Database = {
         }[]
       }
       rotate_own_recovery_code: { Args: never; Returns: string }
+      save_own_profile_v2: { Args: { _payload: Json }; Returns: string }
       segment_distribution: {
         Args: { _event_id: string }
         Returns: {
@@ -993,6 +1107,9 @@ export type Database = {
         Args: { _email?: string; _phone_e164: string; _sharing?: boolean }
         Returns: undefined
       }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      slugify: { Args: { _txt: string }; Returns: string }
       staff_advance_connection: {
         Args: {
           _connection_id: string
