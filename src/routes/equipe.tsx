@@ -97,8 +97,6 @@ import {
   CONNECTION_STATUS_LABEL,
   CONNECTION_STATUS_TONE,
   NEXT_CONNECTION_STATUS,
-  advanceCtaLabel,
-  canAddInternalNote,
   canAssume,
   canOperate,
   canRevealContact,
@@ -106,11 +104,16 @@ import {
   translateOperationalError,
 } from "@/features/connections/domain";
 import {
-  formatDurationPt,
   formatDurationShortPt,
   secondsSince,
   stageStartAt,
 } from "@/features/connections/time";
+import {
+  canAddInternalNote,
+  eligibleReassignees,
+  formatElapsedSeconds,
+  getOperationalCta,
+} from "@/features/staff/operationalUi";
 
 
 export const Route = createFileRoute("/equipe")({
