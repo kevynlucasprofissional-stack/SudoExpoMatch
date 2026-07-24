@@ -85,10 +85,9 @@ function ParticipantPage() {
   const navigate = useNavigate();
   const { user, isLoading: sessionLoading } = useSession();
 
-  // Garante sessão anônima assim que a página monta, caso não haja user.
-  useEffect(() => {
-    if (!sessionLoading && !user) void ensureAnonSession();
-  }, [sessionLoading, user]);
+  // Onda A: garante sessão anônima com propagação real de erro.
+  // O hook dedicado será conectado à UI na Onda B/C.
+  useEnsureParticipantSession();
 
   const profileQuery = useOwnProfile(EVENT_ID);
   const matchesQuery = useOwnMatches(EVENT_ID, { enabled: !!profileQuery.data });
