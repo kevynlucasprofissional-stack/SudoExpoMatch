@@ -1,5 +1,5 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
   LogOut,
@@ -11,7 +11,10 @@ import {
   UserX,
   ClipboardList,
   ArrowRightLeft,
+  ShieldAlert,
+  X,
 } from "lucide-react";
+import { zodValidator } from "@tanstack/zod-adapter";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -43,16 +46,39 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Checkbox } from "@/components/ui/checkbox";
 
 import { EVENT_ID } from "@/lib/mock-data";
 import type { ConnectionStatus } from "@/lib/types";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventStats } from "@/features/staff/useEventStats";
-import { useStaffRevealContacts } from "@/features/staff/useConnectionsQueue";
+import { useEventSegments } from "@/features/staff/useEventSegments";
+import { useRevealStaffContact } from "@/features/staff/useConnectionsQueue";
 import { useEventStaffMembers } from "@/features/admin/useEventStaff";
-import { cancelNoteSchema, translateStaffRevealError } from "@/features/staff/schemas";
-import { signInWithPassword, signOut, loginSchema } from "@/features/auth/actions";
+import {
+  cancelNoteSchema,
+  adminRevealOverrideSchema,
+  optionalStaffNoteSchema,
+  translateStaffRevealError,
+} from "@/features/staff/schemas";
+import {
+  equipeSearchSchema,
+  normalizeEquipeSearch,
+  segmentsToParam,
+  type EquipeSearch,
+  type NormalizedEquipeSearch,
+} from "@/features/staff/urlState";
+import {
+  signInWithPassword,
+  signOut,
+  loginSchema,
+} from "@/features/auth/actions";
 import {
   useOperationalQueue,
   useAssumeConnection,
@@ -60,8 +86,10 @@ import {
   useReassignConnection,
   useAddConnectionNote,
   useConnectionDetail,
+  QUEUE_SORT_LABEL,
+  QUEUE_SORTS,
   type QueueItem,
-  type QueueScope,
+  type QueueSort,
 } from "@/features/staff/useOperationalQueue";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -88,10 +116,21 @@ export const Route = createFileRoute("/equipe")({
       { name: "robots", content: "noindex,nofollow" },
     ],
   }),
+  validateSearch: zodValidator(equipeSearchSchema),
   component: StaffPage,
 });
 
 const PAGE_SIZE = 25;
+
+// Rótulos contextuais claros (evita mostrar "→ contato_trocado" cru).
+const ADVANCE_CTA: Record<ConnectionStatus, string> = {
+  aguardando: "Assumir",
+  em_atendimento: "Marcar como apresentados",
+  apresentados: "Marcar contato trocado",
+  contato_trocado: "Marcar como concluída",
+  concluido: "Concluída",
+  cancelado: "Cancelada",
+};
 
 function StaffPage() {
   const { user, isAuthenticated, isLoading: sessionLoading } = useSession();
@@ -133,7 +172,11 @@ function StaffPage() {
               Sua conta <strong>{user?.email}</strong> não tem papel na equipe
               deste evento. Fale com um administrador da ACIRV.
             </p>
-            <Button variant="outline" className="mt-4" onClick={() => signOut()}>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => signOut()}
+            >
               <LogOut className="mr-1 h-4 w-4" /> Sair
             </Button>
           </Card>
@@ -252,38 +295,52 @@ function StaffDashboard({
 }) {
   const isAdmin = role === "admin";
   const statsQuery = useEventStats(EVENT_ID, { refetchMs: 15_000 });
-
-  const [scope, setScope] = useState<QueueScope>("pending");
-  const [statusFilter, setStatusFilter] = useState<ConnectionStatus | "all">(
-    "all",
+  const segmentsQuery = useEventSegments(EVENT_ID, true);
+  const navigate = useNavigate({ from: "/equipe" });
+  const rawSearch = Route.useSearch() as EquipeSearch;
+  const search = useMemo<NormalizedEquipeSearch>(
+    () => normalizeEquipeSearch(rawSearch),
+    [rawSearch],
   );
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [page, setPage] = useState(0);
 
-  // Debounce simples do search
-  useMemo(() => {
-    const t = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+  // Debounce real com useEffect + cleanup (não usa useMemo por efeito colateral).
+  const [searchInput, setSearchInput] = useState(search.q);
+  useEffect(() => {
+    setSearchInput(search.q);
+  }, [search.q]);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      const trimmed = searchInput.trim().slice(0, 200);
+      if (trimmed === search.q) return;
+      navigate({
+        search: (prev) => ({ ...(prev as EquipeSearch), q: trimmed, page: 1 }),
+        replace: true,
+      });
+    }, 300);
     return () => clearTimeout(t);
-  }, [search]);
+  }, [searchInput, search.q, navigate]);
 
+  const pageIndex = Math.max(0, search.page - 1);
   const queueQuery = useOperationalQueue(
     {
       eventId: EVENT_ID,
-      statuses: statusFilter === "all" ? undefined : [statusFilter],
-      search: debouncedSearch || undefined,
-      scope,
-      sort: "priority",
+      statuses: search.status === "all" ? undefined : [search.status],
+      segmentIds: search.segments.length > 0 ? search.segments : undefined,
+      search: search.q || undefined,
+      scope: search.scope,
+      sort: search.sort,
       limit: PAGE_SIZE,
-      offset: page * PAGE_SIZE,
+      offset: pageIndex * PAGE_SIZE,
     },
     true,
   );
 
-  const [revealMatchId, setRevealMatchId] = useState<string | null>(null);
+  const [revealTarget, setRevealTarget] = useState<QueueItem | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<QueueItem | null>(null);
   const [cancelNote, setCancelNote] = useState("");
+  const [releaseTarget, setReleaseTarget] = useState<QueueItem | null>(null);
+  const [releaseNote, setReleaseNote] = useState("");
 
   const assume = useAssumeConnection(EVENT_ID);
   const release = useReleaseConnection(EVENT_ID);
@@ -301,6 +358,13 @@ function StaffDashboard({
     totalSegments: 0,
   };
 
+  function updateSearch(patch: Partial<EquipeSearch>) {
+    navigate({
+      search: (prev) => ({ ...(prev as EquipeSearch), ...patch }),
+      replace: true,
+    });
+  }
+
   async function handleAssume(c: QueueItem) {
     try {
       await assume.mutateAsync(c.id);
@@ -311,10 +375,21 @@ function StaffDashboard({
     }
   }
 
-  async function handleRelease(c: QueueItem) {
+  async function handleConfirmRelease() {
+    if (!releaseTarget) return;
+    const parsed = optionalStaffNoteSchema.safeParse(releaseNote || undefined);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Observação inválida.");
+      return;
+    }
     try {
-      await release.mutateAsync({ connectionId: c.id });
+      await release.mutateAsync({
+        connectionId: releaseTarget.id,
+        note: parsed.data,
+      });
       toast.success("Conexão devolvida à fila.");
+      setReleaseTarget(null);
+      setReleaseNote("");
     } catch (err) {
       toast.error(translateOperationalError(err));
     }
@@ -403,11 +478,8 @@ function StaffDashboard({
                 <Button
                   key={s}
                   size="sm"
-                  variant={scope === s ? "default" : "outline"}
-                  onClick={() => {
-                    setScope(s);
-                    setPage(0);
-                  }}
+                  variant={search.scope === s ? "default" : "outline"}
+                  onClick={() => updateSearch({ scope: s, page: 1 })}
                 >
                   {label}
                   <span className="ml-1 text-xs opacity-70">
@@ -416,35 +488,57 @@ function StaffDashboard({
                 </Button>
               ))}
             </div>
+
             <Select
-              value={statusFilter}
-              onValueChange={(v) => {
-                setStatusFilter(v as ConnectionStatus | "all");
-                setPage(0);
-              }}
+              value={search.status}
+              onValueChange={(v) =>
+                updateSearch({ status: v, page: 1 })
+              }
             >
               <SelectTrigger className="h-8 w-44">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Qualquer status</SelectItem>
-                {(Object.keys(CONNECTION_STATUS_LABEL) as ConnectionStatus[]).map(
-                  (s) => (
-                    <SelectItem key={s} value={s}>
-                      {CONNECTION_STATUS_LABEL[s]}
-                    </SelectItem>
-                  ),
-                )}
+                {(
+                  Object.keys(CONNECTION_STATUS_LABEL) as ConnectionStatus[]
+                ).map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {CONNECTION_STATUS_LABEL[s]}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
+
+            <Select
+              value={search.sort}
+              onValueChange={(v) => updateSearch({ sort: v as QueueSort })}
+            >
+              <SelectTrigger className="h-8 w-44">
+                <SelectValue placeholder="Ordenar" />
+              </SelectTrigger>
+              <SelectContent>
+                {QUEUE_SORTS.map((s) => (
+                  <SelectItem key={s} value={s}>
+                    {QUEUE_SORT_LABEL[s]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <SegmentsFilter
+              value={search.segments}
+              options={segmentsQuery.data ?? []}
+              onChange={(ids) =>
+                updateSearch({ segments: segmentsToParam(ids), page: 1 })
+              }
+            />
+
             <div className="relative ml-auto flex-1 min-w-[200px]">
               <Search className="pointer-events-none absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPage(0);
-                }}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
                 placeholder="Buscar por nome, empresa ou cidade…"
                 className="h-8 pl-8"
               />
@@ -498,13 +592,16 @@ function StaffDashboard({
                   assume.isPending || release.isPending || advance.isPending
                 }
                 onAssume={() => handleAssume(c)}
-                onRelease={() => handleRelease(c)}
+                onRelease={() => {
+                  setReleaseTarget(c);
+                  setReleaseNote("");
+                }}
                 onAdvance={handleAdvance}
                 onCancel={() => {
                   setCancelTarget(c);
                   setCancelNote("");
                 }}
-                onReveal={() => setRevealMatchId(c.match_id)}
+                onReveal={() => setRevealTarget(c)}
                 onDetail={() => setDetailId(c.id)}
               />
             ))}
@@ -514,24 +611,26 @@ function StaffDashboard({
         {total > PAGE_SIZE && (
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              Página {page + 1} de {Math.ceil(total / PAGE_SIZE)} · {total} no
-              total
+              Página {search.page} de {Math.ceil(total / PAGE_SIZE)} · {total}{" "}
+              no total
             </span>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setPage((p) => Math.max(0, p - 1))}
-                disabled={page === 0 || queueQuery.isFetching}
+                onClick={() =>
+                  updateSearch({ page: Math.max(1, search.page - 1) })
+                }
+                disabled={search.page === 1 || queueQuery.isFetching}
               >
                 Anterior
               </Button>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setPage((p) => p + 1)}
+                onClick={() => updateSearch({ page: search.page + 1 })}
                 disabled={
-                  (page + 1) * PAGE_SIZE >= total || queueQuery.isFetching
+                  search.page * PAGE_SIZE >= total || queueQuery.isFetching
                 }
               >
                 Próxima
@@ -542,8 +641,9 @@ function StaffDashboard({
       </section>
 
       <RevealContactDialog
-        matchId={revealMatchId}
-        onClose={() => setRevealMatchId(null)}
+        target={revealTarget}
+        isAdmin={isAdmin}
+        onClose={() => setRevealTarget(null)}
       />
 
       <ConnectionDetailDrawer
@@ -553,6 +653,7 @@ function StaffDashboard({
         isAdmin={isAdmin}
       />
 
+      {/* Cancelar (nota obrigatória 3–500) */}
       <Dialog
         open={cancelTarget !== null}
         onOpenChange={(o) => {
@@ -601,7 +702,115 @@ function StaffDashboard({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Devolver (nota opcional) */}
+      <Dialog
+        open={releaseTarget !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setReleaseTarget(null);
+            setReleaseNote("");
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Devolver à fila</DialogTitle>
+            <DialogDescription>
+              A conexão volta para "Livres". Adicione uma observação (opcional).
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            value={releaseNote}
+            onChange={(e) => setReleaseNote(e.target.value)}
+            placeholder="Ex.: preciso passar para outro atendente."
+            maxLength={500}
+            rows={3}
+          />
+          <DialogFooter>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setReleaseTarget(null);
+                setReleaseNote("");
+              }}
+              disabled={release.isPending}
+            >
+              Voltar
+            </Button>
+            <Button onClick={handleConfirmRelease} disabled={release.isPending}>
+              Devolver
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </PageShell>
+  );
+}
+
+// ---------------------------------------------------------------- Segments filter
+function SegmentsFilter({
+  value,
+  options,
+  onChange,
+}: {
+  value: string[];
+  options: Array<{ id: string; label: string; emoji: string }>;
+  onChange: (ids: string[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const selected = new Set(value);
+  const label =
+    value.length === 0
+      ? "Segmentos"
+      : value.length === 1
+        ? options.find((o) => o.id === value[0])?.label ?? "1 segmento"
+        : `${value.length} segmentos`;
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button size="sm" variant="outline" className="h-8">
+          {label}
+          {value.length > 0 && (
+            <X
+              className="ml-1 h-3 w-3 opacity-60 hover:opacity-100"
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange([]);
+              }}
+            />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-64 p-2">
+        <div className="max-h-64 space-y-1 overflow-auto">
+          {options.length === 0 && (
+            <p className="p-2 text-xs text-muted-foreground">
+              Nenhum segmento disponível.
+            </p>
+          )}
+          {options.map((o) => (
+            <label
+              key={o.id}
+              className="flex cursor-pointer items-center gap-2 rounded p-1 hover:bg-muted"
+            >
+              <Checkbox
+                checked={selected.has(o.id)}
+                onCheckedChange={(v) => {
+                  const next = new Set(selected);
+                  if (v) next.add(o.id);
+                  else next.delete(o.id);
+                  onChange(Array.from(next));
+                }}
+              />
+              <span className="text-sm">
+                {o.emoji} {o.label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
@@ -637,7 +846,9 @@ function ConnectionCard({
     userId,
     isAdmin,
   });
-  const showReveal = canRevealContact(c.status) && c.status !== "cancelado";
+  const canReveal =
+    canRevealContact(c.status) ||
+    (isAdmin && !isTerminalStatus(c.status)); // admin pode com override
 
   return (
     <Card className="p-4">
@@ -670,12 +881,16 @@ function ConnectionCard({
           </div>
           <p className="mt-2 font-medium">
             {c.a_name}{" "}
-            <span className="text-muted-foreground">· {c.a_company}</span>{" "}
+            <span className="text-muted-foreground">
+              · {c.a_company ?? ""}
+            </span>{" "}
             <span className="mx-1 text-muted-foreground">↔</span> {c.b_name}{" "}
-            <span className="text-muted-foreground">· {c.b_company}</span>
+            <span className="text-muted-foreground">
+              · {c.b_company ?? ""}
+            </span>
           </p>
           <p className="text-xs text-muted-foreground">
-            {c.a_city} · {c.b_city}
+            {c.a_city ?? "—"} · {c.b_city ?? "—"}
           </p>
           {c.notes && (
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-xs italic text-muted-foreground">
@@ -702,9 +917,12 @@ function ConnectionCard({
               <UserX className="mr-1 h-4 w-4" /> Devolver
             </Button>
           )}
-          {showReveal && canOp && (
+          {canReveal && canOp && (
             <Button size="sm" variant="outline" onClick={onReveal}>
               <Mail className="mr-1 h-4 w-4" /> Contatos
+              {!canRevealContact(c.status) && isAdmin && (
+                <ShieldAlert className="ml-1 h-3 w-3 text-amber-600" />
+              )}
             </Button>
           )}
           {nextStatus && canOp && (
@@ -712,12 +930,18 @@ function ConnectionCard({
               size="sm"
               onClick={() => onAdvance(c, nextStatus)}
               disabled={busy}
+              title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
             >
-              → {CONNECTION_STATUS_LABEL[nextStatus]}
+              {ADVANCE_CTA[c.status]}
             </Button>
           )}
           {!isTerminalStatus(c.status) && canOp && (
-            <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={onCancel}
+              disabled={busy}
+            >
               Cancelar
             </Button>
           )}
@@ -747,6 +971,13 @@ function ConnectionDetailDrawer({
   const [noteInput, setNoteInput] = useState("");
   const [reassignTo, setReassignTo] = useState<string>("");
 
+  useEffect(() => {
+    if (!connectionId) {
+      setNoteInput("");
+      setReassignTo("");
+    }
+  }, [connectionId]);
+
   async function handleAddNote() {
     if (!connectionId || noteInput.trim().length < 1) return;
     try {
@@ -761,10 +992,7 @@ function ConnectionDetailDrawer({
   async function handleReassign() {
     if (!connectionId || !reassignTo) return;
     try {
-      await reassign.mutateAsync({
-        connectionId,
-        newUserId: reassignTo,
-      });
+      await reassign.mutateAsync({ connectionId, newUserId: reassignTo });
       toast.success("Conexão reatribuída.");
       setReassignTo("");
     } catch (err) {
@@ -808,7 +1036,10 @@ function ConnectionDetailDrawer({
                 <TimeRow label="Criada" v={q.data.created_at} />
                 <TimeRow label="Assumida" v={q.data.assumed_at} />
                 <TimeRow label="Apresentados" v={q.data.presented_at} />
-                <TimeRow label="Contato trocado" v={q.data.contact_exchanged_at} />
+                <TimeRow
+                  label="Contato trocado"
+                  v={q.data.contact_exchanged_at}
+                />
                 <TimeRow label="Concluída" v={q.data.completed_at} />
                 <TimeRow label="Cancelada" v={q.data.cancelled_at} />
               </div>
@@ -854,7 +1085,9 @@ function ConnectionDetailDrawer({
                       </p>
                     )}
                     {e.actor_email && (
-                      <p className="text-muted-foreground">por {e.actor_email}</p>
+                      <p className="text-muted-foreground">
+                        por {e.actor_email}
+                      </p>
                     )}
                     {e.note && <p className="mt-1 italic">"{e.note}"</p>}
                   </li>
@@ -972,10 +1205,10 @@ function PartyBlock({
   p: {
     id: string;
     name: string;
-    company: string;
-    city: string;
-    segment_id: string;
-    summary: string;
+    company: string | null;
+    city: string | null;
+    segment_id: string | null;
+    summary: string | null;
   };
 }) {
   return (
@@ -983,24 +1216,66 @@ function PartyBlock({
       <p className="text-xs uppercase text-muted-foreground">{title}</p>
       <p className="font-medium">{p.name}</p>
       <p className="text-xs text-muted-foreground">
-        {p.company} · {p.city}
+        {p.company ?? "—"} · {p.city ?? "—"}
       </p>
-      <p className="mt-1 text-xs">{p.summary}</p>
+      {p.summary && <p className="mt-1 text-xs">{p.summary}</p>}
     </div>
   );
 }
 
 // ---------------------------------------------------------------- Reveal
 function RevealContactDialog({
-  matchId,
+  target,
+  isAdmin,
   onClose,
 }: {
-  matchId: string | null;
+  target: QueueItem | null;
+  isAdmin: boolean;
   onClose: () => void;
 }) {
-  const query = useStaffRevealContacts(matchId);
+  const reveal = useRevealStaffContact();
+  const needsOverride =
+    target !== null && !canRevealContact(target.status) && isAdmin;
+  const [reason, setReason] = useState("");
+
+  useEffect(() => {
+    // Ao abrir/fechar, limpa segredos e input.
+    reveal.reset();
+    setReason("");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target?.id]);
+
+  async function handleReveal() {
+    if (!target) return;
+    let overrideReason: string | undefined;
+    if (needsOverride) {
+      const parsed = adminRevealOverrideSchema.safeParse(reason);
+      if (!parsed.success) {
+        toast.error(
+          parsed.error.issues[0]?.message ?? "Justificativa inválida.",
+        );
+        return;
+      }
+      overrideReason = parsed.data;
+    }
+    try {
+      await reveal.mutateAsync({
+        matchId: target.match_id,
+        overrideReason,
+      });
+    } catch (err) {
+      toast.error(translateStaffRevealError(err));
+    }
+  }
+
+  function handleClose() {
+    reveal.reset();
+    setReason("");
+    onClose();
+  }
+
   return (
-    <Dialog open={matchId !== null} onOpenChange={(o) => !o && onClose()}>
+    <Dialog open={target !== null} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Contatos dos participantes</DialogTitle>
@@ -1009,15 +1284,65 @@ function RevealContactDialog({
             auditoria.
           </DialogDescription>
         </DialogHeader>
-        {query.isLoading && <Skeleton className="h-24 w-full" />}
-        {query.isError && (
+
+        {target && !reveal.data && (
+          <div className="space-y-3">
+            {needsOverride ? (
+              <>
+                <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+                  <p className="flex items-center gap-1 font-medium">
+                    <ShieldAlert className="h-4 w-4" /> Liberação
+                    administrativa
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    A conexão ainda não chegou em "Apresentados". Justifique
+                    (3 a 500 caracteres) para liberar os contatos. Fica no
+                    log.
+                  </p>
+                </div>
+                <Textarea
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value)}
+                  rows={3}
+                  maxLength={500}
+                  placeholder="Ex.: participante confirmou saída, precisamos entregar contato agora."
+                />
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                Confirma revelar os contatos das duas partes?
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                onClick={handleClose}
+                disabled={reveal.isPending}
+              >
+                Voltar
+              </Button>
+              <Button
+                onClick={handleReveal}
+                disabled={
+                  reveal.isPending ||
+                  (needsOverride && reason.trim().length < 3)
+                }
+              >
+                {reveal.isPending ? "Carregando…" : "Revelar contatos"}
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {reveal.isError && !reveal.data && (
           <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            {translateStaffRevealError(query.error)}
+            {translateStaffRevealError(reveal.error)}
           </p>
         )}
-        {query.data && (
+
+        {reveal.data && (
           <div className="space-y-3">
-            {query.data.map((c) => (
+            {reveal.data.map((c) => (
               <div key={c.profileId} className="rounded-lg border p-3">
                 <p className="font-medium">{c.name}</p>
                 <p className="text-xs text-muted-foreground">{c.company}</p>
@@ -1053,6 +1378,11 @@ function RevealContactDialog({
                 </div>
               </div>
             ))}
+            <div className="flex justify-end">
+              <Button variant="ghost" onClick={handleClose}>
+                Fechar
+              </Button>
+            </div>
           </div>
         )}
       </DialogContent>
