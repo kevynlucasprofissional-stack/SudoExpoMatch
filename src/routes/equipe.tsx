@@ -97,8 +97,6 @@ import {
   CONNECTION_STATUS_LABEL,
   CONNECTION_STATUS_TONE,
   NEXT_CONNECTION_STATUS,
-  advanceCtaLabel,
-  canAddInternalNote,
   canAssume,
   canOperate,
   canRevealContact,
@@ -106,11 +104,14 @@ import {
   translateOperationalError,
 } from "@/features/connections/domain";
 import {
-  formatDurationPt,
-  formatDurationShortPt,
   secondsSince,
-  stageStartAt,
 } from "@/features/connections/time";
+import {
+  canAddInternalNote,
+  eligibleReassignees,
+  formatElapsedSeconds,
+  getOperationalCta,
+} from "@/features/staff/operationalUi";
 
 
 export const Route = createFileRoute("/equipe")({
@@ -651,7 +652,6 @@ function StaffDashboard({
         onClose={() => setDetailId(null)}
         userId={userId}
         isAdmin={isAdmin}
-        role={role}
       />
 
       {/* Cancelar (nota obrigatória 3–500) */}
@@ -880,10 +880,10 @@ function ConnectionCard({
               Criada {new Date(c.created_at).toLocaleString("pt-BR")}
             </span>
             <span className="text-xs text-muted-foreground" title="Tempo total desde a criação">
-              · Espera {formatDurationShortPt(c.seconds_waiting)}
+              · Espera: {formatElapsedSeconds(c.seconds_waiting)}
             </span>
             <span className="text-xs text-muted-foreground" title="Tempo na etapa atual">
-              · Etapa {formatDurationShortPt(c.seconds_in_stage)}
+              · Nesta etapa: {formatElapsedSeconds(c.seconds_in_stage)}
             </span>
           </div>
           <p className="mt-2 font-medium">
@@ -935,14 +935,14 @@ function ConnectionCard({
           {nextStatus &&
             canOp &&
             c.status !== "aguardando" &&
-            advanceCtaLabel(c.status) && (
+            getOperationalCta(c.status) && (
               <Button
                 size="sm"
                 onClick={() => onAdvance(c, nextStatus)}
                 disabled={busy}
                 title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
               >
-                {advanceCtaLabel(c.status)}
+                {getOperationalCta(c.status)}
               </Button>
             )}
           {!isTerminalStatus(c.status) && canOp && (
@@ -967,13 +967,11 @@ function ConnectionDetailDrawer({
   onClose,
   userId: _userId,
   isAdmin,
-  role,
 }: {
   connectionId: string | null;
   onClose: () => void;
   userId: string;
   isAdmin: boolean;
-  role: "admin" | "staff";
 }) {
   const q = useConnectionDetail(connectionId);
   const addNote = useAddConnectionNote(EVENT_ID);
@@ -1004,16 +1002,20 @@ function ConnectionDetailDrawer({
 
   async function handleReassign() {
     if (!connectionId || !reassignTo) return;
-    const trimmed = reassignNote.trim();
-    if (trimmed.length > 500) {
-      toast.error("A observação da reatribuição deve ter no máximo 500 caracteres.");
+    const parsed = optionalStaffNoteSchema.safeParse(
+      reassignNote || undefined,
+    );
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? "Observação inválida.",
+      );
       return;
     }
     try {
       await reassign.mutateAsync({
         connectionId,
         newUserId: reassignTo,
-        note: trimmed.length > 0 ? trimmed : undefined,
+        note: parsed.data,
       });
       toast.success("Conexão reatribuída.");
       setReassignTo("");
@@ -1071,17 +1073,13 @@ function ConnectionDetailDrawer({
                 <div>
                   <span className="opacity-70">Tempo na etapa atual: </span>
                   <span className="font-medium">
-                    {formatDurationPt(
-                      secondsSince(
-                        stageStartAt(q.data),
-                      ),
-                    )}
+                    {formatElapsedSeconds(secondsSince(q.data.updated_at))}
                   </span>
                 </div>
                 <div>
                   <span className="opacity-70">Tempo total desde a criação: </span>
                   <span className="font-medium">
-                    {formatDurationPt(secondsSince(q.data.created_at))}
+                    {formatElapsedSeconds(secondsSince(q.data.created_at))}
                   </span>
                 </div>
               </div>
@@ -1167,7 +1165,7 @@ function ConnectionDetailDrawer({
                   </li>
                 )}
               </ul>
-              {canAddInternalNote(role) && (
+              {canAddInternalNote() && (
                 <div className="mt-2 space-y-2">
                   <Textarea
                     value={noteInput}
@@ -1200,8 +1198,9 @@ function ConnectionDetailDrawer({
                   <ArrowRightLeft className="h-4 w-4" /> Reatribuir
                 </h3>
                 {(() => {
-                  const eligible = (staffMembers.data ?? []).filter(
-                    (m) => m.userId !== q.data.assigned_to,
+                  const eligible = eligibleReassignees(
+                    staffMembers.data ?? [],
+                    q.data.assigned_to,
                   );
                   if (eligible.length === 0) {
                     return (
