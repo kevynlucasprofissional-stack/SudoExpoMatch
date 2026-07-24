@@ -33,10 +33,11 @@ const norm = (s: string) =>
     .replace(/[\u0300-\u036f]/g, "");
 
 /**
- * Provedor heurístico determinístico. Devolve APENAS itens cujo
- * `taxonomyItemId` existe no catálogo real recebido; caso não haja
- * correspondência, retorna `taxonomyItemId: null` (será tratado como
- * "Outro" pelo wizard). NUNCA cria segmentos ou itens fora do catálogo.
+ * Provedor heurístico determinístico sobre o catálogo REAL do banco.
+ * - `taxonomyItemId` só é preenchido quando o item existe no catálogo recebido.
+ * - Itens sem correspondência viram `taxonomyItemId: null` ("Outro").
+ * - Nunca cria segmentos/itens fora do catálogo.
+ * - Falha na sugestão não deve bloquear o wizard (a rota captura).
  */
 export const heuristicSuggestionProvider: SuggestionProvider = {
   async suggest({ segmentId, summary, catalog }) {
@@ -45,11 +46,10 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
     const validIds = new Set(catalog.taxonomy.map((t) => t.id));
     const summaryNorm = norm(summary);
 
-    // Ofertas: primeiros itens do catálogo para o segmento (offer|both)
-    const segTax = catalog.taxonomy.filter(
-      (t) => t.segmentId === segmentId || t.segment_id === segmentId,
+    const segTax = catalog.taxonomy.filter((t) => t.segment_id === segmentId);
+    const segOffers = segTax.filter(
+      (t) => t.kind === "offer" || t.kind === "both",
     );
-    const segOffers = segTax.filter((t) => t.kind === "offer" || t.kind === "both");
     for (const t of segOffers.slice(0, 5)) {
       items.push({
         taxonomyItemId: validIds.has(t.id) ? t.id : null,
@@ -59,16 +59,18 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
       });
     }
 
-    // Necessidades: itens `need|both` que combinam com palavras-chave do resumo
     const words = new Set(summaryNorm.split(/[^a-z0-9]+/).filter(Boolean));
-    const segNeeds = segTax.filter((t) => t.kind === "need" || t.kind === "both");
+    const segNeeds = segTax.filter(
+      (t) => t.kind === "need" || t.kind === "both",
+    );
     for (const t of segNeeds) {
+      if (items.filter((i) => i.kind === "need").length >= 3) break;
       const nLabel = norm(t.label);
       const kw = KEYWORDS[segmentId] ?? [];
-      const matches =
+      const hits =
         kw.some((k) => summaryNorm.includes(k)) ||
-        Array.from(words).some((w) => nLabel.includes(w));
-      if (matches && items.filter((i) => i.kind === "need").length < 3) {
+        Array.from(words).some((w) => w.length > 3 && nLabel.includes(w));
+      if (hits) {
         items.push({
           taxonomyItemId: validIds.has(t.id) ? t.id : null,
           label: t.label,
@@ -78,14 +80,6 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
       }
     }
 
-    const validated = suggestionResultSchema.parse({ items });
-    return validated;
+    return suggestionResultSchema.parse({ items });
   },
 };
-
-/** Auxiliar para acessar o campo do catálogo em compat com `segment_id`. */
-declare module "@/features/participant/types" {
-  interface CatalogTaxonomyItem {
-    segmentId?: string; // compat
-  }
-}
