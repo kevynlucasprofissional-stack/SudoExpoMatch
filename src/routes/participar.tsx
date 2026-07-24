@@ -616,7 +616,7 @@ function WizardPage() {
             mode={mode}
             catalog={catalog}
             validation={validation}
-            catalogFallback={catalogFallback}
+            catalogFallback={manualCatalogMode}
           />
         )}
       </section>
