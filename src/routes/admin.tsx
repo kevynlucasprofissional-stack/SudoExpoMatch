@@ -42,6 +42,7 @@ import {
   type StaffMember,
   type AppRole,
 } from "@/features/admin/useEventStaff";
+import { OperationalStatsCard } from "@/features/staff/OperationalStatsCard";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
