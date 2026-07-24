@@ -177,6 +177,10 @@ export type ErrorCode =
   | "decision_locked_by_connection"
   | "profile_not_found"
   | "reveal_forbidden"
+  | "not_mutual"
+  | "not_yet_introduced"
+  | "contact_sharing_disabled"
+  | "contact_unavailable"
   | "invalid_response"
   | "network"
   | "unknown";
