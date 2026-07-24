@@ -11,8 +11,17 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   Heart,
   HeartHandshake,
+  KeyRound,
+  Loader2,
   LogOut,
   MapPin,
   MessageCircle,
@@ -21,9 +30,16 @@ import {
 } from "lucide-react";
 
 import { store, useStoreSelector } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import { LABEL_TEXT } from "@/domains/matching/score";
 import { SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
 import type { Match, Profile } from "@/lib/types";
+import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
+import {
+  translateRevealError,
+  useRevealContact,
+  type RevealedContact,
+} from "@/features/connections/useRevealContact";
 
 export const Route = createFileRoute("/participante")({
   head: () => ({
