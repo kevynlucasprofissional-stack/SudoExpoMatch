@@ -339,7 +339,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               </p>
             </div>
             <Button asChild size="sm">
-              <Link to="/equipe">Abrir fila de conexões</Link>
+              <Link to="/equipe">Abrir fila operacional</Link>
             </Button>
           </div>
           <OperationalStatsCard eventId={EVENT_ID} />
