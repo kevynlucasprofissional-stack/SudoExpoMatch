@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -33,6 +33,7 @@ import { recomputeOwnMatches } from "@/features/matching/api";
 import { useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/features/participant/queryKeys";
 
+import type { EventCatalog } from "@/features/participant/types";
 import type { WizardDraft, WizardMode } from "@/features/onboarding/types";
 import {
   clearWizardDraft,
@@ -60,6 +61,7 @@ import {
   StepPriority,
   StepReview,
 } from "@/features/onboarding/steps";
+import { validateWizardForSubmit } from "@/features/onboarding/validate";
 
 export const Route = createFileRoute("/participar")({
   head: () => ({
@@ -109,18 +111,19 @@ function WizardPage() {
   const runningRef = useRef(false);
 
   // ------------------------------------------------------------------
-  // Hidratação de rascunho + perfil (conflito controlado)
+  // Hidratação — só quando sessão pronta E perfil resolvido com sucesso.
+  // Se profileQuery falhar, NÃO hidrata (evita "usuário novo" fantasma).
   // ------------------------------------------------------------------
   useEffect(() => {
     if (!session.isReady) return;
     if (profileQuery.isPending) return;
+    if (profileQuery.isError) return;
     if (hydrated) return;
     purgeLegacyDraft();
     const loaded = loadWizardDraft();
     const hasProfile = !!profileQuery.data;
 
     if (hasProfile && loaded) {
-      // Conflito: aguarda escolha explícita.
       setDraft(loaded.draft);
       setMode("edit");
       setShowConflict(true);
@@ -142,9 +145,15 @@ function WizardPage() {
     setDraft(createEmptyDraft());
     setMode("create");
     setHydrated(true);
-  }, [session.isReady, profileQuery.isPending, profileQuery.data, hydrated]);
+  }, [
+    session.isReady,
+    profileQuery.isPending,
+    profileQuery.isError,
+    profileQuery.data,
+    hydrated,
+  ]);
 
-  // Persistência: só depois de hidratado e antes da conclusão.
+  // Persistência: apenas depois de hidratado e antes de completar.
   useEffect(() => {
     if (!hydrated) return;
     if (submit.stage === "completed") return;
@@ -161,10 +170,10 @@ function WizardPage() {
   function back() {
     setDraft((d) => ({ ...d, step: Math.max(d.step - 1, 0) }));
   }
+  const goToIdentity = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 0 }));
+  }, []);
 
-  // ------------------------------------------------------------------
-  // Conflito rascunho x perfil
-  // ------------------------------------------------------------------
   function loadServerProfile() {
     if (!profileQuery.data) return;
     clearWizardDraft();
@@ -173,16 +182,68 @@ function WizardPage() {
     setShowConflict(false);
   }
   function continueDraft() {
-    // Rascunho preservado, mas como o perfil já existe permanecemos em edição.
     setMode("edit");
     setShowConflict(false);
   }
 
   // ------------------------------------------------------------------
-  // Máquina de submit — orquestração de fases
+  // Catálogo — modo manual quando indisponível
+  // ------------------------------------------------------------------
+  // Se o catálogo falhou/está vazio mas já existe segmentId no perfil ou
+  // rascunho, seguimos em modo manual usando esse segmento como autoridade.
+  const catalogFallback = !catalogQuery.data;
+  const fallbackSegmentId = draft.segmentId?.trim() || "";
+  const canFallback = catalogFallback && !!fallbackSegmentId;
+  const manualCatalog = useMemo<EventCatalog>(
+    () => ({
+      segments: fallbackSegmentId
+        ? [
+            {
+              id: fallbackSegmentId,
+              label: fallbackSegmentId,
+              emoji: null,
+            },
+          ]
+        : [],
+      taxonomy: [],
+    }),
+    [fallbackSegmentId],
+  );
+  const effectiveCatalog: EventCatalog | null =
+    catalogQuery.data ?? (canFallback ? manualCatalog : null);
+
+  const runRecompute = useCallback(async () => {
+    try {
+      await recomputeOwnMatches(EVENT_ID);
+      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      dispatch({ type: "MATCH_OK" });
+      clearWizardDraft();
+      toast.success(
+        mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
+      );
+      navigate({ to: "/participante" });
+    } catch (err) {
+      dispatch({ type: "MATCH_FAIL" });
+      toast.error(
+        errorToUserMessage(err, "Não conseguimos calcular seus matches agora."),
+      );
+    }
+  }, [mode, navigate, qc]);
+
+  // ------------------------------------------------------------------
+  // Submit — sempre revalida antes de disparar qualquer RPC.
   // ------------------------------------------------------------------
   const startSubmit = useCallback(async () => {
     if (runningRef.current) return;
+
+    // Defesa em profundidade: mesmo com botão habilitado, revalida.
+    const v = validateWizardForSubmit({ draft, mode, phone });
+    if (!v.ok) {
+      toast.error(v.message);
+      if (v.reason === "phone") goToIdentity();
+      return;
+    }
+
     runningRef.current = true;
     try {
       const phoneE164 = phone.trim() ? normalizePhoneE164(phone) : null;
@@ -223,30 +284,11 @@ function WizardPage() {
         }
       }
 
-      // Edição: pula direto para matching
       await runRecompute();
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc]);
-
-  const runRecompute = useCallback(async () => {
-    try {
-      await recomputeOwnMatches(EVENT_ID);
-      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
-      dispatch({ type: "MATCH_OK" });
-      clearWizardDraft();
-      toast.success(
-        mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
-      );
-      navigate({ to: "/participante" });
-    } catch (err) {
-      dispatch({ type: "MATCH_FAIL" });
-      toast.error(
-        errorToUserMessage(err, "Não conseguimos calcular seus matches agora."),
-      );
-    }
-  }, [mode, navigate, qc]);
+  }, [draft, mode, phone, qc, runRecompute, goToIdentity]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -328,18 +370,10 @@ function WizardPage() {
   }, [navigate]);
 
   // ------------------------------------------------------------------
-  // Guardas de renderização
+  // Guardas de renderização — ORDEM IMPORTA:
+  // 1) session error, 2) session loading, 3) profile error, 4) profile loading,
+  // 5) hidratação, 6) catálogo (bloqueio SÓ se sem segmento autoritativo).
   // ------------------------------------------------------------------
-  if (session.status === "loading" || !hydrated) {
-    return (
-      <PageShell>
-        <section className="mx-auto max-w-2xl px-4 py-12">
-          <Skeleton className="h-6 w-40" />
-          <Skeleton className="mt-4 h-64 w-full" />
-        </section>
-      </PageShell>
-    );
-  }
   if (session.status === "error") {
     return (
       <PageShell>
@@ -349,7 +383,11 @@ function WizardPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Não foi possível iniciar sua sessão. Verifique sua internet.
             </p>
-            <Button className="mt-4" onClick={() => void session.retry()}>
+            <Button
+              className="mt-4"
+              onClick={() => void session.retry()}
+              disabled={session.status !== "error"}
+            >
               Tentar novamente
             </Button>
           </Card>
@@ -357,7 +395,52 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (catalogQuery.isPending) {
+  if (session.status === "loading") {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="mt-4 h-64 w-full" />
+        </section>
+      </PageShell>
+    );
+  }
+  if (profileQuery.isError) {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12">
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">
+              Não foi possível carregar seu perfil
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Não conseguimos verificar se você já tem um perfil neste evento.
+              Sem essa verificação, o wizard não pode continuar com segurança.
+            </p>
+            <Button
+              className="mt-4"
+              onClick={() => void profileQuery.refetch()}
+              disabled={profileQuery.isFetching}
+              aria-busy={profileQuery.isFetching}
+            >
+              {profileQuery.isFetching ? "Tentando…" : "Tentar novamente"}
+            </Button>
+          </Card>
+        </section>
+      </PageShell>
+    );
+  }
+  if (profileQuery.isPending || !hydrated) {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="mt-4 h-64 w-full" />
+        </section>
+      </PageShell>
+    );
+  }
+  if (catalogQuery.isPending && !effectiveCatalog) {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12 space-y-3">
@@ -368,17 +451,24 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (catalogQuery.isError || !catalogQuery.data) {
+  if (!effectiveCatalog) {
+    // Novo participante sem segmento autoritativo — impossível continuar.
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
           <Card className="p-6">
             <h2 className="text-lg font-semibold">Catálogo indisponível</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Não conseguimos carregar segmentos e taxonomia do evento.
+              Não conseguimos carregar segmentos e taxonomia do evento. Para
+              criar um perfil novo é necessário que o catálogo esteja disponível.
             </p>
-            <Button className="mt-4" onClick={() => void catalogQuery.refetch()}>
-              Tentar novamente
+            <Button
+              className="mt-4"
+              onClick={() => void catalogQuery.refetch()}
+              disabled={catalogQuery.isFetching}
+              aria-busy={catalogQuery.isFetching}
+            >
+              {catalogQuery.isFetching ? "Tentando…" : "Tentar novamente"}
             </Button>
           </Card>
         </section>
@@ -386,9 +476,10 @@ function WizardPage() {
     );
   }
 
-  const catalog = catalogQuery.data;
+  const catalog = effectiveCatalog;
   const step = draft.step;
   const progress = ((step + 1) / STEPS.length) * 100;
+  const validation = validateWizardForSubmit({ draft, mode, phone });
 
   return (
     <PageShell>
@@ -396,6 +487,29 @@ function WizardPage() {
         {mode === "edit" && !showConflict && (
           <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
             Você está editando seu perfil.
+          </div>
+        )}
+
+        {catalogFallback && (
+          <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+            <p className="font-medium">Catálogo indisponível — modo manual</p>
+            <p className="mt-1 text-muted-foreground">
+              Segmento atual: <span className="font-medium">{fallbackSegmentId}</span>.
+              Você pode continuar editando; novos itens serão salvos como "Outro".
+            </p>
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void catalogQuery.refetch()}
+                disabled={catalogQuery.isFetching}
+                aria-busy={catalogQuery.isFetching}
+              >
+                {catalogQuery.isFetching
+                  ? "Tentando…"
+                  : "Tentar carregar catálogo novamente"}
+              </Button>
+            </div>
           </div>
         )}
 
@@ -463,9 +577,12 @@ function WizardPage() {
             onRetryCode={() => void retryCode()}
             onRetryMatch={() => void retryMatch()}
             onGoToPanel={goToPanel}
+            onGoToIdentity={goToIdentity}
             submit={submit}
             mode={mode}
             catalog={catalog}
+            validation={validation}
+            catalogFallback={catalogFallback}
           />
         )}
       </section>
