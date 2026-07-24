@@ -1,61 +1,62 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { NeedKind } from "@/lib/types";
-import { ensureAnonSession } from "./session";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { qk } from "./queryKeys";
+import {
+  getOwnProfile,
+  rotateOwnRecoveryCode,
+  saveOwnProfile,
+  setOwnContact,
+  ApiError,
+} from "./api";
+import { recomputeOwnMatches } from "@/features/matching/api";
+import type {
+  OwnProfileDTO,
+  SaveOwnProfileInput as ApiSaveOwnProfileInput,
+  ErrorCode,
+} from "./types";
 
-export interface OwnProfileOffer {
-  id: string;
-  label: string;
-  detail: string | null;
-  segment_id: string;
-  taxonomy_item_id: string | null;
-}
-export interface OwnProfileNeed extends OwnProfileOffer {
-  need_kind: NeedKind;
-  is_priority: boolean;
-}
-export interface OwnProfileDTO {
-  id: string;
-  event_id: string;
-  name: string;
-  company: string;
-  city: string;
-  neighborhood: string | null;
-  segment_id: string;
-  summary: string;
-  consent: boolean;
-  created_at: string;
-  updated_at: string;
-  offers: OwnProfileOffer[];
-  needs: OwnProfileNeed[];
-}
+// Re-exports para compat com routes existentes.
+export type {
+  OwnProfileDTO,
+  OwnProfileOffer,
+  OwnProfileNeed,
+} from "./types";
 
-export const ownProfileKey = (eventId: string) => ["own-profile", eventId] as const;
+export const ownProfileKey = qk.ownProfile;
 
-async function fetchOwnProfile(eventId: string): Promise<OwnProfileDTO | null> {
-  await ensureAnonSession();
-  const { data, error } = await supabase.rpc("get_own_profile_v2", { _event_id: eventId });
-  if (error) throw error;
-  return (data as unknown as OwnProfileDTO | null) ?? null;
+export function translateSaveProfileError(codeOrMsg: string): string {
+  const msg = codeOrMsg;
+  if (msg.includes("not_authenticated") || msg.includes("sign_in_failed"))
+    return "Sessão expirada. Recarregue a página.";
+  if (msg.includes("consent_required")) return "É preciso aceitar o consentimento.";
+  if (msg.includes("event_not_active")) return "O evento não está ativo.";
+  if (msg.includes("missing_fields")) return "Preencha todos os campos obrigatórios.";
+  if (msg.includes("field_too_long")) return "Algum campo passou do limite de caracteres.";
+  if (msg.includes("invalid_segment")) return "Segmento inválido.";
+  if (msg.includes("invalid_offers_count")) return "Você precisa ter entre 1 e 5 ofertas.";
+  if (msg.includes("invalid_needs_count")) return "Você precisa ter entre 1 e 5 necessidades.";
+  return "Não foi possível salvar seu perfil. Tente novamente.";
 }
 
-export function useOwnProfile(eventId: string) {
+export function useOwnProfile(eventId: string, opts?: { enabled?: boolean }) {
   return useQuery({
-    queryKey: ownProfileKey(eventId),
-    queryFn: () => fetchOwnProfile(eventId),
+    queryKey: qk.ownProfile(eventId),
+    queryFn: () => getOwnProfile(eventId),
+    enabled: opts?.enabled ?? true,
     staleTime: 15_000,
   });
 }
 
-// ---------- Save ----------
+// ---------- Save (fluxo legado, mantido para compat da Onda A) ----------
+// A Onda B substituirá este entry-point por mutações separadas orquestradas
+// pela máquina de submit (perfil / contato / código / matching).
 export interface SaveOfferInput {
   label: string;
   detail?: string;
   segment_id?: string;
-  taxonomy_item_id?: string;
+  taxonomy_item_id?: string | null;
 }
 export interface SaveNeedInput extends SaveOfferInput {
-  need_kind: NeedKind;
+  need_kind: import("@/lib/types").NeedKind;
   is_priority?: boolean;
 }
 export interface SaveOwnProfileInput {
@@ -77,33 +78,25 @@ export interface SaveOwnProfileResult {
   recoveryCode: string | null;
 }
 
-export function translateSaveProfileError(msg: string): string {
-  if (msg.includes("not_authenticated")) return "Sessão expirada. Recarregue a página.";
-  if (msg.includes("consent_required")) return "É preciso aceitar o consentimento.";
-  if (msg.includes("event_not_active")) return "O evento não está ativo.";
-  if (msg.includes("missing_fields")) return "Preencha todos os campos obrigatórios.";
-  if (msg.includes("field_too_long")) return "Algum campo passou do limite de caracteres.";
-  if (msg.includes("invalid_segment")) return "Segmento inválido.";
-  if (msg.includes("invalid_offers_count")) return "Você precisa ter entre 1 e 5 ofertas.";
-  if (msg.includes("invalid_needs_count")) return "Você precisa ter entre 1 e 5 necessidades.";
-  return "Não foi possível salvar seu perfil. Tente novamente.";
+function toCode(err: unknown): ErrorCode {
+  return err instanceof ApiError ? err.code : "unknown";
 }
 
 export function useSaveOwnProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: SaveOwnProfileInput): Promise<SaveOwnProfileResult> => {
-      await ensureAnonSession();
-      const payload = {
-        event_id: input.eventId,
+    mutationFn: async (
+      input: SaveOwnProfileInput,
+    ): Promise<SaveOwnProfileResult> => {
+      const apiInput: ApiSaveOwnProfileInput = {
+        eventId: input.eventId,
         name: input.name,
         company: input.company,
         city: input.city,
         neighborhood: input.neighborhood ?? null,
-        segment_id: input.segmentId,
+        segmentId: input.segmentId,
         summary: input.summary,
         consent: input.consent,
-        policy_version: "1",
         offers: input.offers.map((o) => ({
           label: o.label,
           detail: o.detail ?? null,
@@ -119,37 +112,49 @@ export function useSaveOwnProfile() {
           is_priority: n.is_priority ?? false,
         })),
       };
-      const { data: savedId, error } = await supabase.rpc("save_own_profile_v2", {
-        _payload: payload,
-      });
-      if (error) throw new Error(translateSaveProfileError(error.message));
-      const profileId = savedId as string;
-
-      if (input.whatsapp) {
-        const { error: cErr } = await supabase.rpc("set_own_contact", {
-          _phone_e164: input.whatsapp,
-          _sharing: true,
-        });
-        if (cErr) console.warn("[sudoexpo] set_own_contact:", cErr.message);
+      let profileId: string;
+      try {
+        profileId = await saveOwnProfile(apiInput);
+      } catch (err) {
+        throw new Error(translateSaveProfileError(toCode(err)));
       }
 
-      // Gera código de recuperação (mostrado apenas uma vez, em memória).
-      let recoveryCode: string | null = null;
-      const { data: code, error: rErr } = await supabase.rpc("rotate_own_recovery_code");
-      if (!rErr && code) recoveryCode = code as string;
+      if (input.whatsapp) {
+        // Falhas de contato NÃO são silenciadas: sobem para o chamador.
+        // Onda B irá tratá-las com máquina de submit + retry parcial.
+        try {
+          await setOwnContact({ phone_e164: input.whatsapp, sharing: true });
+        } catch (err) {
+          throw new Error(
+            toCode(err) === "invalid_input"
+              ? "WhatsApp inválido. Confira o número e tente novamente."
+              : "Perfil salvo, mas o contato não foi registrado. Tente novamente.",
+          );
+        }
+      }
 
-      // Backend calcula matches; erros de recompute não bloqueiam o fluxo.
-      const { error: mErr } = await supabase.rpc("recompute_own_matches", {
-        _event_id: input.eventId,
-      });
-      if (mErr) console.warn("[sudoexpo] recompute_own_matches:", mErr.message);
+      let recoveryCode: string | null = null;
+      try {
+        recoveryCode = await rotateOwnRecoveryCode();
+      } catch {
+        // Onda B trata via máquina de submit; aqui mantemos comportamento
+        // atual (código opcional) sem persistir mensagens sensíveis.
+        recoveryCode = null;
+      }
+
+      try {
+        await recomputeOwnMatches(input.eventId);
+      } catch {
+        // Falhas de recompute não bloqueiam o fluxo legado; Onda B
+        // exibirá painel de retry dedicado.
+      }
 
       return { profileId, recoveryCode };
     },
     onSuccess: (_r, input) => {
-      qc.invalidateQueries({ queryKey: ownProfileKey(input.eventId) });
-      qc.invalidateQueries({ queryKey: ["own-matches", input.eventId] });
-      qc.invalidateQueries({ queryKey: ["stats", input.eventId] });
+      qc.invalidateQueries({ queryKey: qk.ownProfile(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.ownMatches(input.eventId) });
+      qc.invalidateQueries({ queryKey: qk.publicStats(input.eventId) });
     },
   });
 }
