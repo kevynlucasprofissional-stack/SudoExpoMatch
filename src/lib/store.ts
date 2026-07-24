@@ -263,10 +263,15 @@ export const store = {
     window.localStorage.removeItem(KEY);
     window.localStorage.removeItem(SESSION_KEY);
     cache = { ...EMPTY };
+    lastDbSignature = "";
     hydrated = false;
+    dbVersion++;
+    sessionVersion++;
     window.dispatchEvent(new CustomEvent("sudoexpo:db"));
+    window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     hydrate();
   },
+
   all(): DB {
     return loadCache();
   },
