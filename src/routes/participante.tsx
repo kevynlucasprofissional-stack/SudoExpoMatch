@@ -18,6 +18,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Heart,
   HeartHandshake,
   KeyRound,
@@ -27,6 +37,8 @@ import {
   MessageCircle,
   Sparkles,
   X,
+  Copy,
+  Check,
 } from "lucide-react";
 
 import { store, useStoreSelector } from "@/lib/store";
@@ -35,6 +47,10 @@ import { LABEL_TEXT } from "@/domains/matching/score";
 import { SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
 import type { Match, Profile } from "@/lib/types";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
+import {
+  canParticipantRevealContact,
+  PARTICIPANT_STATUS_MESSAGE,
+} from "@/features/connections/eligibility";
 import {
   translateRevealError,
   useRevealContact,
@@ -158,8 +174,10 @@ function ParticipantPage() {
 function RotateRecoveryButton() {
   const [loading, setLoading] = useState(false);
   const [code, setCode] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   async function rotate() {
+    setConfirmOpen(false);
     setLoading(true);
     try {
       const { data, error } = await supabase.rpc("rotate_own_recovery_code");
@@ -172,9 +190,19 @@ function RotateRecoveryButton() {
     }
   }
 
+  function handleClose() {
+    // Limpa o código da memória após confirmação de que foi salvo.
+    setCode(null);
+  }
+
   return (
     <>
-      <Button variant="outline" size="sm" onClick={rotate} disabled={loading}>
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => setConfirmOpen(true)}
+        disabled={loading}
+      >
         {loading ? (
           <Loader2 className="mr-1 h-4 w-4 animate-spin" />
         ) : (
@@ -182,10 +210,29 @@ function RotateRecoveryButton() {
         )}
         Gerar novo código
       </Button>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Gerar um novo código de recuperação?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O código anterior deixará de funcionar imediatamente. Você precisará
+              salvar o novo código em local seguro — ele será exibido apenas uma vez.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Voltar</AlertDialogCancel>
+            <AlertDialogAction onClick={rotate}>
+              Gerar novo código
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <RecoveryCodeDialog
         open={code !== null}
         code={code}
-        onConfirm={() => setCode(null)}
+        onConfirm={handleClose}
         title="Seu novo código de recuperação"
         description="Guarde-o em local seguro. O código anterior deixou de funcionar."
       />
@@ -428,10 +475,9 @@ function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) 
   // Status real derivado do store (reflete Realtime da equipe).
   const conn = useStoreSelector(() => store.connectionForMatch(matchId));
   const status = conn?.status ?? "aguardando";
-  const canReveal =
-    status === "apresentados" ||
-    status === "contato_trocado" ||
-    status === "concluido";
+  const canReveal = canParticipantRevealContact(status);
+  const isCancelled = status === "cancelado";
+  const statusMessage = PARTICIPANT_STATUS_MESSAGE[status];
 
   async function handleReveal() {
     setOpen(true);
@@ -453,25 +499,24 @@ function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) 
             {CONN_LABEL[status]}
           </Badge>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleReveal}
-          disabled={loading || !canReveal}
-          title={
-            canReveal
-              ? "Ver contato"
-              : "A equipe da ACIRV vai apresentar vocês no evento."
-          }
-        >
-          {loading ? (
-            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
-          ) : (
-            <MessageCircle className="mr-1 h-4 w-4" />
-          )}
-          Ver contato
-        </Button>
+        {!isCancelled && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleReveal}
+            disabled={loading || !canReveal}
+          >
+            {loading ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <MessageCircle className="mr-1 h-4 w-4" />
+            )}
+            Ver contato
+          </Button>
+        )}
       </div>
+
+      <p className="mt-3 text-xs text-muted-foreground">{statusMessage}</p>
 
       <Dialog
         open={open}
@@ -501,19 +546,47 @@ function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) 
 }
 
 function RevealedContactBlock({ contact }: { contact: RevealedContact }) {
+  const [copied, setCopied] = useState(false);
+
+  async function copyPhone() {
+    if (!contact.phone) return;
+    try {
+      await navigator.clipboard.writeText(contact.phone);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o telefone.");
+    }
+  }
+
   return (
     <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
       <p className="font-semibold">{contact.name}</p>
       <p className="text-xs text-muted-foreground">{contact.company}</p>
       {contact.phone ? (
-        <a
-          href={`https://wa.me/${contact.phone.replace(/\D/g, "")}`}
-          target="_blank"
-          rel="noreferrer"
-          className="flex items-center gap-1 text-primary hover:underline"
-        >
-          <MessageCircle className="h-4 w-4" /> {contact.phone}
-        </a>
+        <div className="flex items-center gap-2">
+          <a
+            href={`https://wa.me/${contact.phone.replace(/\D/g, "")}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1 text-primary hover:underline"
+          >
+            <MessageCircle className="h-4 w-4" /> {contact.phone}
+          </a>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="ml-auto h-7 px-2 text-xs"
+            onClick={copyPhone}
+            aria-label="Copiar telefone"
+          >
+            {copied ? (
+              <><Check className="mr-1 h-3.5 w-3.5" /> Copiado</>
+            ) : (
+              <><Copy className="mr-1 h-3.5 w-3.5" /> Copiar telefone</>
+            )}
+          </Button>
+        </div>
       ) : (
         <p className="text-muted-foreground">Sem WhatsApp cadastrado.</p>
       )}

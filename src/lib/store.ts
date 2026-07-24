@@ -418,13 +418,8 @@ export const store = {
     void callRecordDecision(matchId, decision).then(() => refreshTable("matches").then(() => refreshTable("connections")));
   },
 
-  /**
-   * @deprecated Código de recuperação nunca é persistido no cliente.
-   * O código é retornado apenas em memória por createProfile()/rotateRecoveryCode().
-   */
-  consumeLastRecoveryCode(): string | null {
-    return null;
-  },
+
+
 
   session: {
     /** ID do próprio perfil derivado de auth.uid(); localStorage é apenas dica. */

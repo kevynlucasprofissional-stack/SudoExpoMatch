@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
-import { LogOut, Mail, ShieldCheck } from "lucide-react";
+import { LogOut, Mail, ShieldCheck, RefreshCw } from "lucide-react";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -32,6 +31,7 @@ import {
   useStaffRevealContacts,
   type QueueItem,
 } from "@/features/staff/useConnectionsQueue";
+import { cancelNoteSchema, translateStaffRevealError } from "@/features/staff/schemas";
 import { signInWithPassword, signOut, loginSchema } from "@/features/auth/actions";
 
 export const Route = createFileRoute("/equipe")({
@@ -248,33 +248,49 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
     totalSegments: 0,
   };
 
+  const queueItems = queueQuery.data ?? [];
+  const queueCounts = useMemo(() => {
+    const c = { aguardando: 0, em_atendimento: 0, apresentados: 0, contato_trocado: 0, concluido: 0, cancelado: 0 };
+    for (const q of queueItems) c[q.status]++;
+    return c;
+  }, [queueItems]);
+
   async function handleAdvance(c: QueueItem, next: ConnectionStatus) {
     try {
       await advance.mutateAsync({ connectionId: c.id, newStatus: next });
       toast.success(`Status: ${LABELS[next]}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao atualizar.");
+      const msg = err instanceof Error ? err.message : "Falha ao atualizar.";
+      toast.error(msg);
+      // Concorrência: se a fila mudou por outro membro, re-sincroniza.
+      if (msg.toLowerCase().includes("transi") || msg.toLowerCase().includes("não encontrada")) {
+        queueQuery.refetch();
+      }
     }
   }
 
   async function handleConfirmCancel() {
     if (!cancelTarget) return;
-    const note = cancelNote.trim();
-    if (note.length < 3 || note.length > 500) {
-      toast.error("A observação precisa ter entre 3 e 500 caracteres.");
+    const parsed = cancelNoteSchema.safeParse(cancelNote);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Observação inválida.");
       return;
     }
     try {
       await advance.mutateAsync({
         connectionId: cancelTarget.id,
         newStatus: "cancelado",
-        note,
+        note: parsed.data,
       });
       toast.success("Conexão cancelada.");
       setCancelTarget(null);
       setCancelNote("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao cancelar.");
+      const msg = err instanceof Error ? err.message : "Falha ao cancelar.";
+      toast.error(msg);
+      if (msg.toLowerCase().includes("transi") || msg.toLowerCase().includes("não encontrada")) {
+        queueQuery.refetch();
+      }
     }
   }
 
@@ -305,12 +321,15 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
           </div>
         </header>
 
-        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-8">
           <Stat label="Perfis" value={stats.totalProfiles} />
           <Stat label="Matches" value={stats.totalMatches} />
           <Stat label="Mútuos" value={stats.mutualMatches} />
-          <Stat label="Conexões" value={stats.totalConnections} />
-          <Stat label="Concluídas" value={stats.completedConnections} />
+          <Stat label="Aguardando" value={queueCounts.aguardando} />
+          <Stat label="Em atendimento" value={queueCounts.em_atendimento} />
+          <Stat label="Apresentados" value={queueCounts.apresentados} />
+          <Stat label="Contato trocado" value={queueCounts.contato_trocado} />
+          <Stat label="Concluídas" value={queueCounts.concluido} />
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2">
@@ -325,8 +344,11 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
               {f}
             </Button>
           ))}
-          <span className="ml-auto self-center text-xs text-muted-foreground">
-            {items.length} conexõe(s) · Realtime ativo
+          <span
+            className="ml-auto self-center text-xs text-muted-foreground"
+            title="A fila é revalidada automaticamente quando o servidor envia mudanças."
+          >
+            {items.length} conexõe(s) · Atualização automática
           </span>
         </div>
 
@@ -335,6 +357,25 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
             <Skeleton className="h-24 w-full" />
             <Skeleton className="h-24 w-full" />
           </div>
+        ) : queueQuery.isError ? (
+          <Card className="p-6">
+            <p className="text-sm font-medium text-destructive">
+              Não foi possível carregar a fila.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {queueQuery.error instanceof Error ? queueQuery.error.message : "Erro desconhecido"}
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="mt-3"
+              onClick={() => queueQuery.refetch()}
+              disabled={queueQuery.isFetching}
+            >
+              <RefreshCw className={`mr-1 h-4 w-4 ${queueQuery.isFetching ? "animate-spin" : ""}`} />
+              Tentar novamente
+            </Button>
+          </Card>
         ) : items.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
             {filter === "pendentes"
@@ -421,10 +462,9 @@ function ConnectionCard({
   busy: boolean;
 }) {
   const nextStatus = NEXT_STATUS[c.status];
-  const canReveal =
-    c.status === "em_atendimento" ||
-    c.status === "apresentados" ||
-    c.status === "contato_trocado";
+  // "Ver contatos" fica disponível em todos os estados não cancelados —
+  // a RPC continua sendo a autoridade e valida match mútuo/conexão ativa.
+  const canReveal = c.status !== "cancelado";
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -493,7 +533,7 @@ function RevealContactDialog({
         {query.isLoading && <Skeleton className="h-24 w-full" />}
         {query.isError && (
           <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            Não foi possível carregar os contatos.
+            {translateStaffRevealError(query.error)}
           </p>
         )}
         {query.data && (
