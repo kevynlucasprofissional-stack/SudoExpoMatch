@@ -62,6 +62,9 @@ import {
   StepReview,
 } from "@/features/onboarding/steps";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
+import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
+import { resolveWizardPageState } from "@/features/onboarding/pageState";
+import { runWizardSubmit } from "@/features/onboarding/submitOrchestrator";
 
 export const Route = createFileRoute("/participar")({
   head: () => ({
