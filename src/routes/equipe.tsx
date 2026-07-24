@@ -1,10 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useSyncExternalStore } from "react";
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { store, subscribe } from "@/lib/store";
+import { store, useStoreSelector } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Connection, ConnectionStatus } from "@/lib/types";
@@ -42,12 +41,18 @@ const LABELS: Record<ConnectionStatus, string> = {
 };
 
 function StaffQueue() {
-  const snap = useSyncExternalStore(subscribe, () => store.all(), () => store.all());
-  const stats = store.stats();
-  const conns = [...snap.connections].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  );
-  const byId = new Map(snap.profiles.map((p) => [p.id, p]));
+  const view = useStoreSelector(() => {
+    const snap = store.all();
+    return {
+      stats: store.stats(),
+      conns: [...snap.connections].sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      ),
+      byId: new Map(snap.profiles.map((p) => [p.id, p])),
+    };
+  });
+  const { stats, conns, byId } = view;
+
 
   async function advance(c: Connection) {
     const next = NEXT_STATUS[c.status];
