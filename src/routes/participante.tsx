@@ -398,28 +398,89 @@ function ConnectionsList({
         const otherId = m.aProfileId === profile.id ? m.bProfileId : m.aProfileId;
         const other = store.getProfile(otherId);
         if (!other) return null;
-        return (
-          <Card key={m.id} className="p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <h4 className="font-display font-semibold">{other.company}</h4>
-                <p className="text-sm text-muted-foreground">
-                  {other.name} · {other.city}
-                </p>
-              </div>
-              <Button variant="outline" size="sm" asChild>
-                <a
-                  href={`https://wa.me/${other.whatsapp.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  <MessageCircle className="mr-1 h-4 w-4" /> WhatsApp
-                </a>
-              </Button>
-            </div>
-          </Card>
-        );
+        return <ConnectionRow key={m.id} matchId={m.id} other={other} />;
       })}
+    </div>
+  );
+}
+
+function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) {
+  const { contact, error, loading, reveal, clear } = useRevealContact();
+  const [open, setOpen] = useState(false);
+
+  async function handleReveal() {
+    setOpen(true);
+    await reveal(matchId);
+  }
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h4 className="font-display font-semibold">{other.company}</h4>
+          <p className="text-sm text-muted-foreground">
+            {other.name} · {other.city}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={handleReveal} disabled={loading}>
+          {loading ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
+            <MessageCircle className="mr-1 h-4 w-4" />
+          )}
+          Ver contato
+        </Button>
+      </div>
+
+      <Dialog
+        open={open}
+        onOpenChange={(o) => {
+          setOpen(o);
+          if (!o) clear();
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Contato de {other.name.split(" ")[0]}</DialogTitle>
+            <DialogDescription>
+              Só liberamos após a apresentação feita pela equipe da ACIRV no evento.
+            </DialogDescription>
+          </DialogHeader>
+          {loading && <Skeleton className="h-20 w-full" />}
+          {error && (
+            <p className="rounded-md border border-warning/40 bg-warning/10 p-3 text-sm">
+              {translateRevealError(error)}
+            </p>
+          )}
+          {contact && <RevealedContactBlock contact={contact} />}
+        </DialogContent>
+      </Dialog>
+    </Card>
+  );
+}
+
+function RevealedContactBlock({ contact }: { contact: RevealedContact }) {
+  return (
+    <div className="space-y-2 rounded-lg border bg-muted/30 p-3 text-sm">
+      <p className="font-semibold">{contact.name}</p>
+      <p className="text-xs text-muted-foreground">{contact.company}</p>
+      {contact.phone ? (
+        <a
+          href={`https://wa.me/${contact.phone.replace(/\D/g, "")}`}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 text-primary hover:underline"
+        >
+          <MessageCircle className="h-4 w-4" /> {contact.phone}
+        </a>
+      ) : (
+        <p className="text-muted-foreground">Sem WhatsApp cadastrado.</p>
+      )}
+      {contact.email && (
+        <p>
+          ✉️ <a href={`mailto:${contact.email}`} className="text-primary hover:underline">{contact.email}</a>
+        </p>
+      )}
     </div>
   );
 }
