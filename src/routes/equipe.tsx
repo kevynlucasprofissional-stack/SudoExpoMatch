@@ -462,10 +462,9 @@ function ConnectionCard({
   busy: boolean;
 }) {
   const nextStatus = NEXT_STATUS[c.status];
-  const canReveal =
-    c.status === "em_atendimento" ||
-    c.status === "apresentados" ||
-    c.status === "contato_trocado";
+  // "Ver contatos" fica disponível em todos os estados não cancelados —
+  // a RPC continua sendo a autoridade e valida match mútuo/conexão ativa.
+  const canReveal = c.status !== "cancelado";
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
@@ -534,7 +533,7 @@ function RevealContactDialog({
         {query.isLoading && <Skeleton className="h-24 w-full" />}
         {query.isError && (
           <p className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-            Não foi possível carregar os contatos.
+            {translateStaffRevealError(query.error)}
           </p>
         )}
         {query.data && (
