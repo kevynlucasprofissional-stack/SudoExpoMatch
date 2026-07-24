@@ -1,22 +1,109 @@
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-
-let ensuring: Promise<void> | null = null;
+import type { ErrorCode } from "./types";
 
 /**
- * Garante uma sessão anônima no Supabase antes de chamar RPCs v2 SECURITY DEFINER.
- * Dedupla chamadas concorrentes em uma única promise.
+ * Erro sanitizado da camada de sessão. Nunca carrega payload.
  */
-export function ensureAnonSession(): Promise<void> {
-  if (ensuring) return ensuring;
-  ensuring = (async () => {
-    const { data } = await supabase.auth.getSession();
-    if (data.session) return;
-    const { error } = await supabase.auth.signInAnonymously();
-    if (error) {
-      console.warn("[sudoexpo] signInAnonymously falhou:", error.message);
+export class SessionError extends Error {
+  readonly code: Extract<ErrorCode, "sign_in_failed" | "network" | "unknown">;
+  constructor(
+    code: Extract<ErrorCode, "sign_in_failed" | "network" | "unknown">,
+    causeMessage?: string,
+  ) {
+    super(code);
+    this.code = code;
+    this.name = "SessionError";
+    // Não anexa objeto de erro do supabase para evitar vazamento de payload.
+    if (causeMessage) (this as unknown as { cause: string }).cause = causeMessage;
+  }
+}
+
+let inflight: Promise<User> | null = null;
+
+/**
+ * Garante uma sessão utilizável (anônima ou permanente) para chamar RPCs v2.
+ * - Reutiliza sessão existente (inclusive staff/admin) sem substituir.
+ * - Só faz signInAnonymously quando não há sessão.
+ * - Deduplica chamadas concorrentes.
+ * - Propaga falhas como SessionError sanitizado (nunca console.warn).
+ */
+export async function ensureParticipantSession(): Promise<User> {
+  if (inflight) return inflight;
+  inflight = (async () => {
+    try {
+      const { data, error } = await supabase.auth.getSession();
+      if (error) throw new SessionError("sign_in_failed", error.message);
+      if (data.session?.user) return data.session.user;
+      const { data: signed, error: signErr } =
+        await supabase.auth.signInAnonymously();
+      if (signErr || !signed?.user) {
+        throw new SessionError("sign_in_failed", signErr?.message);
+      }
+      return signed.user;
+    } catch (err) {
+      if (err instanceof SessionError) throw err;
+      throw new SessionError(
+        "unknown",
+        err instanceof Error ? err.message : undefined,
+      );
     }
-  })().finally(() => {
-    ensuring = null;
-  });
-  return ensuring;
+  })();
+  try {
+    return await inflight;
+  } finally {
+    inflight = null;
+  }
+}
+
+export type ParticipantSessionStatus = "loading" | "ready" | "error";
+
+export interface UseParticipantSession {
+  status: ParticipantSessionStatus;
+  user: User | null;
+  error: SessionError | null;
+  isReady: boolean;
+  retry: () => Promise<void>;
+}
+
+/**
+ * Hook consumível pelas rotas. Bloqueia execução de queries de perfil/catálogo/
+ * matches/recuperação até `isReady === true`.
+ */
+export function useEnsureParticipantSession(): UseParticipantSession {
+  const [status, setStatus] = useState<ParticipantSessionStatus>("loading");
+  const [user, setUser] = useState<User | null>(null);
+  const [error, setError] = useState<SessionError | null>(null);
+  const versionRef = useRef(0);
+
+  const run = useCallback(async () => {
+    const v = ++versionRef.current;
+    setStatus("loading");
+    setError(null);
+    try {
+      const u = await ensureParticipantSession();
+      if (v !== versionRef.current) return;
+      setUser(u);
+      setStatus("ready");
+    } catch (err) {
+      if (v !== versionRef.current) return;
+      const se =
+        err instanceof SessionError ? err : new SessionError("unknown");
+      setError(se);
+      setStatus("error");
+    }
+  }, []);
+
+  useEffect(() => {
+    void run();
+  }, [run]);
+
+  return {
+    status,
+    user,
+    error,
+    isReady: status === "ready",
+    retry: run,
+  };
 }
