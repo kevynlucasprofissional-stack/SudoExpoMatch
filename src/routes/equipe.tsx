@@ -967,13 +967,11 @@ function ConnectionDetailDrawer({
   onClose,
   userId: _userId,
   isAdmin,
-  role,
 }: {
   connectionId: string | null;
   onClose: () => void;
   userId: string;
   isAdmin: boolean;
-  role: "admin" | "staff";
 }) {
   const q = useConnectionDetail(connectionId);
   const addNote = useAddConnectionNote(EVENT_ID);
