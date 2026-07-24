@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -20,7 +20,7 @@ import {
   X,
 } from "lucide-react";
 
-import { store, subscribe } from "@/lib/store";
+import { store, useStoreSelector } from "@/lib/store";
 import { LABEL_TEXT } from "@/domains/matching/score";
 import { SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
 import type { Match, Profile } from "@/lib/types";
@@ -38,20 +38,25 @@ export const Route = createFileRoute("/participante")({
   component: ParticipantPage,
 });
 
-function useStoreSnapshot<T>(select: () => T): T {
-  return useSyncExternalStore(
-    subscribe,
-    select,
-    // server snapshot — must be stable
-    () => select(),
-  );
-}
-
 function ParticipantPage() {
   const navigate = useNavigate();
-  const sessionId = useStoreSnapshot(() => store.session.get());
   const [hydrated, setHydrated] = useState(false);
   useEffect(() => setHydrated(true), []);
+
+  const data = useStoreSelector(() => {
+    const sessionId = store.session.get();
+    if (!sessionId) return { sessionId: null as string | null, profile: null as Profile | null, matches: [] as Match[] };
+    const profile = store.getProfile(sessionId) ?? null;
+    const matches = profile ? store.matchesFor(profile.id) : [];
+    return { sessionId, profile, matches };
+  });
+
+  // Session referencing a missing profile → clear once, in an effect (never during render).
+  useEffect(() => {
+    if (hydrated && data.sessionId && !data.profile) {
+      store.session.clear();
+    }
+  }, [hydrated, data.sessionId, data.profile]);
 
   if (!hydrated) {
     return (
@@ -65,15 +70,9 @@ function ParticipantPage() {
     );
   }
 
-  if (!sessionId) return <RecoveryView />;
-
-  const profile = store.getProfile(sessionId);
-  if (!profile) {
-    store.session.clear();
-    return <RecoveryView />;
-  }
-
-  const matches = store.matchesFor(profile.id);
+  if (!data.sessionId || !data.profile) return <RecoveryView />;
+  const profile = data.profile;
+  const matches = data.matches;
   const mutual = matches.filter(
     (m) => m.decisionA === "interesse" && m.decisionB === "interesse",
   );
@@ -82,6 +81,7 @@ function ParticipantPage() {
       (m.aProfileId === profile.id && m.decisionA === "interesse") ||
       (m.bProfileId === profile.id && m.decisionB === "interesse"),
   );
+
 
   return (
     <PageShell>
