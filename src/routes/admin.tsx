@@ -34,6 +34,7 @@ import { useEventRole } from "@/features/staff/useEventRole";
 import { signOut } from "@/features/auth/actions";
 import {
   addMemberSchema,
+  parseActiveConnectionsCount,
   translateStaffError,
   useAddStaffMember,
   useChangeStaffRole,
