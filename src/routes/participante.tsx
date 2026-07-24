@@ -18,6 +18,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Heart,
   HeartHandshake,
   KeyRound,
@@ -27,7 +37,23 @@ import {
   MessageCircle,
   Sparkles,
   X,
+  Copy,
+  Check,
 } from "lucide-react";
+
+import { store, useStoreSelector } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
+import { LABEL_TEXT } from "@/domains/matching/score";
+import { SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
+import type { Match, Profile } from "@/lib/types";
+import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
+import {
+  canParticipantRevealContact,
+  PARTICIPANT_STATUS_MESSAGE,
+} from "@/features/connections/eligibility";
+import {
+  translateRevealError,
+  useRevealContact,
 
 import { store, useStoreSelector } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
