@@ -14,24 +14,20 @@ import {
   isMatchMutual,
   translateDecideErrorCode,
 } from "@/features/participant/presentation";
-import type {
-  OwnMatchDTO,
-  CatalogSegment,
-} from "@/features/participant/types";
+import type { OwnMatchDTO } from "@/features/participant/types";
 
 interface Props {
   match: OwnMatchDTO;
   eventId: string;
-  segments?: readonly CatalogSegment[] | null;
 }
 
-export function MatchCard({ match, eventId, segments }: Props) {
+export function MatchCard({ match, eventId }: Props) {
   const decide = useDecideMatchMutation(eventId);
   const myDecision = match.my_decision;
   const theirDecision = match.other_decision;
   const mutual = isMatchMutual(match);
   const other = match.other;
-  const segmentLabel = formatSegmentLabel(other.segment_id, segments);
+  const segmentLabel = formatSegmentLabel(other.segment_id);
 
   function submit(d: "interesse" | "agora_nao") {
     decide.mutate(
@@ -151,26 +147,26 @@ export function MatchCard({ match, eventId, segments }: Props) {
 
         {mutual && match.connection == null && (
           <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
-            <p className="font-medium">
-              Interesse mútuo — preparando conexão…
-            </p>
+            <p className="font-medium">Interesse mútuo — preparando conexão…</p>
             <p className="mt-1 text-xs text-muted-foreground">
               Estamos organizando a apresentação. Aguarde a atualização.
             </p>
           </div>
         )}
 
-        {mutual && match.connection != null && match.connection.status !== "cancelado" && (
-          <div className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
-            <p className="font-medium">
-              🎉 Interesse mútuo! A equipe da ACIRV vai apresentar vocês
-              pessoalmente na feira.
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Contato liberado quando a equipe registrar a apresentação.
-            </p>
-          </div>
-        )}
+        {mutual &&
+          match.connection != null &&
+          match.connection.status !== "cancelado" && (
+            <div className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
+              <p className="font-medium">
+                🎉 Interesse mútuo! A equipe da ACIRV vai apresentar vocês
+                pessoalmente na feira.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Contato liberado quando a equipe registrar a apresentação.
+              </p>
+            </div>
+          )}
 
         {!mutual && (
           <div className="flex flex-wrap gap-2">
@@ -179,6 +175,7 @@ export function MatchCard({ match, eventId, segments }: Props) {
               variant={myDecision === "interesse" ? "secondary" : "default"}
               onClick={() => submit("interesse")}
               disabled={myDecision === "interesse" || decide.isPending}
+              aria-busy={decide.isPending}
             >
               {decide.isPending && myDecision !== "interesse" ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />

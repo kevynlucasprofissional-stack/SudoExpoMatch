@@ -8,18 +8,14 @@ import {
   NEED_KIND_TEXT,
   formatSegmentLabel,
 } from "@/features/participant/presentation";
-import type {
-  OwnProfileDTO,
-  CatalogSegment,
-} from "@/features/participant/types";
+import type { OwnProfileDTO } from "@/features/participant/types";
 
 interface Props {
   profile: OwnProfileDTO;
-  segments?: readonly CatalogSegment[] | null;
 }
 
-export function ProfileCard({ profile, segments }: Props) {
-  const segLabel = formatSegmentLabel(profile.segment_id, segments);
+export function ProfileCard({ profile }: Props) {
+  const segLabel = formatSegmentLabel(profile.segment_id);
   return (
     <Card className="p-6">
       <h3 className="font-display text-lg font-semibold">{profile.company}</h3>
