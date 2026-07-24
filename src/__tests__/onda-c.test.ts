@@ -519,17 +519,9 @@ describe("static guards — /participante e componentes", () => {
   ];
 
   for (const f of files) {
-    const src = read(f);
+    const src = readCode(f);
     for (const token of banned) {
-      if (
-        (token === "useOwnMatches" || token === "useDecideMatch") &&
-        src.includes(`${token}Query`) === false &&
-        src.includes(`${token}Mutation`) === false
-      ) {
-        // Aceita apenas variantes v2 canônicas (Query/Mutation).
-      }
       it(`${f} não contém "${token}"`, () => {
-        // Permitir apenas os nomes v2 (useOwnMatchesQuery, useDecideMatchMutation).
         if (token === "useOwnMatches") {
           expect(src).not.toMatch(/useOwnMatches\b(?!Query)/);
         } else if (token === "useDecideMatch") {
@@ -542,8 +534,7 @@ describe("static guards — /participante e componentes", () => {
   }
 
   it("participante.tsx importa RotateRecoveryButton só via ParticipantHeader", () => {
-    // Deve delegar responsabilidade; rota não instancia diretamente
-    expect(read("src/routes/participante.tsx")).not.toMatch(
+    expect(readCode("src/routes/participante.tsx")).not.toMatch(
       /RotateRecoveryButton/,
     );
   });
@@ -555,7 +546,7 @@ describe("static guards — /participante e componentes", () => {
   });
 
   it("RotateRecoveryButton usa API v2, nunca supabase.rpc", () => {
-    const src = read(
+    const src = readCode(
       "src/features/participant/components/RotateRecoveryButton.tsx",
     );
     expect(src).toMatch(/rotateOwnRecoveryCode/);
@@ -563,10 +554,10 @@ describe("static guards — /participante e componentes", () => {
   });
 
   it("Recovery/Reveal não persistem código/telefone em storage/URL/log", () => {
-    const recovery = read(
+    const recovery = readCode(
       "src/features/participant/components/RecoveryView.tsx",
     );
-    const reveal = read(
+    const reveal = readCode(
       "src/features/participant/components/RevealContactDialog.tsx",
     );
     for (const src of [recovery, reveal]) {
@@ -574,7 +565,6 @@ describe("static guards — /participante e componentes", () => {
       expect(src).not.toMatch(/sessionStorage/);
       expect(src).not.toMatch(/document\.cookie/);
       expect(src).not.toMatch(/console\.(log|info|warn|error)/);
-      // Não deve embutir código/telefone na URL
       expect(src).not.toMatch(/navigate\([^)]*whatsapp/i);
       expect(src).not.toMatch(/navigate\([^)]*recoveryCode/i);
       expect(src).not.toMatch(/searchParams.*(code|phone|whatsapp)/i);
