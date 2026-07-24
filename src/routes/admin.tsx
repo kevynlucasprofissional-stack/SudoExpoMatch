@@ -213,107 +213,137 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
           </div>
         </header>
 
-        <Card className="p-6">
-          <h2 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold">
-            <UserPlus className="h-5 w-5 text-primary" /> Adicionar membro
-          </h2>
-          <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
-            <div>
-              <Label htmlFor="member-email" className="sr-only">E-mail</Label>
-              <Input
-                id="member-email"
-                type="email"
-                placeholder="pessoa@acirv.com.br"
-                value={emailInput}
-                onChange={(e) => setEmailInput(e.target.value)}
-                autoComplete="off"
-              />
-              {errors.email && (
-                <p className="mt-1 text-xs text-destructive">{errors.email}</p>
-              )}
-            </div>
-            <Select value={roleInput} onValueChange={(v) => setRoleInput(v as AppRole)}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="staff">Staff</SelectItem>
-                <SelectItem value="admin">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button type="submit" disabled={add.isPending}>
-              {add.isPending ? "Adicionando…" : "Adicionar"}
-            </Button>
-          </form>
-          <p className="mt-3 text-xs text-muted-foreground">
-            A pessoa precisa ter criado uma conta antes (via login). O convite por e-mail
-            será enviado em uma próxima fase.
-          </p>
-        </Card>
-
-        <Card className="mt-6">
-          <div className="border-b p-4">
-            <h2 className="font-display text-lg font-semibold">Membros da equipe</h2>
-          </div>
-          {listQuery.isLoading ? (
-            <div className="p-4">
-              <Skeleton className="h-24 w-full" />
-            </div>
-          ) : listQuery.isError ? (
-            <p className="p-6 text-sm text-destructive">
-              Falha ao carregar equipe.
+        <section aria-labelledby="team-heading" className="space-y-6">
+          <div className="flex items-end justify-between gap-4">
+            <h2
+              id="team-heading"
+              className="font-display text-xl font-semibold"
+            >
+              Equipe do evento
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              Membros, papéis, convites e remoção com reatribuição.
             </p>
-          ) : (listQuery.data ?? []).length === 0 ? (
-            <p className="p-6 text-sm text-muted-foreground">Ainda sem membros.</p>
-          ) : (
-            <ul className="divide-y">
-              {(listQuery.data ?? []).map((m) => {
-                const self = m.userId === userId;
-                return (
-                  <li key={m.userId} className="flex items-center justify-between gap-3 p-4">
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {m.email}{" "}
-                        {self && <span className="text-xs text-muted-foreground">(você)</span>}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        desde {new Date(m.createdAt).toLocaleDateString("pt-BR")}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Select
-                        value={m.role}
-                        onValueChange={(v) => handleChange(m, v as AppRole)}
-                        disabled={change.isPending}
-                      >
-                        <SelectTrigger className="w-28">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="staff">Staff</SelectItem>
-                          <SelectItem value="admin">Admin</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        aria-label={`Remover ${m.email}`}
-                        onClick={() => setToRemove(m)}
-                        className="text-muted-foreground hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
-        </Card>
+          </div>
 
-        <div className="mt-8">
+          <Card className="p-6">
+            <h3 className="mb-4 flex items-center gap-2 font-display text-lg font-semibold">
+              <UserPlus className="h-5 w-5 text-primary" /> Adicionar membro
+            </h3>
+            <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+              <div>
+                <Label htmlFor="member-email" className="sr-only">E-mail</Label>
+                <Input
+                  id="member-email"
+                  type="email"
+                  placeholder="pessoa@acirv.com.br"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  autoComplete="off"
+                />
+                {errors.email && (
+                  <p className="mt-1 text-xs text-destructive">{errors.email}</p>
+                )}
+              </div>
+              <Select value={roleInput} onValueChange={(v) => setRoleInput(v as AppRole)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button type="submit" disabled={add.isPending}>
+                {add.isPending ? "Adicionando…" : "Adicionar"}
+              </Button>
+            </form>
+            <p className="mt-3 text-xs text-muted-foreground">
+              A pessoa precisa ter criado uma conta antes (via login). O convite por e-mail
+              será enviado em uma próxima fase.
+            </p>
+          </Card>
+
+          <Card>
+            <div className="border-b p-4">
+              <h3 className="font-display text-lg font-semibold">Membros da equipe</h3>
+            </div>
+            {listQuery.isLoading ? (
+              <div className="p-4">
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ) : listQuery.isError ? (
+              <p className="p-6 text-sm text-destructive">
+                Falha ao carregar equipe.
+              </p>
+            ) : (listQuery.data ?? []).length === 0 ? (
+              <p className="p-6 text-sm text-muted-foreground">Ainda sem membros.</p>
+            ) : (
+              <ul className="divide-y">
+                {(listQuery.data ?? []).map((m) => {
+                  const self = m.userId === userId;
+                  return (
+                    <li key={m.userId} className="flex items-center justify-between gap-3 p-4">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {m.email}{" "}
+                          {self && <span className="text-xs text-muted-foreground">(você)</span>}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          desde {new Date(m.createdAt).toLocaleDateString("pt-BR")}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Select
+                          value={m.role}
+                          onValueChange={(v) => handleChange(m, v as AppRole)}
+                          disabled={change.isPending}
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="staff">Staff</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          aria-label={`Remover ${m.email}`}
+                          onClick={() => setToRemove(m)}
+                          className="text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </Card>
+        </section>
+
+        <section aria-labelledby="ops-heading" className="mt-10 space-y-4">
+          <div className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <h2
+                id="ops-heading"
+                className="font-display text-xl font-semibold"
+              >
+                Operação
+              </h2>
+              <p className="text-xs text-muted-foreground">
+                Indicadores em tempo real e acesso rápido à fila de atendimento.
+              </p>
+            </div>
+            <Button asChild size="sm">
+              <Link to="/equipe">Abrir fila de conexões</Link>
+            </Button>
+          </div>
           <OperationalStatsCard eventId={EVENT_ID} />
-        </div>
+        </section>
       </section>
 
       <AlertDialog

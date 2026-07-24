@@ -97,12 +97,21 @@ import {
   CONNECTION_STATUS_LABEL,
   CONNECTION_STATUS_TONE,
   NEXT_CONNECTION_STATUS,
+  advanceCtaLabel,
+  canAddInternalNote,
   canAssume,
   canOperate,
   canRevealContact,
   isTerminalStatus,
   translateOperationalError,
 } from "@/features/connections/domain";
+import {
+  formatDurationPt,
+  formatDurationShortPt,
+  secondsSince,
+  stageStartAt,
+} from "@/features/connections/time";
+
 
 export const Route = createFileRoute("/equipe")({
   head: () => ({
@@ -122,15 +131,6 @@ export const Route = createFileRoute("/equipe")({
 
 const PAGE_SIZE = 25;
 
-// Rótulos contextuais claros (evita mostrar "→ contato_trocado" cru).
-const ADVANCE_CTA: Record<ConnectionStatus, string> = {
-  aguardando: "Assumir",
-  em_atendimento: "Marcar como apresentados",
-  apresentados: "Marcar contato trocado",
-  contato_trocado: "Marcar como concluída",
-  concluido: "Concluída",
-  cancelado: "Cancelada",
-};
 
 function StaffPage() {
   const { user, isAuthenticated, isLoading: sessionLoading } = useSession();
@@ -651,6 +651,7 @@ function StaffDashboard({
         onClose={() => setDetailId(null)}
         userId={userId}
         isAdmin={isAdmin}
+        role={role}
       />
 
       {/* Cancelar (nota obrigatória 3–500) */}
@@ -878,6 +879,12 @@ function ConnectionCard({
             <span className="text-xs text-muted-foreground">
               Criada {new Date(c.created_at).toLocaleString("pt-BR")}
             </span>
+            <span className="text-xs text-muted-foreground" title="Tempo total desde a criação">
+              · Espera {formatDurationShortPt(c.seconds_waiting)}
+            </span>
+            <span className="text-xs text-muted-foreground" title="Tempo na etapa atual">
+              · Etapa {formatDurationShortPt(c.seconds_in_stage)}
+            </span>
           </div>
           <p className="mt-2 font-medium">
             {c.a_name}{" "}
@@ -904,7 +911,7 @@ function ConnectionCard({
           </Button>
           {canAssume(c.status, c.assigned_to) && (
             <Button size="sm" onClick={onAssume} disabled={busy}>
-              <UserCheck className="mr-1 h-4 w-4" /> Assumir
+              <UserCheck className="mr-1 h-4 w-4" /> Assumir atendimento
             </Button>
           )}
           {mine && !isTerminalStatus(c.status) && c.status !== "aguardando" && (
@@ -925,16 +932,19 @@ function ConnectionCard({
               )}
             </Button>
           )}
-          {nextStatus && canOp && (
-            <Button
-              size="sm"
-              onClick={() => onAdvance(c, nextStatus)}
-              disabled={busy}
-              title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
-            >
-              {ADVANCE_CTA[c.status]}
-            </Button>
-          )}
+          {nextStatus &&
+            canOp &&
+            c.status !== "aguardando" &&
+            advanceCtaLabel(c.status) && (
+              <Button
+                size="sm"
+                onClick={() => onAdvance(c, nextStatus)}
+                disabled={busy}
+                title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
+              >
+                {advanceCtaLabel(c.status)}
+              </Button>
+            )}
           {!isTerminalStatus(c.status) && canOp && (
             <Button
               size="sm"
@@ -955,13 +965,15 @@ function ConnectionCard({
 function ConnectionDetailDrawer({
   connectionId,
   onClose,
-  userId,
+  userId: _userId,
   isAdmin,
+  role,
 }: {
   connectionId: string | null;
   onClose: () => void;
   userId: string;
   isAdmin: boolean;
+  role: "admin" | "staff";
 }) {
   const q = useConnectionDetail(connectionId);
   const addNote = useAddConnectionNote(EVENT_ID);
@@ -970,12 +982,13 @@ function ConnectionDetailDrawer({
 
   const [noteInput, setNoteInput] = useState("");
   const [reassignTo, setReassignTo] = useState<string>("");
+  const [reassignNote, setReassignNote] = useState("");
 
+  // Limpa destino e nota ao fechar OU trocar de conexão.
   useEffect(() => {
-    if (!connectionId) {
-      setNoteInput("");
-      setReassignTo("");
-    }
+    setNoteInput("");
+    setReassignTo("");
+    setReassignNote("");
   }, [connectionId]);
 
   async function handleAddNote() {
@@ -991,14 +1004,25 @@ function ConnectionDetailDrawer({
 
   async function handleReassign() {
     if (!connectionId || !reassignTo) return;
+    const trimmed = reassignNote.trim();
+    if (trimmed.length > 500) {
+      toast.error("A observação da reatribuição deve ter no máximo 500 caracteres.");
+      return;
+    }
     try {
-      await reassign.mutateAsync({ connectionId, newUserId: reassignTo });
+      await reassign.mutateAsync({
+        connectionId,
+        newUserId: reassignTo,
+        note: trimmed.length > 0 ? trimmed : undefined,
+      });
       toast.success("Conexão reatribuída.");
       setReassignTo("");
+      setReassignNote("");
     } catch (err) {
       toast.error(translateOperationalError(err));
     }
   }
+
 
   return (
     <Sheet open={connectionId !== null} onOpenChange={(o) => !o && onClose()}>
@@ -1042,6 +1066,24 @@ function ConnectionDetailDrawer({
                 />
                 <TimeRow label="Concluída" v={q.data.completed_at} />
                 <TimeRow label="Cancelada" v={q.data.cancelled_at} />
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
+                <div>
+                  <span className="opacity-70">Tempo na etapa atual: </span>
+                  <span className="font-medium">
+                    {formatDurationPt(
+                      secondsSince(
+                        stageStartAt(q.data),
+                      ),
+                    )}
+                  </span>
+                </div>
+                <div>
+                  <span className="opacity-70">Tempo total desde a criação: </span>
+                  <span className="font-medium">
+                    {formatDurationPt(secondsSince(q.data.created_at))}
+                  </span>
+                </div>
               </div>
             </section>
 
@@ -1125,21 +1167,19 @@ function ConnectionDetailDrawer({
                   </li>
                 )}
               </ul>
-              {canOperate({
-                status: q.data.status,
-                assignedTo: q.data.assigned_to,
-                userId,
-                isAdmin,
-              }) && (
+              {canAddInternalNote(role) && (
                 <div className="mt-2 space-y-2">
                   <Textarea
                     value={noteInput}
                     onChange={(e) => setNoteInput(e.target.value)}
-                    placeholder="Registrar observação interna…"
+                    placeholder="Registrar observação interna (visível apenas para equipe)…"
                     rows={3}
                     maxLength={1000}
                   />
-                  <div className="flex justify-end">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      Qualquer membro da equipe pode adicionar notas.
+                    </p>
                     <Button
                       size="sm"
                       onClick={handleAddNote}
@@ -1159,26 +1199,53 @@ function ConnectionDetailDrawer({
                 <h3 className="mb-2 flex items-center gap-1 font-medium">
                   <ArrowRightLeft className="h-4 w-4" /> Reatribuir
                 </h3>
-                <div className="flex gap-2">
-                  <Select value={reassignTo} onValueChange={setReassignTo}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Escolha um membro" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(staffMembers.data ?? []).map((m) => (
-                        <SelectItem key={m.userId} value={m.userId}>
-                          {m.email} ({m.role})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <Button
-                    onClick={handleReassign}
-                    disabled={!reassignTo || reassign.isPending}
-                  >
-                    Reatribuir
-                  </Button>
-                </div>
+                {(() => {
+                  const eligible = (staffMembers.data ?? []).filter(
+                    (m) => m.userId !== q.data.assigned_to,
+                  );
+                  if (eligible.length === 0) {
+                    return (
+                      <p className="text-xs text-muted-foreground">
+                        Não há outro membro disponível para reatribuição neste
+                        evento.
+                      </p>
+                    );
+                  }
+                  return (
+                    <div className="space-y-2">
+                      <div className="flex gap-2">
+                        <Select value={reassignTo} onValueChange={setReassignTo}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Escolha um membro" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {eligible.map((m) => (
+                              <SelectItem key={m.userId} value={m.userId}>
+                                {m.email} ({m.role})
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={handleReassign}
+                          disabled={!reassignTo || reassign.isPending}
+                        >
+                          Reatribuir
+                        </Button>
+                      </div>
+                      <Textarea
+                        value={reassignNote}
+                        onChange={(e) => setReassignNote(e.target.value)}
+                        placeholder="Observação opcional para o histórico (máx. 500)"
+                        rows={2}
+                        maxLength={500}
+                      />
+                      <p className="text-right text-[10px] text-muted-foreground">
+                        {reassignNote.trim().length}/500
+                      </p>
+                    </div>
+                  );
+                })()}
               </section>
             )}
           </div>
