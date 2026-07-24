@@ -755,7 +755,7 @@ function SegmentsFilter({
   onChange,
 }: {
   value: string[];
-  options: Array<{ id: string; label: string; emoji: string }>;
+  options: Array<{ id: string; label: string; emoji?: string }>;
   onChange: (ids: string[]) => void;
 }) {
   const [open, setOpen] = useState(false);
