@@ -650,7 +650,6 @@ function StaffDashboard({
       <ConnectionDetailDrawer
         connectionId={detailId}
         onClose={() => setDetailId(null)}
-        userId={userId}
         isAdmin={isAdmin}
       />
 
