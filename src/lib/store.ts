@@ -2,6 +2,9 @@
 // Mantém a API síncrona que os componentes usam via useSyncExternalStore,
 // mas hidrata do banco na primeira leitura e espelha escritas para o backend.
 
+import { useMemo, useRef, useSyncExternalStore } from "react";
+
+
 import { EVENT_ID, SEGMENTS, TAXONOMY } from "./mock-data";
 import { computeMatchesFor } from "@/domains/matching/score";
 import { supabase } from "@/integrations/supabase/client";
