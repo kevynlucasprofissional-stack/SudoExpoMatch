@@ -1,5 +1,5 @@
 import { LogOut, Loader2, RefreshCw, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
@@ -10,7 +10,6 @@ import { RotateRecoveryButton } from "./RotateRecoveryButton";
 
 interface Props {
   firstName: string;
-  eventId: string;
   onRecompute: () => void;
   onRefresh: () => void;
   recomputing: boolean;
@@ -32,7 +31,7 @@ export function ParticipantHeader({
   const qc = useQueryClient();
   const [signingOut, setSigningOut] = useState(false);
 
-  async function handleSignOut() {
+  const handleSignOut = useCallback(async () => {
     if (signingOut) return;
     setSigningOut(true);
     try {
@@ -49,7 +48,7 @@ export function ParticipantHeader({
       toast.error("Falha ao sair. Tente novamente.");
       setSigningOut(false);
     }
-  }
+  }, [signingOut, qc, navigate]);
 
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -75,6 +74,7 @@ export function ParticipantHeader({
           onClick={onRecompute}
           disabled={recomputing || !hasProfile}
           aria-label="Procurar novos matches"
+          aria-busy={recomputing}
           data-testid="btn-recompute-matches"
         >
           {recomputing ? (
@@ -90,6 +90,7 @@ export function ParticipantHeader({
           onClick={onRefresh}
           disabled={refreshing}
           aria-label="Atualizar lista de matches"
+          aria-busy={refreshing}
           data-testid="btn-refresh-matches"
         >
           {refreshing ? (
@@ -105,6 +106,7 @@ export function ParticipantHeader({
           size="sm"
           onClick={() => void handleSignOut()}
           disabled={signingOut}
+          aria-busy={signingOut}
         >
           {signingOut ? (
             <Loader2 className="mr-1 h-4 w-4 animate-spin" />

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -20,14 +20,13 @@ import {
   useOwnMatchesQuery,
   useRecomputeMatchesMutation,
 } from "@/features/matching/queries";
-import { useEventTaxonomy } from "@/features/taxonomy/queries";
 import { resolveParticipantPageState } from "@/features/participant/pageState";
 import {
   filterActiveConnections,
   filterCancelledConnections,
   filterInterests,
   filterPendingConnections,
-  translateDecideErrorCode,
+  translateRecomputeErrorCode,
 } from "@/features/participant/presentation";
 import { ApiError } from "@/features/participant/api";
 import { ParticipantHeader } from "@/features/participant/components/ParticipantHeader";
@@ -35,6 +34,7 @@ import { MatchesList } from "@/features/participant/components/MatchesList";
 import { ConnectionsList } from "@/features/participant/components/ConnectionsList";
 import { ProfileCard } from "@/features/participant/components/ProfileCard";
 import { RecoveryView } from "@/features/participant/components/RecoveryView";
+import type { OwnProfileDTO } from "@/features/participant/types";
 
 /** Polling interval real usado pela query — reutilizado nos testes. */
 export const PARTICIPANT_MATCHES_POLL_MS = 20_000;
@@ -134,23 +134,27 @@ function ParticipantPage() {
     return <RecoveryView />;
   }
 
-  // panel
   return <Panel profile={profileQuery.data!} />;
 }
 
-function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfile>["data"]> }) {
+function Panel({ profile }: { profile: OwnProfileDTO }) {
   const matchesQuery = useOwnMatchesQuery(EVENT_ID, {
     enabled: true,
     refetchIntervalMs: PARTICIPANT_MATCHES_POLL_MS,
   });
   const recompute = useRecomputeMatchesMutation(EVENT_ID);
-  const taxonomy = useEventTaxonomy(EVENT_ID);
-  const segments = taxonomy.data?.segments ?? null;
 
   const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
+  const hasCachedResult = matchesQuery.data !== undefined;
   const interested = useMemo(() => filterInterests(matches), [matches]);
-  const activeConn = useMemo(() => filterActiveConnections(matches), [matches]);
-  const pendingConn = useMemo(() => filterPendingConnections(matches), [matches]);
+  const activeConn = useMemo(
+    () => filterActiveConnections(matches),
+    [matches],
+  );
+  const pendingConn = useMemo(
+    () => filterPendingConnections(matches),
+    [matches],
+  );
   const cancelledConn = useMemo(
     () => filterCancelledConnections(matches),
     [matches],
@@ -160,7 +164,7 @@ function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfi
 
   const lastUpdatedLabel = useLastUpdatedLabel(matchesQuery.dataUpdatedAt);
 
-  function handleRecompute() {
+  const handleRecompute = useCallback(() => {
     if (recompute.isPending) return;
     recompute.mutate(undefined, {
       onSuccess: (n) => {
@@ -172,11 +176,17 @@ function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfi
       },
       onError: (err) => {
         const code = err instanceof ApiError ? err.code : "unknown";
-        toast.error(translateDecideErrorCode(code));
+        toast.error(translateRecomputeErrorCode(code));
       },
     });
-  }
+  }, [recompute]);
 
+  const handleRefresh = useCallback(() => {
+    void matchesQuery.refetch();
+  }, [matchesQuery]);
+
+  // "refreshing" só é verdadeiro para atualização em cima de cache existente
+  // (distingue de first-load spinner).
   const refreshing = matchesQuery.isFetching && !matchesQuery.isPending;
 
   return (
@@ -184,9 +194,8 @@ function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfi
       <section className="mx-auto max-w-4xl px-4 py-8">
         <ParticipantHeader
           firstName={profile.name.split(" ")[0] ?? profile.name}
-          eventId={EVENT_ID}
           onRecompute={handleRecompute}
-          onRefresh={() => void matchesQuery.refetch()}
+          onRefresh={handleRefresh}
           recomputing={recompute.isPending}
           refreshing={refreshing}
           hasProfile
@@ -210,21 +219,23 @@ function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfi
           <TabsContent value="matches" className="mt-6">
             <MatchesList
               matches={matches}
+              hasCachedResult={hasCachedResult}
               loading={matchesQuery.isPending}
               hasError={matchesQuery.isError}
-              onRetry={() => void matchesQuery.refetch()}
+              retrying={matchesQuery.isFetching}
+              onRetry={handleRefresh}
               eventId={EVENT_ID}
-              segments={segments}
             />
           </TabsContent>
           <TabsContent value="interested" className="mt-6">
             <MatchesList
               matches={interested}
+              hasCachedResult={hasCachedResult}
               loading={matchesQuery.isPending}
               hasError={matchesQuery.isError}
-              onRetry={() => void matchesQuery.refetch()}
+              retrying={matchesQuery.isFetching}
+              onRetry={handleRefresh}
               eventId={EVENT_ID}
-              segments={segments}
               emptyMessage="Você ainda não marcou interesse em ninguém."
             />
           </TabsContent>
@@ -236,7 +247,7 @@ function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfi
             />
           </TabsContent>
           <TabsContent value="profile" className="mt-6">
-            <ProfileCard profile={profile} segments={segments} />
+            <ProfileCard profile={profile} />
           </TabsContent>
         </Tabs>
       </section>
@@ -244,9 +255,7 @@ function Panel({ profile }: { profile: NonNullable<ReturnType<typeof useOwnProfi
   );
 }
 
-/**
- * Rótulo "Atualizado há Xs/min" — sem timer agressivo (30s tick).
- */
+/** Rótulo "Atualizado há Xs/min" — ticker leve de 30s. */
 function useLastUpdatedLabel(dataUpdatedAt: number): string {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {

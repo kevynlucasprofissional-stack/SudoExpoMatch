@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -16,10 +16,18 @@ import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
 import { qk } from "@/features/participant/queryKeys";
 
 /**
- * Tela de recuperação.
- * - WhatsApp/código apenas em `useState`; jamais em URL/localStorage/log.
- * - Sucesso limpa phone/code/error ANTES de exibir o novo código.
- * - Unmount/close limpa `newRecoveryCode` e demais estados.
+ * Tela de recuperação — política de dados sensíveis.
+ *
+ * - WhatsApp/código/`newRecoveryCode` vivem APENAS em `useState` deste
+ *   componente. Nunca URL, localStorage, sessionStorage, cookies ou logs.
+ * - `useRecoverProfile` é uma mutation; após consumir seu resultado
+ *   copiamos apenas `newRecoveryCode` (quando houver) para state local e
+ *   chamamos `recoverMutation.reset()` IMEDIATAMENTE, para que
+ *   `mutation.data` e `mutation.variables` (WhatsApp/código) não fiquem
+ *   no mutation cache global.
+ * - `requestVersionRef` invalida respostas tardias após unmount/navegação.
+ * - Cleanup do unmount NUNCA chama setState (não faz efeito). Ele
+ *   incrementa a versão e chama `mutation.reset()`.
  */
 export function RecoveryView() {
   const navigate = useNavigate();
@@ -30,16 +38,21 @@ export function RecoveryView() {
   const [rotatedCode, setRotatedCode] = useState<string | null>(null);
   const recoverMutation = useRecoverProfile();
 
+  const mountedRef = useRef(true);
+  const requestVersionRef = useRef(0);
+
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
-      setWhatsapp("");
-      setCode("");
-      setError(null);
-      setRotatedCode(null);
+      mountedRef.current = false;
+      requestVersionRef.current += 1;
+      recoverMutation.reset();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- mutation ref stable
   }, []);
 
-  async function recover() {
+  const recover = useCallback(async () => {
+    const version = ++requestVersionRef.current;
     setError(null);
     try {
       const res = await recoverMutation.mutateAsync({
@@ -47,30 +60,43 @@ export function RecoveryView() {
         whatsapp,
         code,
       });
-      // Limpa credenciais em memória ANTES de exibir novo código.
+      // Purga IMEDIATAMENTE variables/data do mutation cache.
+      const rotated = res.newRecoveryCode ?? null;
+      recoverMutation.reset();
+
+      if (!mountedRef.current || version !== requestVersionRef.current) return;
+
+      // Só depois lidamos com estado local.
       setWhatsapp("");
       setCode("");
       setError(null);
-      if (res.newRecoveryCode) {
-        setRotatedCode(res.newRecoveryCode);
+      if (rotated) {
+        setRotatedCode(rotated);
       } else {
-        toast.success("Bem-vindo(a) de volta!");
         qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
         qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+        toast.success("Bem-vindo(a) de volta!");
         navigate({ to: "/participante" });
       }
     } catch (err) {
+      recoverMutation.reset();
+      if (!mountedRef.current || version !== requestVersionRef.current) return;
       setError(err instanceof Error ? err.message : "Falha ao recuperar.");
     }
-  }
+  }, [whatsapp, code, recoverMutation, qc, navigate]);
 
-  function confirmRotated() {
+  const confirmRotated = useCallback(() => {
+    requestVersionRef.current += 1;
     setRotatedCode(null);
+    setWhatsapp("");
+    setCode("");
+    setError(null);
+    recoverMutation.reset();
     qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
     qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
     toast.success("Bem-vindo(a) de volta!");
     navigate({ to: "/participante" });
-  }
+  }, [recoverMutation, qc, navigate]);
 
   return (
     <PageShell>
@@ -107,7 +133,10 @@ export function RecoveryView() {
               />
             </div>
             {error && (
-              <p className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm text-destructive">
+              <p
+                role="alert"
+                className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm text-destructive"
+              >
                 {error}
               </p>
             )}
@@ -115,6 +144,7 @@ export function RecoveryView() {
               onClick={() => void recover()}
               className="w-full"
               disabled={!whatsapp || !code || recoverMutation.isPending}
+              aria-busy={recoverMutation.isPending}
             >
               {recoverMutation.isPending ? (
                 <>

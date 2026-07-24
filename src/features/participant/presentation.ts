@@ -1,9 +1,5 @@
-import type {
-  NeedKind,
-  ConnectionStatus,
-  Decision,
-} from "@/lib/types";
-import type { CatalogSegment, ErrorCode, OwnMatchDTO } from "./types";
+import type { ErrorCode, OwnMatchDTO } from "./types";
+import type { ConnectionStatus, NeedKind } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Textos visuais — únicas fontes de tradução para presentation na rota
@@ -42,8 +38,7 @@ export const CONNECTION_STATUS_TONE: Record<ConnectionStatus, string> = {
 
 /**
  * Humaniza um slug/id em uma etiqueta visual segura, sem inventar
- * catálogo autoritativo. Não pretende resolver mapeamento canônico —
- * apenas dá uma versão legível.
+ * catálogo autoritativo.
  */
 export function humanizeSlug(slug: string): string {
   if (!slug) return "";
@@ -56,22 +51,19 @@ export function humanizeSlug(slug: string): string {
 }
 
 /**
- * Retorna o label do segmento a partir do catálogo carregado quando
- * disponível; do contrário, humaniza o slug puramente para exibição.
+ * Rótulo humanizado para exibição — o painel NÃO consulta a taxonomia
+ * autoritativa (isso é responsabilidade exclusiva do wizard). Recebemos
+ * apenas o slug/id retornado pela RPC v2 e humanizamos.
  */
 export function formatSegmentLabel(
   segmentId: string | null | undefined,
-  segments?: readonly CatalogSegment[] | null,
 ): string {
   if (!segmentId) return "";
-  const match = segments?.find((s) => s.id === segmentId);
-  if (match) return match.label;
   return humanizeSlug(segmentId);
 }
 
 // ---------------------------------------------------------------------------
 // Mutualidade e filtros — sempre baseados em `my_decision`/`other_decision`.
-// `connection` reflete apenas o estado operacional pós-mutualidade.
 // ---------------------------------------------------------------------------
 
 export function isMatchMutual(match: OwnMatchDTO): boolean {
@@ -84,9 +76,6 @@ export function filterInterests(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter((m) => m.my_decision === "interesse");
 }
 
-/**
- * Conexões ativas: interesse mútuo + conexão presente e não cancelada.
- */
 export function filterActiveConnections(
   matches: OwnMatchDTO[],
 ): OwnMatchDTO[] {
@@ -98,10 +87,6 @@ export function filterActiveConnections(
   );
 }
 
-/**
- * Conexões canceladas (interesse mútuo com conexão cancelada) — exibidas
- * em seção própria, sem opção de revelar contato.
- */
 export function filterCancelledConnections(
   matches: OwnMatchDTO[],
 ): OwnMatchDTO[] {
@@ -113,19 +98,12 @@ export function filterCancelledConnections(
   );
 }
 
-/**
- * Mutualidade sem conexão ainda materializada — mostrar "preparando".
- */
 export function filterPendingConnections(
   matches: OwnMatchDTO[],
 ): OwnMatchDTO[] {
   return matches.filter((m) => isMatchMutual(m) && m.connection == null);
 }
 
-/**
- * Verifica se um match está apto a revelar contato. Backend é a autoridade;
- * este helper apenas define UI (botão habilitado / mensagem prévia).
- */
 export function canRevealForMatch(match: OwnMatchDTO): boolean {
   if (!isMatchMutual(match)) return false;
   const c = match.connection;
@@ -135,6 +113,28 @@ export function canRevealForMatch(match: OwnMatchDTO): boolean {
     c.status === "contato_trocado" ||
     c.status === "concluido"
   );
+}
+
+/**
+ * Texto auxiliar exibido quando o botão de revelar contato está desabilitado,
+ * explicando quando o contato será liberado.
+ */
+export function revealDisabledHint(match: OwnMatchDTO): string {
+  if (!isMatchMutual(match)) {
+    return "Contato liberado após interesse mútuo.";
+  }
+  const c = match.connection;
+  if (!c) return "Preparando conexão — aguarde a equipe.";
+  switch (c.status) {
+    case "aguardando":
+      return "Contato liberado assim que a equipe apresentar vocês.";
+    case "em_atendimento":
+      return "A equipe já está organizando a apresentação.";
+    case "cancelado":
+      return "Contato indisponível: atendimento cancelado.";
+    default:
+      return "Contato liberado assim que a equipe apresentar vocês.";
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -150,7 +150,7 @@ export function translateRevealErrorCode(code: ErrorCode): string {
     case "contact_sharing_disabled":
       return "Esta pessoa desativou o compartilhamento de contato.";
     case "contact_unavailable":
-      return "Contato ainda não disponibilizado por esta pessoa.";
+      return "Contato ainda não disponibilizado. Tente novamente em instantes.";
     case "not_a_participant":
       return "Você não faz parte deste match.";
     case "not_authenticated":
@@ -163,6 +163,19 @@ export function translateRevealErrorCode(code: ErrorCode): string {
     default:
       return "Não foi possível carregar o contato. Tente novamente.";
   }
+}
+
+/**
+ * ErrorCodes de reveal que podem ser reintentados diretamente pelo usuário.
+ * Os demais são estados de negócio e exigem ação (esperar apresentação,
+ * refazer login, etc).
+ */
+export function isRevealRetriable(code: ErrorCode): boolean {
+  return (
+    code === "network" ||
+    code === "unknown" ||
+    code === "contact_unavailable"
+  );
 }
 
 export function translateDecideErrorCode(code: ErrorCode): string {
@@ -182,5 +195,25 @@ export function translateDecideErrorCode(code: ErrorCode): string {
       return "Sem conexão. Tente novamente.";
     default:
       return "Não foi possível registrar sua decisão.";
+  }
+}
+
+/**
+ * Tradutor específico para o CTA "Procurar novos matches" — semanticamente
+ * distinto de decisão. Nunca reutilize `translateDecideErrorCode` aqui.
+ */
+export function translateRecomputeErrorCode(code: ErrorCode): string {
+  switch (code) {
+    case "not_authenticated":
+    case "sign_in_failed":
+      return "Sua sessão expirou. Recarregue a página para continuar.";
+    case "profile_not_found":
+      return "Você precisa completar o perfil antes de procurar matches.";
+    case "event_not_active":
+      return "O evento não está mais ativo para novos matches.";
+    case "network":
+      return "Sem conexão. Tente novamente em instantes.";
+    default:
+      return "Não foi possível recalcular seus matches agora.";
   }
 }

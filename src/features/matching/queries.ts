@@ -8,18 +8,29 @@ import {
   revealContactForMatch,
 } from "./api";
 
-export function useOwnMatchesQuery(
+/**
+ * Opções puras da query de matches — exportadas para permitir testes
+ * de contrato (polling 20s, sem refetch em background).
+ */
+export function ownMatchesQueryOptions(
   eventId: string,
   opts?: { enabled?: boolean; refetchIntervalMs?: number },
 ) {
-  return useQuery({
+  return {
     queryKey: qk.ownMatches(eventId),
     queryFn: () => listOwnMatches(eventId),
     enabled: opts?.enabled ?? true,
     staleTime: 5_000,
     refetchInterval: opts?.refetchIntervalMs,
-    refetchIntervalInBackground: false,
-  });
+    refetchIntervalInBackground: false as const,
+  };
+}
+
+export function useOwnMatchesQuery(
+  eventId: string,
+  opts?: { enabled?: boolean; refetchIntervalMs?: number },
+) {
+  return useQuery(ownMatchesQueryOptions(eventId, opts));
 }
 
 export function useDecideMatchMutation(eventId: string) {
@@ -45,8 +56,15 @@ export function useRecomputeMatchesMutation(eventId: string) {
   });
 }
 
+/**
+ * Reveal contact — sanitizado.
+ * `gcTime: 0` garante que a resposta NÃO permaneça no mutation cache
+ * após o componente descartá-la. Somem também: variables, error, data.
+ * O componente ainda faz `mutation.reset()` explicitamente após consumir.
+ */
 export function useRevealContactMutation() {
   return useMutation({
     mutationFn: (matchId: string) => revealContactForMatch(matchId),
+    gcTime: 0,
   });
 }
