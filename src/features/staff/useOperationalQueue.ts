@@ -83,9 +83,9 @@ const queueKey = (eventId: string, input: Omit<QueueQueryInput, "eventId">) =>
 async function fetchQueue(input: QueueQueryInput): Promise<QueueResponse> {
   const { data, error } = await supabase.rpc("staff_list_connections_v2", {
     _event_id: input.eventId,
-    _statuses: input.statuses ?? null,
-    _segment_ids: input.segmentIds ?? null,
-    _search: input.search ?? null,
+    _statuses: input.statuses,
+    _segment_ids: input.segmentIds,
+    _search: input.search,
     _scope: input.scope ?? "all",
     _sort: input.sort ?? "priority",
     _limit: input.limit ?? 25,
