@@ -26,12 +26,12 @@ import type {
 import { cryptoUid } from "./draft";
 import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
-import {
-  phoneCreateSchema,
-  phoneEditSchema,
-  wizardCreateSchema,
-} from "./schemas";
+import { phoneCreateSchema, phoneEditSchema } from "./schemas";
 import { isSubmitting, reviewIsActionable } from "./submitMachine";
+import {
+  currentPriorityId,
+  type WizardValidation,
+} from "./validate";
 
 const NEED_KIND_OPTIONS: { value: NeedKind; label: string }[] = [
   { value: "servico", label: "Um serviço" },
@@ -312,6 +312,12 @@ export function StepOffers({
 
   useEffect(() => {
     let cancelled = false;
+    if (catalog.taxonomy.length === 0) {
+      // Modo manual (catálogo indisponível) — sem sugestões.
+      setSuggestions([]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     heuristicSuggestionProvider
       .suggest({
@@ -716,10 +722,8 @@ export function StepNeeds({
 // StepPriority
 // ============================================================================
 export function StepPriority({ draft, update, onNext, onBack }: BaseProps) {
-  const priorityId =
-    draft.needs.find((n) => n.isPriority)?.localId ??
-    draft.needs[0]?.localId ??
-    "";
+  const priorityId = currentPriorityId(draft);
+  const hasPriority = priorityId !== "";
   return (
     <Card className="p-6">
       <h2 className="font-display text-2xl font-semibold">
@@ -755,11 +759,19 @@ export function StepPriority({ draft, update, onNext, onBack }: BaseProps) {
         ))}
       </RadioGroup>
 
+      {!hasPriority && (
+        <p className="mt-3 text-xs text-muted-foreground">
+          Escolha uma prioridade para continuar.
+        </p>
+      )}
+
       <div className="mt-6 flex justify-between">
         <Button variant="outline" onClick={onBack}>
           Voltar
         </Button>
-        <Button onClick={onNext}>Continuar</Button>
+        <Button onClick={onNext} disabled={!hasPriority}>
+          Continuar
+        </Button>
       </div>
     </Card>
   );
@@ -776,9 +788,12 @@ export function StepReview({
   onRetryCode,
   onRetryMatch,
   onGoToPanel,
+  onGoToIdentity,
   submit,
   mode,
   catalog,
+  validation,
+  catalogFallback,
 }: {
   draft: WizardDraft;
   onBack: () => void;
@@ -787,19 +802,24 @@ export function StepReview({
   onRetryCode: () => void;
   onRetryMatch: () => void;
   onGoToPanel: () => void;
+  onGoToIdentity: () => void;
   submit: SubmitState;
   mode: WizardMode;
   catalog: EventCatalog;
+  validation: WizardValidation;
+  catalogFallback: boolean;
 }) {
   const seg = catalog.segments.find((s) => s.id === draft.segmentId);
   const submitting = isSubmitting(submit);
   const canSubmit = reviewIsActionable(submit);
+  const validationOk = validation.ok;
+  const isPhoneMissing = !validationOk && validation.reason === "phone";
+  const validationError = validationOk ? null : validation.message;
 
-  // Validação profissional client-side antes de habilitar botão.
-  const validation = wizardCreateSchema.safeParse(draft);
-  const validationError = validation.success
-    ? null
-    : validation.error.issues[0]?.message;
+  // Requisito: no create, contact_failed NÃO deve oferecer saída ao painel
+  // (usuário precisa salvar contato antes de gerar código). No edit também
+  // não oferecemos, para consistência com o requisito.
+  const contactFailedGoToPanel = undefined;
 
   return (
     <Card className="overflow-hidden">
@@ -812,7 +832,7 @@ export function StepReview({
           <h2 className="font-display text-2xl font-semibold">
             {mode === "edit"
               ? "Confira as alterações"
-              : `Tudo certo, ${draft.name.split(" ")[0]}?`}
+              : `Tudo certo, ${draft.name.split(" ")[0] || "por aí"}?`}
           </h2>
         </div>
       </div>
@@ -824,7 +844,7 @@ export function StepReview({
         />
         <ReviewRow
           label="Segmento"
-          value={`${seg?.emoji ?? ""} ${seg?.label ?? "—"}`}
+          value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
         />
         <ReviewRow label="Resumo" value={draft.summary} />
         <div>
@@ -856,7 +876,28 @@ export function StepReview({
           </ul>
         </div>
 
-        {validationError && (
+        {catalogFallback && (
+          <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+            Catálogo indisponível. Você está no modo manual — o segmento atual
+            será mantido e novos itens serão salvos como "Outro".
+          </div>
+        )}
+
+        {isPhoneMissing && (
+          <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+            <p className="font-medium">Informe novamente seu WhatsApp na etapa de identificação.</p>
+            <p className="mt-1 text-muted-foreground">
+              Por segurança, ele não fica salvo neste dispositivo.
+            </p>
+            <div className="mt-3">
+              <Button size="sm" variant="outline" onClick={onGoToIdentity}>
+                Ir para identificação
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {validationError && !isPhoneMissing && (
           <p className="rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
             {validationError}
           </p>
@@ -868,7 +909,7 @@ export function StepReview({
             title="Seu perfil foi salvo, mas o contato não."
             action="Tentar salvar contato novamente"
             onAction={onRetryContact}
-            onGoToPanel={onGoToPanel}
+            onGoToPanel={contactFailedGoToPanel}
           />
         )}
         {submit.stage === "code_failed" && (
@@ -899,8 +940,9 @@ export function StepReview({
           <Button
             size="lg"
             onClick={onSubmit}
-            disabled={submitting || !canSubmit || !!validationError}
+            disabled={submitting || !canSubmit || !validationOk}
             aria-busy={submitting}
+            aria-disabled={submitting || !canSubmit || !validationOk}
           >
             {submitting ? (
               <>
