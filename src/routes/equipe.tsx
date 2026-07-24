@@ -1002,16 +1002,20 @@ function ConnectionDetailDrawer({
 
   async function handleReassign() {
     if (!connectionId || !reassignTo) return;
-    const trimmed = reassignNote.trim();
-    if (trimmed.length > 500) {
-      toast.error("A observação da reatribuição deve ter no máximo 500 caracteres.");
+    const parsed = optionalStaffNoteSchema.safeParse(
+      reassignNote || undefined,
+    );
+    if (!parsed.success) {
+      toast.error(
+        parsed.error.issues[0]?.message ?? "Observação inválida.",
+      );
       return;
     }
     try {
       await reassign.mutateAsync({
         connectionId,
         newUserId: reassignTo,
-        note: trimmed.length > 0 ? trimmed : undefined,
+        note: parsed.data,
       });
       toast.success("Conexão reatribuída.");
       setReassignTo("");
