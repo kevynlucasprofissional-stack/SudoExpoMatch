@@ -938,14 +938,14 @@ function ConnectionCard({
           {nextStatus &&
             canOp &&
             c.status !== "aguardando" &&
-            advanceCtaLabel(c.status) && (
+            getOperationalCta(c.status) && (
               <Button
                 size="sm"
                 onClick={() => onAdvance(c, nextStatus)}
                 disabled={busy}
                 title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
               >
-                {advanceCtaLabel(c.status)}
+                {getOperationalCta(c.status)}
               </Button>
             )}
           {!isTerminalStatus(c.status) && canOp && (
