@@ -571,8 +571,11 @@ function WizardPage() {
             onNext={next}
             onBack={back}
             catalog={catalog}
+            manualMode={manualCatalogMode}
+            manualSegmentLabel={fallbackSegmentId}
           />
         )}
+
         {step === 2 && (
           <StepOffers
             draft={draft}
