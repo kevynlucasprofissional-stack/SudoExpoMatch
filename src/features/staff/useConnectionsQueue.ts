@@ -113,7 +113,7 @@ export function useAdvanceConnection(eventId: string) {
       const { error } = await supabase.rpc("staff_advance_connection", {
         _connection_id: input.connectionId,
         _new_status: input.newStatus,
-        _note: input.note ?? null,
+        _note: input.note ?? undefined,
       });
       if (error) throw error;
     },
