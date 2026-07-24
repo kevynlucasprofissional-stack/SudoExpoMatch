@@ -52,3 +52,18 @@ bun run dev
 ```
 
 O dev server sobe em `http://localhost:8080`. Migrations vivem em `supabase/migrations/`.
+
+## Rascunho do wizard (Onda B)
+
+- Chave única: `sudoexpo:wizard-draft:v2` (envelope `{ version: 2, savedAt, draft }`, expira em 24h).
+- Chave legada `sudoexpo:draft` é removida automaticamente na primeira carga.
+- O rascunho persiste APENAS dados profissionais: `step`, `name`, `company`, `city`, `neighborhood`, `segmentId`, `summary`, `offers`, `needs`, `consent`.
+- Nunca vão ao localStorage: WhatsApp, e-mail, `userId`, `profileId`, código de recuperação, matches, decisões, contatos, tokens.
+- Rascunho é apagado após conclusão bem-sucedida em `/participar`.
+
+## Criação vs edição em `/participar`
+
+- **Criação** (usuário sem perfil): WhatsApp obrigatório · consentimento obrigatório · máquina de submit executa perfil → contato → **código único** (`RecoveryCodeDialog`) → recompute de matches.
+- **Edição** (usuário já tem perfil): banner "Você está editando seu perfil" · WhatsApp opcional (só chama `set_own_contact` se preenchido) · **não** rotaciona código automaticamente · máquina pula direto para recompute após salvar contato/perfil.
+- **Conflito** rascunho + perfil existente: diálogo obriga escolha "Carregar meu perfil" (descarta rascunho) ou "Continuar rascunho" (mantém rascunho, mas segue em modo edição).
+- Falhas parciais mantêm exatamente a etapa afetada com botão de retry dedicado ("Tentar salvar contato novamente", "Gerar código novamente", "Tentar buscar conexões novamente" + "Ir ao painel").
