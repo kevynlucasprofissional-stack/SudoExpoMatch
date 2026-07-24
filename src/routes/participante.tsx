@@ -111,22 +111,22 @@ function ParticipantPage() {
               Olá, {profile.name.split(" ")[0]}!
             </h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Código de recuperação:{" "}
-              <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">
-                {profile.recoveryCode}
-              </code>
+              Seu código de recuperação fica apenas com você. Se perder, gere um novo.
             </p>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              store.session.clear();
-              navigate({ to: "/" });
-            }}
-          >
-            <LogOut className="mr-1 h-4 w-4" /> Sair
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <RotateRecoveryButton />
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                store.session.clear();
+                navigate({ to: "/" });
+              }}
+            >
+              <LogOut className="mr-1 h-4 w-4" /> Sair
+            </Button>
+          </div>
         </header>
 
         <Tabs defaultValue="matches">
@@ -152,6 +152,44 @@ function ParticipantPage() {
         </Tabs>
       </section>
     </PageShell>
+  );
+}
+
+function RotateRecoveryButton() {
+  const [loading, setLoading] = useState(false);
+  const [code, setCode] = useState<string | null>(null);
+
+  async function rotate() {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase.rpc("rotate_own_recovery_code");
+      if (error) throw error;
+      setCode(data as string);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao gerar código.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <>
+      <Button variant="outline" size="sm" onClick={rotate} disabled={loading}>
+        {loading ? (
+          <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+        ) : (
+          <KeyRound className="mr-1 h-4 w-4" />
+        )}
+        Gerar novo código
+      </Button>
+      <RecoveryCodeDialog
+        open={code !== null}
+        code={code}
+        onConfirm={() => setCode(null)}
+        title="Seu novo código de recuperação"
+        description="Guarde-o em local seguro. O código anterior deixou de funcionar."
+      />
+    </>
   );
 }
 
