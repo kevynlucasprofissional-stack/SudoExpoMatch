@@ -66,7 +66,7 @@ import {
   type OwnMatchDTO,
 } from "@/features/participant/useOwnMatches";
 import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
-import { ensureAnonSession } from "@/features/participant/session";
+import { useEnsureParticipantSession } from "@/features/participant/session";
 
 export const Route = createFileRoute("/participante")({
   head: () => ({
