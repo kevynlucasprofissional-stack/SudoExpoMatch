@@ -11,9 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogDescription,
@@ -225,6 +227,8 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
 
   const [revealMatchId, setRevealMatchId] = useState<string | null>(null);
   const [filter, setFilter] = useState<"pendentes" | "todas" | "concluidas">("pendentes");
+  const [cancelTarget, setCancelTarget] = useState<QueueItem | null>(null);
+  const [cancelNote, setCancelNote] = useState("");
 
   const items = useMemo(() => {
     const all = queueQuery.data ?? [];
@@ -250,6 +254,27 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
       toast.success(`Status: ${LABELS[next]}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao atualizar.");
+    }
+  }
+
+  async function handleConfirmCancel() {
+    if (!cancelTarget) return;
+    const note = cancelNote.trim();
+    if (note.length < 3 || note.length > 500) {
+      toast.error("A observação precisa ter entre 3 e 500 caracteres.");
+      return;
+    }
+    try {
+      await advance.mutateAsync({
+        connectionId: cancelTarget.id,
+        newStatus: "cancelado",
+        note,
+      });
+      toast.success("Conexão cancelada.");
+      setCancelTarget(null);
+      setCancelNote("");
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao cancelar.");
     }
   }
 
