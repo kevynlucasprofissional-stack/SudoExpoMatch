@@ -42,6 +42,7 @@ import {
   type StaffMember,
   type AppRole,
 } from "@/features/admin/useEventStaff";
+import { OperationalStatsCard } from "@/features/staff/OperationalStatsCard";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -286,6 +287,10 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             </ul>
           )}
         </Card>
+
+        <div className="mt-8">
+          <OperationalStatsCard eventId={EVENT_ID} />
+        </div>
       </section>
 
       <AlertDialog open={toRemove !== null} onOpenChange={(o) => !o && setToRemove(null)}>

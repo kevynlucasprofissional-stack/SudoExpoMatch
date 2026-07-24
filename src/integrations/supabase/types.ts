@@ -163,6 +163,114 @@ export type Database = {
           },
         ]
       }
+      connection_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          assigned_from: string | null
+          assigned_to: string | null
+          connection_id: string
+          created_at: string
+          event_id: string
+          id: string
+          metadata: Json
+          new_status: Database["public"]["Enums"]["connection_status"] | null
+          note: string | null
+          previous_status:
+            | Database["public"]["Enums"]["connection_status"]
+            | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          assigned_from?: string | null
+          assigned_to?: string | null
+          connection_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+          metadata?: Json
+          new_status?: Database["public"]["Enums"]["connection_status"] | null
+          note?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["connection_status"]
+            | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          assigned_from?: string | null
+          assigned_to?: string | null
+          connection_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+          metadata?: Json
+          new_status?: Database["public"]["Enums"]["connection_status"] | null
+          note?: string | null
+          previous_status?:
+            | Database["public"]["Enums"]["connection_status"]
+            | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_events_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connection_events_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      connection_notes: {
+        Row: {
+          author_user_id: string
+          body: string
+          connection_id: string
+          created_at: string
+          event_id: string
+          id: string
+        }
+        Insert: {
+          author_user_id: string
+          body: string
+          connection_id: string
+          created_at?: string
+          event_id: string
+          id?: string
+        }
+        Update: {
+          author_user_id?: string
+          body?: string
+          connection_id?: string
+          created_at?: string
+          event_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "connection_notes_connection_id_fkey"
+            columns: ["connection_id"]
+            isOneToOne: false
+            referencedRelation: "connections"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "connection_notes_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       connection_status_history: {
         Row: {
           actor_user_id: string | null
@@ -204,37 +312,58 @@ export type Database = {
       connections: {
         Row: {
           a_profile_id: string
+          assigned_at: string | null
           assigned_to: string | null
+          assignee_lock_version: number
+          assumed_at: string | null
           b_profile_id: string
+          cancelled_at: string | null
+          completed_at: string | null
+          contact_exchanged_at: string | null
           created_at: string
           event_id: string
           id: string
           match_id: string
           notes: string | null
+          presented_at: string | null
           status: Database["public"]["Enums"]["connection_status"]
           updated_at: string
         }
         Insert: {
           a_profile_id: string
+          assigned_at?: string | null
           assigned_to?: string | null
+          assignee_lock_version?: number
+          assumed_at?: string | null
           b_profile_id: string
+          cancelled_at?: string | null
+          completed_at?: string | null
+          contact_exchanged_at?: string | null
           created_at?: string
           event_id: string
           id?: string
           match_id: string
           notes?: string | null
+          presented_at?: string | null
           status?: Database["public"]["Enums"]["connection_status"]
           updated_at?: string
         }
         Update: {
           a_profile_id?: string
+          assigned_at?: string | null
           assigned_to?: string | null
+          assignee_lock_version?: number
+          assumed_at?: string | null
           b_profile_id?: string
+          cancelled_at?: string | null
+          completed_at?: string | null
+          contact_exchanged_at?: string | null
           created_at?: string
           event_id?: string
           id?: string
           match_id?: string
           notes?: string | null
+          presented_at?: string | null
           status?: Database["public"]["Enums"]["connection_status"]
           updated_at?: string
         }
@@ -994,10 +1123,22 @@ export type Database = {
           user_id: string
         }[]
       }
-      admin_remove_event_staff: {
-        Args: { _event_id: string; _user_id: string }
+      admin_reassign_connection: {
+        Args: { _connection_id: string; _new_user_id: string; _note?: string }
         Returns: undefined
       }
+      admin_remove_event_staff:
+        | { Args: { _event_id: string; _user_id: string }; Returns: undefined }
+        | {
+            Args: {
+              _confirm_self?: boolean
+              _event_id: string
+              _reassign_to?: string
+              _user_id: string
+            }
+            Returns: undefined
+          }
+      event_operational_stats: { Args: { _event_id: string }; Returns: Json }
       event_stats: {
         Args: { _event_id: string }
         Returns: {
@@ -1111,6 +1252,10 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       slugify: { Args: { _txt: string }; Returns: string }
+      staff_add_connection_note: {
+        Args: { _body: string; _connection_id: string }
+        Returns: string
+      }
       staff_advance_connection: {
         Args: {
           _connection_id: string
@@ -1119,16 +1264,52 @@ export type Database = {
         }
         Returns: undefined
       }
-      staff_reveal_contact_for_match: {
-        Args: { _match_id: string }
-        Returns: {
-          company: string
-          email: string
-          name: string
-          phone_e164: string
-          profile_id: string
-        }[]
+      staff_assume_connection: {
+        Args: { _connection_id: string }
+        Returns: Json
       }
+      staff_list_connection_detail: {
+        Args: { _connection_id: string }
+        Returns: Json
+      }
+      staff_list_connections_v2: {
+        Args: {
+          _event_id: string
+          _limit?: number
+          _offset?: number
+          _scope?: string
+          _search?: string
+          _segment_ids?: string[]
+          _sort?: string
+          _statuses?: Database["public"]["Enums"]["connection_status"][]
+        }
+        Returns: Json
+      }
+      staff_release_connection: {
+        Args: { _connection_id: string; _note?: string }
+        Returns: undefined
+      }
+      staff_reveal_contact_for_match:
+        | {
+            Args: { _match_id: string }
+            Returns: {
+              company: string
+              email: string
+              name: string
+              phone_e164: string
+              profile_id: string
+            }[]
+          }
+        | {
+            Args: { _match_id: string; _override_reason?: string }
+            Returns: {
+              company: string
+              email: string
+              name: string
+              phone_e164: string
+              profile_id: string
+            }[]
+          }
       store_computed_matches: { Args: { _matches: Json }; Returns: number }
       taxonomy_match: {
         Args: {
