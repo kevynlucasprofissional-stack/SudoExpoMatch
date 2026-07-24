@@ -1,17 +1,24 @@
-// Repositório em memória + localStorage.
-// Espelha o schema Supabase para que a troca por queries reais seja mecânica.
-// Nunca use isto em produção — perfis são visíveis em outras abas.
+// Repositório híbrido: cache em memória/localStorage + persistência real no Supabase.
+// Mantém a API síncrona que os componentes usam via useSyncExternalStore,
+// mas hidrata do banco na primeira leitura e espelha escritas para o backend.
 
 import { EVENT_ID, SEGMENTS, TAXONOMY } from "./mock-data";
 import { computeMatchesFor } from "@/domains/matching/score";
+import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
 import type {
   Connection,
   Decision,
   Match,
+  MatchKind,
+  MatchLabel,
+  MatchReason,
+  NeedItem,
+  OfferItem,
   Profile,
 } from "./types";
 
-const KEY = "sudoexpo:v1";
+const KEY = "sudoexpo:v2";
 const SESSION_KEY = "sudoexpo:session";
 
 interface DB {
@@ -33,150 +40,232 @@ function shortCode() {
   return Math.random().toString(36).slice(2, 8).toUpperCase();
 }
 
-function seed(): DB {
-  const now = new Date().toISOString();
-  const mk = (
-    id: string,
-    name: string,
-    company: string,
-    city: string,
-    segmentId: string,
-    summary: string,
-    offers: string[],
-    needs: { kind: Profile["needs"][number]["kind"]; label: string; priority?: boolean }[],
-  ): Profile => ({
-    id,
-    eventId: EVENT_ID,
-    name,
-    company,
-    city,
-    whatsapp: "(00) 00000-0000",
-    segmentId,
-    summary,
-    offers: offers.map((label) => ({ id: uid(), label })),
-    needs: needs.map((n) => ({
-      id: uid(),
-      kind: n.kind,
-      label: n.label,
-      isPriority: n.priority,
-    })),
-    consent: true,
-    isDemo: true,
-    createdAt: now,
-    updatedAt: now,
-    recoveryCode: "DEMO" + id.slice(-3),
-  });
+const EMPTY: DB = { profiles: [], matches: [], connections: [] };
 
-  const profiles: Profile[] = [
-    mk(
-      "demo-001",
-      "Marina Alves (demo)",
-      "Alves Design",
-      "Rio Verde",
-      "marketing",
-      "Estúdio de design e comunicação para pequenas indústrias.",
-      ["Design gráfico", "Produção audiovisual", "Gestão de redes sociais"],
-      [
-        { kind: "compradores", label: "Compradores para meus produtos/serviços", priority: true },
-        { kind: "parceiro", label: "Parceiros locais" },
-      ],
-    ),
-    mk(
-      "demo-002",
-      "Rafael Souza (demo)",
-      "Metal RV",
-      "Rio Verde",
-      "industria",
-      "Fabricação de peças metálicas sob medida para agroindústria.",
-      ["Fabricação sob demanda", "Metalurgia"],
-      [
-        { kind: "servico", label: "Design gráfico para catálogo", priority: true },
-        { kind: "distribuidores", label: "Distribuidores regionais" },
-      ],
-    ),
-    mk(
-      "demo-003",
-      "Camila Rocha (demo)",
-      "Rocha TI",
-      "Goiânia",
-      "tecnologia",
-      "Desenvolvimento de software sob medida e automação de processos.",
-      ["Desenvolvimento de software", "Automação", "Suporte técnico"],
-      [
-        { kind: "compradores", label: "Compradores de sistemas de gestão" },
-        { kind: "parceiro", label: "Parceiros de marketing digital", priority: true },
-      ],
-    ),
-    mk(
-      "demo-004",
-      "João Pereira (demo)",
-      "Pereira Logística",
-      "Rio Verde",
-      "logistica",
-      "Transporte de cargas fracionadas na região centro-oeste.",
-      ["Transporte de cargas", "Última milha"],
-      [
-        { kind: "servico", label: "Automação de rotas e frota", priority: true },
-        { kind: "compradores", label: "Compradores de frete recorrente" },
-      ],
-    ),
-    mk(
-      "demo-005",
-      "Beatriz Lima (demo)",
-      "Nutre+",
-      "Rio Verde",
-      "alimentacao",
-      "Fornecimento de refeições coletivas para empresas.",
-      ["Fornecimento de refeições", "Insumos alimentícios"],
-      [
-        { kind: "fornecedor", label: "Fornecedores de hortifruti" },
-        { kind: "compradores", label: "Empresas com refeitório próprio", priority: true },
-      ],
-    ),
-  ];
+let cache: DB | null = null;
+let hydrated = false;
+let hydrating: Promise<void> | null = null;
 
-  return { profiles, matches: [], connections: [] };
-}
-
-function read(): DB {
-  if (!isBrowser()) return { profiles: [], matches: [], connections: [] };
+function loadCache(): DB {
+  if (cache) return cache;
+  if (!isBrowser()) return EMPTY;
   try {
     const raw = window.localStorage.getItem(KEY);
-    if (!raw) {
-      const s = seed();
-      window.localStorage.setItem(KEY, JSON.stringify(s));
-      return s;
-    }
-    return JSON.parse(raw) as DB;
+    cache = raw ? (JSON.parse(raw) as DB) : { ...EMPTY };
   } catch {
-    return { profiles: [], matches: [], connections: [] };
+    cache = { ...EMPTY };
   }
+  return cache!;
 }
 
-function write(db: DB) {
-  if (!isBrowser()) return;
-  window.localStorage.setItem(KEY, JSON.stringify(db));
+function persist() {
+  if (!isBrowser() || !cache) return;
+  window.localStorage.setItem(KEY, JSON.stringify(cache));
   window.dispatchEvent(new CustomEvent("sudoexpo:db"));
 }
 
+// -------- Mapping between DB rows and domain types --------
+type DBProfile = Database["public"]["Tables"]["profiles"]["Row"];
+type DBMatch = Database["public"]["Tables"]["matches"]["Row"];
+type DBConnection = Database["public"]["Tables"]["connections"]["Row"];
+
+function fromDBProfile(r: DBProfile): Profile {
+  return {
+    id: r.id,
+    eventId: r.event_id,
+    name: r.name,
+    company: r.company,
+    city: r.city,
+    neighborhood: r.neighborhood ?? undefined,
+    whatsapp: r.whatsapp,
+    segmentId: r.segment_id,
+    summary: r.summary,
+    offers: (r.offers as unknown as OfferItem[]) ?? [],
+    needs: (r.needs as unknown as NeedItem[]) ?? [],
+    consent: r.consent,
+    isDemo: r.is_demo,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+    recoveryCode: r.recovery_code,
+  };
+}
+
+function toDBProfileInsert(p: Profile): Database["public"]["Tables"]["profiles"]["Insert"] {
+  return {
+    id: p.id,
+    event_id: p.eventId,
+    name: p.name,
+    company: p.company,
+    city: p.city,
+    neighborhood: p.neighborhood ?? null,
+    whatsapp: p.whatsapp,
+    segment_id: p.segmentId,
+    summary: p.summary,
+    offers: p.offers as unknown as Database["public"]["Tables"]["profiles"]["Insert"]["offers"],
+    needs: p.needs as unknown as Database["public"]["Tables"]["profiles"]["Insert"]["needs"],
+    consent: p.consent,
+    is_demo: p.isDemo ?? false,
+    recovery_code: p.recoveryCode,
+  };
+}
+
+function fromDBMatch(r: DBMatch): Match {
+  return {
+    id: r.id,
+    eventId: r.event_id,
+    aProfileId: r.a_profile_id,
+    bProfileId: r.b_profile_id,
+    kind: r.kind as MatchKind,
+    scoreForA: r.score_for_a,
+    scoreForB: r.score_for_b,
+    label: r.label as MatchLabel,
+    reasonsForA: (r.reasons_for_a as unknown as MatchReason[]) ?? [],
+    reasonsForB: (r.reasons_for_b as unknown as MatchReason[]) ?? [],
+    decisionA: r.decision_a as Decision,
+    decisionB: r.decision_b as Decision,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+function fromDBConnection(r: DBConnection): Connection {
+  return {
+    id: r.id,
+    matchId: r.match_id,
+    eventId: r.event_id,
+    aProfileId: r.a_profile_id,
+    bProfileId: r.b_profile_id,
+    status: r.status as Connection["status"],
+    notes: r.notes ?? undefined,
+    createdAt: r.created_at,
+    updatedAt: r.updated_at,
+  };
+}
+
+// Ensures a match row exists with normalized (a<b) ordering to satisfy CHECK.
+function orderedPair(aId: string, bId: string): [string, string, boolean] {
+  return aId < bId ? [aId, bId, false] : [bId, aId, true];
+}
+
+async function hydrate() {
+  if (!isBrowser() || hydrated) return;
+  if (hydrating) return hydrating;
+  hydrating = (async () => {
+    try {
+      const [profilesRes, matchesRes, connsRes] = await Promise.all([
+        supabase.from("profiles").select("*").eq("event_id", EVENT_ID),
+        supabase.from("matches").select("*").eq("event_id", EVENT_ID),
+        supabase.from("connections").select("*").eq("event_id", EVENT_ID),
+      ]);
+      const db = loadCache();
+      const remoteProfiles = (profilesRes.data ?? []).map(fromDBProfile);
+      const localOnly = db.profiles.filter(
+        (p) => !remoteProfiles.some((r) => r.id === p.id),
+      );
+      db.profiles = [...remoteProfiles, ...localOnly];
+      db.matches = (matchesRes.data ?? []).map(fromDBMatch);
+      db.connections = (connsRes.data ?? []).map(fromDBConnection);
+      hydrated = true;
+      persist();
+      subscribeRealtime();
+    } catch (err) {
+      // Falha de rede: mantém cache local; próxima operação retentará.
+      console.warn("[sudoexpo] hydrate falhou:", err);
+    } finally {
+      hydrating = null;
+    }
+  })();
+  return hydrating;
+}
+
+let realtimeChannel: ReturnType<typeof supabase.channel> | null = null;
+function subscribeRealtime() {
+  if (!isBrowser() || realtimeChannel) return;
+  realtimeChannel = supabase
+    .channel("sudoexpo-live")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "profiles" },
+      () => refreshFromDB("profiles"),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "matches" },
+      () => refreshFromDB("matches"),
+    )
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "connections" },
+      () => refreshFromDB("connections"),
+    )
+    .subscribe();
+}
+
+async function refreshFromDB(table: "profiles" | "matches" | "connections") {
+  const db = loadCache();
+  if (table === "profiles") {
+    const { data } = await supabase.from("profiles").select("*").eq("event_id", EVENT_ID);
+    db.profiles = (data ?? []).map(fromDBProfile);
+  } else if (table === "matches") {
+    const { data } = await supabase.from("matches").select("*").eq("event_id", EVENT_ID);
+    db.matches = (data ?? []).map(fromDBMatch);
+  } else {
+    const { data } = await supabase.from("connections").select("*").eq("event_id", EVENT_ID);
+    db.connections = (data ?? []).map(fromDBConnection);
+  }
+  persist();
+}
+
+// Kick off hydration on module load (browser only).
+if (isBrowser()) {
+  loadCache();
+  hydrate();
+}
+
+async function upsertMatchRemote(m: Match) {
+  const [a, b, swapped] = orderedPair(m.aProfileId, m.bProfileId);
+  const row = {
+    id: m.id,
+    event_id: m.eventId,
+    a_profile_id: a,
+    b_profile_id: b,
+    kind: m.kind,
+    score_for_a: swapped ? m.scoreForB : m.scoreForA,
+    score_for_b: swapped ? m.scoreForA : m.scoreForB,
+    label: m.label,
+    reasons_for_a: (swapped ? m.reasonsForB : m.reasonsForA) as unknown as Database["public"]["Tables"]["matches"]["Insert"]["reasons_for_a"],
+    reasons_for_b: (swapped ? m.reasonsForA : m.reasonsForB) as unknown as Database["public"]["Tables"]["matches"]["Insert"]["reasons_for_b"],
+    decision_a: swapped ? m.decisionB : m.decisionA,
+    decision_b: swapped ? m.decisionA : m.decisionB,
+  };
+  await supabase.from("matches").upsert(row, { onConflict: "a_profile_id,b_profile_id" });
+}
+
 export const store = {
+  hydrate,
+  isHydrated: () => hydrated,
   reset() {
     if (!isBrowser()) return;
     window.localStorage.removeItem(KEY);
     window.localStorage.removeItem(SESSION_KEY);
+    cache = { ...EMPTY };
+    hydrated = false;
     window.dispatchEvent(new CustomEvent("sudoexpo:db"));
+    hydrate();
   },
   all(): DB {
-    return read();
+    return loadCache();
   },
   listProfiles(): Profile[] {
-    return read().profiles;
+    return loadCache().profiles;
   },
   getProfile(id: string): Profile | undefined {
-    return read().profiles.find((p) => p.id === id);
+    return loadCache().profiles.find((p) => p.id === id);
   },
-  createProfile(input: Omit<Profile, "id" | "createdAt" | "updatedAt" | "recoveryCode" | "eventId">) {
-    const db = read();
+  createProfile(
+    input: Omit<Profile, "id" | "createdAt" | "updatedAt" | "recoveryCode" | "eventId">,
+  ) {
+    const db = loadCache();
     const now = new Date().toISOString();
     const profile: Profile = {
       ...input,
@@ -187,13 +276,17 @@ export const store = {
       updatedAt: now,
     };
     db.profiles.push(profile);
-    write(db);
-    // Recalcula matches para este perfil
-    recomputeMatchesFor(profile.id);
+    persist();
+    // Persistência remota (fire-and-forget) e recomputo de matches
+    void (async () => {
+      const { error } = await supabase.from("profiles").insert(toDBProfileInsert(profile));
+      if (error) console.warn("[sudoexpo] insert profile:", error.message);
+      await recomputeMatchesFor(profile.id);
+    })();
     return profile;
   },
   updateProfile(id: string, patch: Partial<Profile>) {
-    const db = read();
+    const db = loadCache();
     const idx = db.profiles.findIndex((p) => p.id === id);
     if (idx < 0) return undefined;
     db.profiles[idx] = {
@@ -201,25 +294,29 @@ export const store = {
       ...patch,
       updatedAt: new Date().toISOString(),
     };
-    write(db);
-    recomputeMatchesFor(id);
+    persist();
+    void (async () => {
+      const p = db.profiles[idx];
+      await supabase.from("profiles").update(toDBProfileInsert(p)).eq("id", id);
+      await recomputeMatchesFor(id);
+    })();
     return db.profiles[idx];
   },
   findByRecovery(whatsapp: string, code: string): Profile | undefined {
     const clean = (s: string) => s.replace(/\D/g, "");
-    return read().profiles.find(
+    return loadCache().profiles.find(
       (p) =>
         clean(p.whatsapp) === clean(whatsapp) &&
         p.recoveryCode.toUpperCase() === code.toUpperCase(),
     );
   },
   matchesFor(profileId: string): Match[] {
-    return read().matches.filter(
+    return loadCache().matches.filter(
       (m) => m.aProfileId === profileId || m.bProfileId === profileId,
     );
   },
   decideMatch(matchId: string, byProfileId: string, decision: Decision) {
-    const db = read();
+    const db = loadCache();
     const idx = db.matches.findIndex((m) => m.id === matchId);
     if (idx < 0) return;
     const m = db.matches[idx];
@@ -228,7 +325,6 @@ export const store = {
     m.updatedAt = new Date().toISOString();
     db.matches[idx] = m;
 
-    // Interesse mútuo cria connection
     if (
       m.decisionA === "interesse" &&
       m.decisionB === "interesse" &&
@@ -246,7 +342,20 @@ export const store = {
         updatedAt: now,
       });
     }
-    write(db);
+    persist();
+    void (async () => {
+      const [, , swapped] = orderedPair(m.aProfileId, m.bProfileId);
+      const patch: Partial<Database["public"]["Tables"]["matches"]["Update"]> = {};
+      const targetDecision = decision;
+      if (byProfileId === m.aProfileId) {
+        if (swapped) patch.decision_b = targetDecision;
+        else patch.decision_a = targetDecision;
+      } else {
+        if (swapped) patch.decision_a = targetDecision;
+        else patch.decision_b = targetDecision;
+      }
+      await supabase.from("matches").update(patch).eq("id", matchId);
+    })();
   },
   session: {
     set(profileId: string) {
@@ -265,7 +374,7 @@ export const store = {
     },
   },
   stats(eventId = EVENT_ID) {
-    const db = read();
+    const db = loadCache();
     const profiles = db.profiles.filter((p) => p.eventId === eventId);
     const matches = db.matches.filter((m) => m.eventId === eventId);
     const mutual = matches.filter(
@@ -284,8 +393,8 @@ export const store = {
   },
 };
 
-function recomputeMatchesFor(profileId: string) {
-  const db = read();
+async function recomputeMatchesFor(profileId: string) {
+  const db = loadCache();
   const me = db.profiles.find((p) => p.id === profileId);
   if (!me) return;
   const others = db.profiles.filter(
@@ -293,7 +402,6 @@ function recomputeMatchesFor(profileId: string) {
   );
   const fresh = computeMatchesFor(me, others);
 
-  // Remove matches antigos envolvendo `me` e reinsere, preservando decisões existentes
   const existing = new Map(
     db.matches
       .filter((m) => m.aProfileId === me.id || m.bProfileId === me.id)
@@ -302,31 +410,39 @@ function recomputeMatchesFor(profileId: string) {
   db.matches = db.matches.filter(
     (m) => m.aProfileId !== me.id && m.bProfileId !== me.id,
   );
-
+  const toUpsert: Match[] = [];
   for (const f of fresh) {
     const key = pairKey(f.aProfileId, f.bProfileId);
     const prev = existing.get(key);
-    db.matches.push({
+    const merged: Match = {
       ...f,
       id: prev?.id ?? uid(),
       decisionA: prev?.decisionA ?? "sem_decisao",
       decisionB: prev?.decisionB ?? "sem_decisao",
-    });
+    };
+    db.matches.push(merged);
+    toUpsert.push(merged);
   }
-  // Reinsere matches antigos que ainda existiam (pares onde `me` estava como B mas não recomputamos pelo lado deles)
   for (const [key, prev] of existing) {
     if (!db.matches.some((m) => pairKey(m.aProfileId, m.bProfileId) === key)) {
       db.matches.push(prev);
     }
   }
-  write(db);
+  persist();
+  // Mirror to Supabase
+  for (const m of toUpsert) {
+    try {
+      await upsertMatchRemote(m);
+    } catch (err) {
+      console.warn("[sudoexpo] upsert match:", err);
+    }
+  }
 }
 
 function pairKey(a: string, b: string) {
   return [a, b].sort().join("::");
 }
 
-// Hook helper: subscribe to db changes
 export function subscribe(cb: () => void) {
   if (!isBrowser()) return () => {};
   const handler = () => cb();
