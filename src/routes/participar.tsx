@@ -138,7 +138,7 @@ function WizardPage() {
     setStep((s) => Math.max(s - 1, 0));
   }
 
-  function submit() {
+  async function submit() {
     const profileData: Omit<
       Profile,
       "id" | "createdAt" | "updatedAt" | "recoveryCode" | "eventId"
@@ -154,11 +154,16 @@ function WizardPage() {
       needs: draft.needs,
       consent: draft.consent,
     };
-    const profile = store.createProfile(profileData);
-    store.session.set(profile.id);
-    if (typeof window !== "undefined") window.localStorage.removeItem(DRAFT_KEY);
-    toast.success("Perfil criado! Buscando conexões…");
-    navigate({ to: "/participante" });
+    try {
+      const profile = await store.createProfile(profileData);
+      store.session.set(profile.id);
+      if (typeof window !== "undefined") window.localStorage.removeItem(DRAFT_KEY);
+      toast.success("Perfil criado! Buscando conexões…");
+      navigate({ to: "/participante" });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(`Não foi possível salvar seu perfil: ${msg}`);
+    }
   }
 
   return (
