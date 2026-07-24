@@ -1,0 +1,105 @@
+import type { WizardDraft, WizardMode } from "./types";
+import { validateWizardForSubmit } from "./validate";
+import {
+  mapWizardToSaveProfileInput,
+  normalizePhoneE164,
+} from "./mappers";
+
+export interface SubmitOrchestratorDeps {
+  saveOwnProfile: (input: ReturnType<typeof mapWizardToSaveProfileInput>) => Promise<unknown>;
+  setOwnContact: (input: { phone_e164: string; sharing: boolean }) => Promise<unknown>;
+  rotateOwnRecoveryCode: () => Promise<string>;
+  recomputeOwnMatches: (eventId: string) => Promise<unknown>;
+}
+
+export type PreSubmitResult =
+  | { ok: true; phoneE164: string | null; withContact: boolean }
+  | { ok: false; reason: "profile" | "phone" | "priority"; message: string };
+
+/**
+ * Etapa pura anterior a qualquer chamada de rede.
+ * Se retornar `ok:false`, o chamador NÃO deve executar RPC alguma.
+ */
+export function preSubmit(args: {
+  draft: WizardDraft;
+  mode: WizardMode;
+  phone: string;
+}): PreSubmitResult {
+  const v = validateWizardForSubmit(args);
+  if (!v.ok) return { ok: false, reason: v.reason, message: v.message };
+  const phoneE164 = args.phone.trim() ? normalizePhoneE164(args.phone) : null;
+  const withContact = args.mode === "create" ? true : !!phoneE164;
+  return { ok: true, phoneE164, withContact };
+}
+
+export type SubmitEvent =
+  | { type: "PRE_FAIL"; reason: "profile" | "phone" | "priority"; message: string }
+  | { type: "PROFILE_OK" }
+  | { type: "PROFILE_FAIL"; error: unknown }
+  | { type: "CONTACT_OK" }
+  | { type: "CONTACT_FAIL"; error: unknown }
+  | { type: "CODE_OK"; code: string }
+  | { type: "CODE_FAIL"; error: unknown }
+  | { type: "MATCH_OK" }
+  | { type: "MATCH_FAIL"; error: unknown }
+  | { type: "AWAIT_CODE_CONFIRMATION" };
+
+/**
+ * Executa o pipeline até o ponto em que uma confirmação manual do usuário é
+ * necessária (confirmação do código) ou até completar (edição). Retorna a
+ * lista de eventos emitidos, para o chamador aplicar no reducer/UI.
+ * Injetável para testes — sem tocar em toast/navegação.
+ */
+export async function runWizardSubmit(args: {
+  draft: WizardDraft;
+  mode: WizardMode;
+  phone: string;
+  eventId: string;
+  deps: SubmitOrchestratorDeps;
+}): Promise<SubmitEvent[]> {
+  const events: SubmitEvent[] = [];
+  const pre = preSubmit(args);
+  if (!pre.ok) {
+    events.push({ type: "PRE_FAIL", reason: pre.reason, message: pre.message });
+    return events;
+  }
+
+  try {
+    const input = mapWizardToSaveProfileInput(args.draft, args.eventId);
+    await args.deps.saveOwnProfile(input);
+    events.push({ type: "PROFILE_OK" });
+  } catch (error) {
+    events.push({ type: "PROFILE_FAIL", error });
+    return events;
+  }
+
+  if (pre.withContact && pre.phoneE164) {
+    try {
+      await args.deps.setOwnContact({ phone_e164: pre.phoneE164, sharing: true });
+      events.push({ type: "CONTACT_OK" });
+    } catch (error) {
+      events.push({ type: "CONTACT_FAIL", error });
+      return events;
+    }
+  }
+
+  if (args.mode === "create") {
+    try {
+      const code = await args.deps.rotateOwnRecoveryCode();
+      events.push({ type: "CODE_OK", code });
+      events.push({ type: "AWAIT_CODE_CONFIRMATION" });
+      return events;
+    } catch (error) {
+      events.push({ type: "CODE_FAIL", error });
+      return events;
+    }
+  }
+
+  try {
+    await args.deps.recomputeOwnMatches(args.eventId);
+    events.push({ type: "MATCH_OK" });
+  } catch (error) {
+    events.push({ type: "MATCH_FAIL", error });
+  }
+  return events;
+}

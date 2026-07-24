@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -44,7 +44,6 @@ import {
 } from "@/features/onboarding/draft";
 import {
   mapProfileToWizardDraft,
-  mapWizardToSaveProfileInput,
   normalizePhoneE164,
   WizardMappingError,
 } from "@/features/onboarding/mappers";
@@ -62,6 +61,9 @@ import {
   StepReview,
 } from "@/features/onboarding/steps";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
+import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
+import { resolveWizardPageState } from "@/features/onboarding/pageState";
+import { runWizardSubmit } from "@/features/onboarding/submitOrchestrator";
 
 export const Route = createFileRoute("/participar")({
   head: () => ({
@@ -187,30 +189,22 @@ function WizardPage() {
   }
 
   // ------------------------------------------------------------------
-  // Catálogo — modo manual quando indisponível
+  // Catálogo — distinção clara entre "cache com refresh falho" e "modo manual"
   // ------------------------------------------------------------------
-  // Se o catálogo falhou/está vazio mas já existe segmentId no perfil ou
-  // rascunho, seguimos em modo manual usando esse segmento como autoridade.
-  const catalogFallback = !catalogQuery.data;
   const fallbackSegmentId = draft.segmentId?.trim() || "";
-  const canFallback = catalogFallback && !!fallbackSegmentId;
-  const manualCatalog = useMemo<EventCatalog>(
-    () => ({
-      segments: fallbackSegmentId
-        ? [
-            {
-              id: fallbackSegmentId,
-              label: fallbackSegmentId,
-              emoji: null,
-            },
-          ]
-        : [],
-      taxonomy: [],
-    }),
-    [fallbackSegmentId],
-  );
+  const catalogAvailability = resolveCatalogAvailability({
+    data: catalogQuery.data ?? null,
+    isPending: catalogQuery.isPending,
+    isError: catalogQuery.isError,
+    fallbackSegmentId,
+  });
   const effectiveCatalog: EventCatalog | null =
-    catalogQuery.data ?? (canFallback ? manualCatalog : null);
+    catalogAvailability.kind === "ready" ? catalogAvailability.catalog : null;
+  const manualCatalogMode =
+    catalogAvailability.kind === "ready" && catalogAvailability.manualMode;
+  const catalogRefreshFailed =
+    catalogAvailability.kind === "ready" && catalogAvailability.refreshFailed;
+
 
   const runRecompute = useCallback(async () => {
     try {
@@ -231,64 +225,77 @@ function WizardPage() {
   }, [mode, navigate, qc]);
 
   // ------------------------------------------------------------------
-  // Submit — sempre revalida antes de disparar qualquer RPC.
+  // Submit — delega ao orchestrator puro (`runWizardSubmit`) e aplica os
+  // eventos no reducer + toasts. Isso torna a garantia "sem RPC sem WhatsApp"
+  // testável em unidade sem simular a rota inteira.
   // ------------------------------------------------------------------
   const startSubmit = useCallback(async () => {
     if (runningRef.current) return;
-
-    // Defesa em profundidade: mesmo com botão habilitado, revalida.
-    const v = validateWizardForSubmit({ draft, mode, phone });
-    if (!v.ok) {
-      toast.error(v.message);
-      if (v.reason === "phone") goToIdentity();
-      return;
-    }
-
     runningRef.current = true;
     try {
-      const phoneE164 = phone.trim() ? normalizePhoneE164(phone) : null;
-      const withContact = mode === "create" ? true : !!phoneE164;
-      dispatch({ type: "START", mode, withContact });
-
-      try {
-        const input = mapWizardToSaveProfileInput(draft, EVENT_ID);
-        await saveOwnProfile(input);
-      } catch (err) {
-        dispatch({ type: "PROFILE_FAIL" });
-        toast.error(errorToUserMessage(err, "Não foi possível salvar seu perfil."));
-        return;
-      }
-      qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
-      dispatch({ type: "PROFILE_OK" });
-
-      if (mode === "create" || (mode === "edit" && phoneE164)) {
-        try {
-          await setOwnContact({ phone_e164: phoneE164!, sharing: true });
-        } catch (err) {
+      const withContactUpfront =
+        mode === "create" ? true : !!phone.trim();
+      dispatch({ type: "START", mode, withContact: withContactUpfront });
+      const events = await runWizardSubmit({
+        draft,
+        mode,
+        phone,
+        eventId: EVENT_ID,
+        deps: {
+          saveOwnProfile,
+          setOwnContact,
+          rotateOwnRecoveryCode,
+          recomputeOwnMatches,
+        },
+      });
+      for (const evt of events) {
+        if (evt.type === "PRE_FAIL") {
+          dispatch({ type: "RESET" });
+          toast.error(evt.message);
+          if (evt.reason === "phone") goToIdentity();
+          return;
+        }
+        if (evt.type === "PROFILE_OK") {
+          qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
+          dispatch({ type: "PROFILE_OK" });
+        } else if (evt.type === "PROFILE_FAIL") {
+          dispatch({ type: "PROFILE_FAIL" });
+          toast.error(errorToUserMessage(evt.error, "Não foi possível salvar seu perfil."));
+          return;
+        } else if (evt.type === "CONTACT_OK") {
+          dispatch({ type: "CONTACT_OK" });
+        } else if (evt.type === "CONTACT_FAIL") {
           dispatch({ type: "CONTACT_FAIL" });
-          toast.error(errorToUserMessage(err, "Perfil salvo, contato não."));
+          toast.error(errorToUserMessage(evt.error, "Perfil salvo, contato não."));
           return;
-        }
-        dispatch({ type: "CONTACT_OK" });
-      }
-
-      if (mode === "create") {
-        try {
-          const code = await rotateOwnRecoveryCode();
-          dispatch({ type: "CODE_OK", code });
-          return; // aguarda “Já salvei”
-        } catch (err) {
+        } else if (evt.type === "CODE_OK") {
+          dispatch({ type: "CODE_OK", code: evt.code });
+        } else if (evt.type === "CODE_FAIL") {
           dispatch({ type: "CODE_FAIL" });
-          toast.error(errorToUserMessage(err, "Não gerou código."));
+          toast.error(errorToUserMessage(evt.error, "Não gerou código."));
           return;
+        } else if (evt.type === "AWAIT_CODE_CONFIRMATION") {
+          return;
+        } else if (evt.type === "MATCH_OK") {
+          qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+          dispatch({ type: "MATCH_OK" });
+          clearWizardDraft();
+          toast.success(
+            mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
+          );
+          navigate({ to: "/participante" });
+        } else if (evt.type === "MATCH_FAIL") {
+          dispatch({ type: "MATCH_FAIL" });
+          toast.error(
+            errorToUserMessage(evt.error, "Não conseguimos calcular seus matches agora."),
+          );
         }
       }
-
-      await runRecompute();
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, runRecompute, goToIdentity]);
+  }, [draft, mode, phone, qc, navigate, goToIdentity]);
+
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -370,11 +377,24 @@ function WizardPage() {
   }, [navigate]);
 
   // ------------------------------------------------------------------
-  // Guardas de renderização — ORDEM IMPORTA:
-  // 1) session error, 2) session loading, 3) profile error, 4) profile loading,
-  // 5) hidratação, 6) catálogo (bloqueio SÓ se sem segmento autoritativo).
+  // Guardas de renderização — precedência resolvida por helper puro.
   // ------------------------------------------------------------------
-  if (session.status === "error") {
+  const pageState = resolveWizardPageState({
+    session:
+      session.status === "error"
+        ? "error"
+        : session.status === "loading"
+          ? "loading"
+          : "ready",
+    profile: profileQuery.isError
+      ? "error"
+      : profileQuery.isPending
+        ? "pending"
+        : "success",
+    hydrated,
+  });
+
+  if (pageState === "session_error") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -383,11 +403,7 @@ function WizardPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               Não foi possível iniciar sua sessão. Verifique sua internet.
             </p>
-            <Button
-              className="mt-4"
-              onClick={() => void session.retry()}
-              disabled={session.status !== "error"}
-            >
+            <Button className="mt-4" onClick={() => void session.retry()}>
               Tentar novamente
             </Button>
           </Card>
@@ -395,7 +411,7 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (session.status === "loading") {
+  if (pageState === "session_loading") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -405,7 +421,7 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (profileQuery.isError) {
+  if (pageState === "profile_error") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -430,7 +446,7 @@ function WizardPage() {
       </PageShell>
     );
   }
-  if (profileQuery.isPending || !hydrated) {
+  if (pageState === "profile_loading" || pageState === "hydrating") {
     return (
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
@@ -440,6 +456,7 @@ function WizardPage() {
       </PageShell>
     );
   }
+
   if (catalogQuery.isPending && !effectiveCatalog) {
     return (
       <PageShell>
@@ -490,7 +507,7 @@ function WizardPage() {
           </div>
         )}
 
-        {catalogFallback && (
+        {manualCatalogMode && (
           <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
             <p className="font-medium">Catálogo indisponível — modo manual</p>
             <p className="mt-1 text-muted-foreground">
@@ -512,6 +529,29 @@ function WizardPage() {
             </div>
           </div>
         )}
+
+        {catalogRefreshFailed && (
+          <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
+            <p className="font-medium">
+              Não foi possível atualizar o catálogo.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              Você está usando a última versão carregada.
+            </p>
+            <div className="mt-2">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => void catalogQuery.refetch()}
+                disabled={catalogQuery.isFetching}
+                aria-busy={catalogQuery.isFetching}
+              >
+                {catalogQuery.isFetching ? "Tentando…" : "Tentar atualizar novamente"}
+              </Button>
+            </div>
+          </div>
+        )}
+
 
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -540,8 +580,11 @@ function WizardPage() {
             onNext={next}
             onBack={back}
             catalog={catalog}
+            manualMode={manualCatalogMode}
+            manualSegmentLabel={fallbackSegmentId}
           />
         )}
+
         {step === 2 && (
           <StepOffers
             draft={draft}
@@ -582,7 +625,7 @@ function WizardPage() {
             mode={mode}
             catalog={catalog}
             validation={validation}
-            catalogFallback={catalogFallback}
+            catalogFallback={manualCatalogMode}
           />
         )}
       </section>

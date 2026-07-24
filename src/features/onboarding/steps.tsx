@@ -216,13 +216,17 @@ export function StepSegment({
   onNext,
   onBack,
   catalog,
-}: BaseProps & { catalog: EventCatalog }) {
+  manualMode = false,
+  manualSegmentLabel,
+}: BaseProps & {
+  catalog: EventCatalog;
+  manualMode?: boolean;
+  manualSegmentLabel?: string;
+}) {
   const canNext = !!draft.segmentId && draft.summary.trim().length >= 20;
 
   function handleSelect(segmentId: string) {
     if (draft.segmentId && draft.segmentId !== segmentId) {
-      // Segmento mudou: mantém itens do usuário mas atualiza segment_id
-      // dos itens que estavam alinhados ao segmento anterior.
       const prev = draft.segmentId;
       update(
         "offers",
@@ -244,30 +248,46 @@ export function StepSegment({
     <Card className="p-6">
       <h2 className="font-display text-2xl font-semibold">Seu segmento</h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Escolha o segmento principal e escreva um resumo curto do que você faz.
+        {manualMode
+          ? "Catálogo indisponível — o segmento atual está bloqueado para edição."
+          : "Escolha o segmento principal e escreva um resumo curto do que você faz."}
       </p>
 
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {catalog.segments.map((s) => {
-          const active = draft.segmentId === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => handleSelect(s.id)}
-              aria-pressed={active}
-              className={`rounded-xl border p-3 text-left text-sm transition-all ${
-                active
-                  ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
-                  : "hover:bg-muted"
-              }`}
-            >
-              {s.emoji && <span className="mr-1">{s.emoji}</span>}
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
+      {manualMode ? (
+        <div
+          className="mt-6 rounded-xl border border-warning/40 bg-warning/5 p-3 text-sm"
+          aria-live="polite"
+        >
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            Segmento atual (bloqueado)
+          </p>
+          <p className="mt-1 font-medium">
+            {manualSegmentLabel ?? draft.segmentId}
+          </p>
+        </div>
+      ) : (
+        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {catalog.segments.map((s) => {
+            const active = draft.segmentId === s.id;
+            return (
+              <button
+                key={s.id}
+                type="button"
+                onClick={() => handleSelect(s.id)}
+                aria-pressed={active}
+                className={`rounded-xl border p-3 text-left text-sm transition-all ${
+                  active
+                    ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
+                    : "hover:bg-muted"
+                }`}
+              >
+                {s.emoji && <span className="mr-1">{s.emoji}</span>}
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="mt-6">
         <Label htmlFor="summary">Resumo profissional</Label>
@@ -295,6 +315,7 @@ export function StepSegment({
     </Card>
   );
 }
+
 
 // ============================================================================
 // StepOffers
