@@ -43,6 +43,10 @@ export function extractErrorCode(
     "decision_locked_by_connection",
     "profile_not_found",
     "reveal_forbidden",
+    "not_mutual",
+    "not_yet_introduced",
+    "contact_sharing_disabled",
+    "contact_unavailable",
   ];
   for (const c of codes) if (message.includes(c)) return c;
   if (/network|fetch|Failed to fetch/i.test(message)) return "network";
