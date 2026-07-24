@@ -1,118 +1,54 @@
 # Matchmaker SudoExpo
 
-Plataforma de matchmaking profissional para visitantes da **SudoExpo**, realizada pela **ACIRV**. Cruza o que cada visitante oferece com o que outros procuram e gera conexões presenciais com justificativa objetiva.
+Plataforma de matchmaking profissional para visitantes da SudoExpo (ACIRV).
+Stack: TanStack Start · React · TypeScript · TanStack Router/Query · Tailwind · shadcn/ui · Supabase.
 
-> **Assinatura:** _Aqui, ninguém cresce isolado. A gente cresce conectado._
+## Modelo de segurança (Fase 1)
 
----
+- **Autenticação de visitante**: sessão anônima automática do Supabase Auth no primeiro acesso a `/participar`. Cada perfil real fica vinculado ao `auth.uid()` via `profiles.owner_id`.
+- **Perfis demo**: criados com `is_demo=true` e sem dono humano; contatos usam telefones fictícios em `private.profile_contacts`.
+- **Contatos e código de recuperação** vivem no schema `private`, inacessível pelo Data API, e são operados apenas por RPCs `SECURITY DEFINER`:
+  - `upsert_own_profile`, `set_own_contact`, `rotate_own_recovery_code`
+  - `recover_profile` (com rate limit + bloqueio temporário de 15 min após 5 falhas)
+  - `record_match_decision` (participante altera só o próprio lado)
+  - `store_computed_matches` (participante grava apenas matches envolvendo o próprio perfil)
+  - `reveal_contact_for_match` (participante só vê contato do outro quando há **interesse mútuo + connection.status ≥ apresentados**)
+  - `staff_reveal_contact_for_match` (equipe autorizada do evento pode consultar antes para aproximar)
+  - `staff_advance_connection` (staff avança status e registra histórico)
+  - `list_event_profile_cards` (cartões profissionais públicos, sem contato/PII)
+- **RLS**: leitura pública de `profiles` removida; INSERT/UPDATE anônimo em `matches`/`connections` removido; colunas `whatsapp` e `recovery_code` de `public.profiles` com grants revogados (só `service_role` lê).
+- **Tabelas normalizadas**: `profile_offers`, `profile_needs`, `profile_segments`, `match_reasons`, `match_decisions`, `match_status_history`, `connection_status_history`, `event_staff`, `consents`, `ai_runs`, `analytics_events`, `audit_logs`, `taxonomy_items`. JSONB legado em `profiles.offers/needs` mantido temporariamente para compat; será removido na Fase 3.
 
-## Stack
+## Primeiro admin (bootstrap seguro)
 
-- **TanStack Start** (v1) + **TanStack Router** + **TanStack Query**
-- **React 19** + **TypeScript** estrito
-- **Tailwind CSS v4** + **shadcn/ui**
-- **Zod** para validação
-- **Vite 7** com deploy previsto para Edge Workers (Cloudflare)
-- Preparado para **Supabase** (Lovable Cloud) — ver seção _Estado do MVP_
+Nenhum e-mail, senha ou UUID é hardcoded no repositório. Para promover a conta que gerenciará o evento:
 
----
+1. Crie a conta normalmente (via login por e-mail/senha assim que a rota `/equipe` de login estiver ativa **na Fase 2**, ou diretamente no painel do Supabase → Authentication → Users → Add user).
+2. Abra o SQL Editor do Supabase e execute, substituindo `<email>` e `<event_id>` pelos valores reais (nunca commite este SQL preenchido):
 
-## Estado do MVP nesta entrega
+   ```sql
+   INSERT INTO public.event_staff (event_id, user_id, role)
+   SELECT '<event_id>', u.id, 'admin'
+   FROM auth.users u
+   WHERE u.email = '<email>'
+   ON CONFLICT DO NOTHING;
+   ```
 
-### ✅ Funcional agora
-- Design system ACIRV completo (tokens `oklch`, tipografia Inter + Space Grotesk, utilitários `bg-hero-gradient`, `text-gradient-brand`, animações que respeitam `prefers-reduced-motion`).
-- Boas-vindas (`/`), como funciona (`/como-funciona`) e área do participante (`/participante`).
-- **Wizard completo do visitante** (`/participar`) com barra de progresso, 6 etapas, validação Zod, rascunho preservado em `localStorage` e prevenção de duplo envio.
-- **IA sugerindo segmentos, ofertas e necessidades** — sempre com confirmação humana.
-- **Motor de matching explicável real** (`src/domains/matching/score.ts`): pesos 55 / 25 / 10 / 5 / 3 / 2, tipos `direto` / `inverso` / `bidirecional` / `complementar` / `híbrido`, classificação textual **Alta compatibilidade / Boa oportunidade / Conexão possível** (nunca percentual).
-- Cards de match com ações **Tenho interesse**, **Ver perfil resumido** e **Agora não**.
-- **Interesse mútuo cria conexão** e libera o link de WhatsApp no painel do participante.
-- Recuperação de perfil por **WhatsApp + código pessoal**.
-- Painel público (`/publico`) horizontal para TV/LED com estatísticas agregadas em tempo real.
-- Seed de demonstração com **13 segmentos** e **5 perfis demo** claramente marcados.
+3. A partir daí, esse admin pode inserir demais membros via a rota `/admin` (Fase 2) ou repetindo o comando acima com `role = 'staff'`.
 
-### 🧪 Mockado (mesmo contrato da versão futura)
-- **Persistência**: `localStorage` via `src/lib/store.ts` — o formato espelha o schema Supabase pedido (`profiles`, `matches`, `connections`, decisões, etc.) para que a troca vire uma substituição do repositório por chamadas Supabase, sem tocar na UI.
-- **IA de sugestão** (`src/domains/ai/mock.ts`): heurística determinística por palavras-chave, com o mesmo formato de resposta previsto para a futura Edge Function.
-- **Envio de WhatsApp**: gera link `wa.me` no cliente.
+## O que fica para a Fase 2
 
-### ⏳ Depende da ativação do Lovable Cloud (Supabase)
-Os itens abaixo foram desenhados na arquitetura mas **não** foram implementados nesta entrega porque o backend Supabase não está disponível na sessão:
+- Login e proteção de `/equipe` e `/admin` com e-mail + senha (`supabase.auth.signInWithPassword`).
+- Tela de admin para gerenciar `event_staff` do próprio evento.
+- Card de match no `/participante` chamando `reveal_contact_for_match` (hoje o contato ainda não é exibido no cliente pois `whatsapp` foi removido do payload público).
+- Tela de rotação/exibição-única do código de recuperação após a criação do perfil.
+- Remoção definitiva de `profiles.whatsapp` e `profiles.recovery_code` (Fase 3, depois da adoção completa das RPCs).
 
-- Migrations SQL, enums, `updated_at`, índices, **RLS** e schema `private` para `events`, `profiles`, `profile_contacts`, `profile_recovery`, `segments`, `taxonomy_items`, `profile_offers`, `profile_needs`, `matches`, `match_reasons`, `match_decisions`, `match_status_history`, `connections`, `connection_status_history`, `event_staff`, `consents`, `ai_runs`, `analytics_events`, `audit_logs`.
-- Autenticação da equipe (email/senha) + `user_roles` (`has_role`) + rotas `/equipe/dashboard`, `/equipe/fila`, `/equipe/atendimento/$id`, painel administrativo.
-- Edge Function de IA real.
-- Realtime nos canais de fila / match mútuo / painel público.
-- Recuperação por hash real (bcrypt/scrypt) — no mock, o código é armazenado em texto.
-
-A rota `/equipe` já existe como placeholder honesto que informa esse estado ao usuário.
-
----
-
-## Estrutura
-
-```text
-src/
-├── components/
-│   ├── brand/            # BrandShell, NetworkGraphic
-│   └── ui/               # shadcn
-├── domains/
-│   ├── matching/score.ts # Serviço puro de scoring (testável)
-│   └── ai/mock.ts        # Adaptador de IA (mock determinístico)
-├── lib/
-│   ├── types.ts          # Tipos de domínio (espelham o schema Supabase)
-│   ├── mock-data.ts      # Segmentos + taxonomia + seed
-│   └── store.ts          # Repositório localStorage (troca por Supabase depois)
-├── routes/
-│   ├── __root.tsx        # Head/metadata + QueryClientProvider + Sonner
-│   ├── index.tsx         # Boas-vindas
-│   ├── como-funciona.tsx
-│   ├── participar.tsx    # Wizard 6 etapas
-│   ├── participante.tsx  # Área do visitante + recuperação
-│   ├── publico.tsx       # Painel TV/LED
-│   └── equipe.tsx        # Placeholder (aguardando Supabase)
-└── styles.css            # Design system ACIRV (oklch)
-```
-
----
-
-## Setup
+## Desenvolvimento
 
 ```bash
 bun install
-bun run dev            # http://localhost:8080
+bun run dev
 ```
 
-### Para trocar o mock por Supabase (roadmap)
-1. Ative Lovable Cloud no projeto.
-2. Rode a migration com o schema descrito acima (todas as tabelas + RLS + GRANTs + seed).
-3. Substitua as funções em `src/lib/store.ts` por chamadas ao cliente Supabase (o formato de retorno já é o mesmo).
-4. Mova `computeMatchesFor` para uma **server function transacional** (`createServerFn`) que faz `upsert` em `matches` + `match_reasons`.
-5. Assine os canais Realtime nos hooks de `participante` e `publico`.
-6. Troque `suggestFromSummary` do mock por uma chamada à Edge Function de IA (contrato `AISuggestion` já validado).
-
----
-
-## Regras do domínio (implementadas no mock)
-
-- Um perfil por participante por evento.
-- Um match existe **uma única vez** por dupla de perfis (chave canônica ordenada).
-- Interesse unilateral **não** libera contato.
-- Interesse mútuo cria `connection` com status `aguardando` (fila da equipe).
-- Painel público só recebe **estatísticas agregadas**.
-
----
-
-## Acessibilidade & qualidade
-
-- Foco visível, labels em todos os inputs, `aria-live` implícito nas notificações Sonner.
-- `prefers-reduced-motion` desativa `animate-pulse-ring` e `animate-float-slow`.
-- Skeletons na área do participante enquanto hidrata.
-- Rascunho do wizard preservado em `localStorage` (chave `sudoexpo:draft`).
-- Botão de submit desabilita durante a criação do perfil.
-
----
-
-## Créditos
-
-Realização **ACIRV** · SudoExpo 2026.
+O dev server sobe em `http://localhost:8080`. Migrations vivem em `supabase/migrations/`.
