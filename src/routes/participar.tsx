@@ -1,26 +1,65 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { z } from "zod";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
-import { EVENT_ID, NEED_KIND_LABELS, SEGMENTS, TAXONOMY } from "@/lib/mock-data";
-import { useSaveOwnProfile } from "@/features/participant/useOwnProfile";
-import { suggestFromSummary, type AISuggestion } from "@/domains/ai/mock";
-import type { NeedItem, NeedKind, OfferItem } from "@/lib/types";
-import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import { EVENT_ID } from "@/lib/mock-data";
+import { useEnsureParticipantSession } from "@/features/participant/session";
+import { useEventTaxonomy } from "@/features/taxonomy/queries";
+import { useOwnProfile } from "@/features/participant/useOwnProfile";
+import {
+  ApiError,
+  saveOwnProfile,
+  setOwnContact,
+  rotateOwnRecoveryCode,
+} from "@/features/participant/api";
+import { recomputeOwnMatches } from "@/features/matching/api";
+import { useQueryClient } from "@tanstack/react-query";
+import { qk } from "@/features/participant/queryKeys";
+
+import type { WizardDraft, WizardMode } from "@/features/onboarding/types";
+import {
+  clearWizardDraft,
+  createEmptyDraft,
+  loadWizardDraft,
+  purgeLegacyDraft,
+  saveWizardDraft,
+} from "@/features/onboarding/draft";
+import {
+  mapProfileToWizardDraft,
+  mapWizardToSaveProfileInput,
+  normalizePhoneE164,
+  WizardMappingError,
+} from "@/features/onboarding/mappers";
+import {
+  initialSubmitState,
+  isSubmitting,
+  submitReducer,
+} from "@/features/onboarding/submitMachine";
+import {
+  StepIdentity,
+  StepSegment,
+  StepOffers,
+  StepNeeds,
+  StepPriority,
+  StepReview,
+} from "@/features/onboarding/steps";
 
 export const Route = createFileRoute("/participar")({
   head: () => ({
@@ -36,6 +75,8 @@ export const Route = createFileRoute("/participar")({
         property: "og:description",
         content: "Wizard rápido para encontrar suas conexões na feira.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: WizardPage,
@@ -50,139 +91,314 @@ const STEPS = [
   "Revisão",
 ] as const;
 
-const DRAFT_KEY = "sudoexpo:draft";
-
-interface Draft {
-  name: string;
-  company: string;
-  whatsapp: string;
-  city: string;
-  neighborhood: string;
-  consent: boolean;
-  segmentId: string;
-  summary: string;
-  offers: OfferItem[];
-  needs: NeedItem[];
-}
-
-const emptyDraft = (): Draft => ({
-  name: "",
-  company: "",
-  whatsapp: "",
-  city: "",
-  neighborhood: "",
-  consent: false,
-  segmentId: "",
-  summary: "",
-  offers: [],
-  needs: [],
-});
-
-function loadDraft(): Draft {
-  if (typeof window === "undefined") return emptyDraft();
-  try {
-    const raw = window.localStorage.getItem(DRAFT_KEY);
-    return raw ? { ...emptyDraft(), ...JSON.parse(raw) } : emptyDraft();
-  } catch {
-    return emptyDraft();
-  }
-}
-
-function saveDraft(d: Draft) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(DRAFT_KEY, JSON.stringify(d));
-}
-
-const identitySchema = z.object({
-  name: z.string().trim().min(2, "Informe seu nome"),
-  company: z.string().trim().min(2, "Informe sua empresa"),
-  whatsapp: z
-    .string()
-    .trim()
-    .refine((v) => v.replace(/\D/g, "").length >= 10, "WhatsApp inválido"),
-  city: z.string().trim().min(2, "Informe sua cidade"),
-  neighborhood: z.string().trim().max(80).optional().or(z.literal("")),
-  consent: z.literal(true, { errorMap: () => ({ message: "É preciso aceitar" }) }),
-});
-
-function uid() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto)
-    return crypto.randomUUID();
-  return Math.random().toString(36).slice(2);
-}
-
 function WizardPage() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<Draft>(() => emptyDraft());
+  const qc = useQueryClient();
+  const session = useEnsureParticipantSession();
+
+  const catalogQuery = useEventTaxonomy(EVENT_ID, { enabled: session.isReady });
+  const profileQuery = useOwnProfile(EVENT_ID, { enabled: session.isReady });
+
+  const [draft, setDraft] = useState<WizardDraft>(() => createEmptyDraft());
+  const [phone, setPhone] = useState("");
   const [hydrated, setHydrated] = useState(false);
-  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
-  const saveMutation = useSaveOwnProfile();
+  const [mode, setMode] = useState<WizardMode>("create");
+  const [showConflict, setShowConflict] = useState(false);
+  const [submit, dispatch] = useReducer(submitReducer, initialSubmitState());
 
+  const runningRef = useRef(false);
+
+  // ------------------------------------------------------------------
+  // Hidratação de rascunho + perfil (conflito controlado)
+  // ------------------------------------------------------------------
   useEffect(() => {
-    setDraft(loadDraft());
+    if (!session.isReady) return;
+    if (profileQuery.isPending) return;
+    if (hydrated) return;
+    purgeLegacyDraft();
+    const loaded = loadWizardDraft();
+    const hasProfile = !!profileQuery.data;
+
+    if (hasProfile && loaded) {
+      // Conflito: aguarda escolha explícita.
+      setDraft(loaded.draft);
+      setMode("edit");
+      setShowConflict(true);
+      setHydrated(true);
+      return;
+    }
+    if (hasProfile && !loaded) {
+      setDraft(mapProfileToWizardDraft(profileQuery.data!));
+      setMode("edit");
+      setHydrated(true);
+      return;
+    }
+    if (!hasProfile && loaded) {
+      setDraft(loaded.draft);
+      setMode("create");
+      setHydrated(true);
+      return;
+    }
+    setDraft(createEmptyDraft());
+    setMode("create");
     setHydrated(true);
-  }, []);
+  }, [session.isReady, profileQuery.isPending, profileQuery.data, hydrated]);
 
+  // Persistência: só depois de hidratado e antes da conclusão.
   useEffect(() => {
-    if (hydrated) saveDraft(draft);
-  }, [draft, hydrated]);
+    if (!hydrated) return;
+    if (submit.stage === "completed") return;
+    saveWizardDraft(draft);
+  }, [draft, hydrated, submit.stage]);
 
-  const progress = ((step + 1) / STEPS.length) * 100;
-
-  function update<K extends keyof Draft>(key: K, value: Draft[K]) {
-    setDraft((d) => ({ ...d, [key]: value }));
+  function update<K extends keyof WizardDraft>(k: K, v: WizardDraft[K]) {
+    setDraft((d) => ({ ...d, [k]: v }));
   }
 
   function next() {
-    setStep((s) => Math.min(s + 1, STEPS.length - 1));
+    setDraft((d) => ({ ...d, step: Math.min(d.step + 1, STEPS.length - 1) }));
   }
   function back() {
-    setStep((s) => Math.max(s - 1, 0));
+    setDraft((d) => ({ ...d, step: Math.max(d.step - 1, 0) }));
   }
 
-  async function submit() {
+  // ------------------------------------------------------------------
+  // Conflito rascunho x perfil
+  // ------------------------------------------------------------------
+  function loadServerProfile() {
+    if (!profileQuery.data) return;
+    clearWizardDraft();
+    setDraft(mapProfileToWizardDraft(profileQuery.data));
+    setMode("edit");
+    setShowConflict(false);
+  }
+  function continueDraft() {
+    // Rascunho preservado, mas como o perfil já existe permanecemos em edição.
+    setMode("edit");
+    setShowConflict(false);
+  }
+
+  // ------------------------------------------------------------------
+  // Máquina de submit — orquestração de fases
+  // ------------------------------------------------------------------
+  const startSubmit = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
     try {
-      const result = await saveMutation.mutateAsync({
-        eventId: EVENT_ID,
-        name: draft.name.trim(),
-        company: draft.company.trim(),
-        city: draft.city.trim(),
-        neighborhood: draft.neighborhood.trim() || undefined,
-        whatsapp: draft.whatsapp.trim(),
-        segmentId: draft.segmentId,
-        summary: draft.summary.trim(),
-        offers: draft.offers.map((o) => ({ label: o.label, detail: o.detail })),
-        needs: draft.needs.map((n) => ({
-          label: n.label,
-          detail: n.detail,
-          need_kind: n.kind,
-          is_priority: n.isPriority,
-        })),
-        consent: draft.consent,
-      });
-      if (typeof window !== "undefined") window.localStorage.removeItem(DRAFT_KEY);
-      if (result.recoveryCode) {
-        setRecoveryCode(result.recoveryCode);
-      } else {
-        toast.success("Perfil criado! Buscando conexões…");
-        navigate({ to: "/participante" });
+      const phoneE164 = phone.trim() ? normalizePhoneE164(phone) : null;
+      const withContact = mode === "create" ? true : !!phoneE164;
+      dispatch({ type: "START", mode, withContact });
+
+      try {
+        const input = mapWizardToSaveProfileInput(draft, EVENT_ID);
+        await saveOwnProfile(input);
+      } catch (err) {
+        dispatch({ type: "PROFILE_FAIL" });
+        toast.error(errorToUserMessage(err, "Não foi possível salvar seu perfil."));
+        return;
       }
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      toast.error(msg);
+      qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
+      dispatch({ type: "PROFILE_OK" });
+
+      if (mode === "create" || (mode === "edit" && phoneE164)) {
+        try {
+          await setOwnContact({ phone_e164: phoneE164!, sharing: true });
+        } catch (err) {
+          dispatch({ type: "CONTACT_FAIL" });
+          toast.error(errorToUserMessage(err, "Perfil salvo, contato não."));
+          return;
+        }
+        dispatch({ type: "CONTACT_OK" });
+      }
+
+      if (mode === "create") {
+        try {
+          const code = await rotateOwnRecoveryCode();
+          dispatch({ type: "CODE_OK", code });
+          return; // aguarda “Já salvei”
+        } catch (err) {
+          dispatch({ type: "CODE_FAIL" });
+          toast.error(errorToUserMessage(err, "Não gerou código."));
+          return;
+        }
+      }
+
+      // Edição: pula direto para matching
+      await runRecompute();
+    } finally {
+      runningRef.current = false;
     }
+  }, [draft, mode, phone, qc]);
+
+  const runRecompute = useCallback(async () => {
+    try {
+      await recomputeOwnMatches(EVENT_ID);
+      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      dispatch({ type: "MATCH_OK" });
+      clearWizardDraft();
+      toast.success(
+        mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
+      );
+      navigate({ to: "/participante" });
+    } catch (err) {
+      dispatch({ type: "MATCH_FAIL" });
+      toast.error(
+        errorToUserMessage(err, "Não conseguimos calcular seus matches agora."),
+      );
+    }
+  }, [mode, navigate, qc]);
+
+  const retryContact = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    try {
+      dispatch({ type: "RETRY_CONTACT" });
+      const phoneE164 = normalizePhoneE164(phone);
+      if (!phoneE164) {
+        dispatch({ type: "CONTACT_FAIL" });
+        toast.error("WhatsApp inválido.");
+        return;
+      }
+      try {
+        await setOwnContact({ phone_e164: phoneE164, sharing: true });
+      } catch (err) {
+        dispatch({ type: "CONTACT_FAIL" });
+        toast.error(errorToUserMessage(err, "Contato ainda não foi salvo."));
+        return;
+      }
+      dispatch({ type: "CONTACT_OK" });
+      if (mode === "create") {
+        try {
+          const code = await rotateOwnRecoveryCode();
+          dispatch({ type: "CODE_OK", code });
+        } catch (err) {
+          dispatch({ type: "CODE_FAIL" });
+          toast.error(errorToUserMessage(err, "Não gerou código."));
+        }
+      } else {
+        await runRecompute();
+      }
+    } finally {
+      runningRef.current = false;
+    }
+  }, [phone, mode, runRecompute]);
+
+  const retryCode = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    try {
+      dispatch({ type: "RETRY_CODE" });
+      try {
+        const code = await rotateOwnRecoveryCode();
+        dispatch({ type: "CODE_OK", code });
+      } catch (err) {
+        dispatch({ type: "CODE_FAIL" });
+        toast.error(errorToUserMessage(err, "Não gerou código."));
+      }
+    } finally {
+      runningRef.current = false;
+    }
+  }, []);
+
+  const retryMatch = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    try {
+      dispatch({ type: "RETRY_MATCH" });
+      await runRecompute();
+    } finally {
+      runningRef.current = false;
+    }
+  }, [runRecompute]);
+
+  const codeConfirmed = useCallback(async () => {
+    if (runningRef.current) return;
+    runningRef.current = true;
+    try {
+      dispatch({ type: "CODE_CONFIRMED" });
+      await runRecompute();
+    } finally {
+      runningRef.current = false;
+    }
+  }, [runRecompute]);
+
+  const goToPanel = useCallback(() => {
+    clearWizardDraft();
+    navigate({ to: "/participante" });
+  }, [navigate]);
+
+  // ------------------------------------------------------------------
+  // Guardas de renderização
+  // ------------------------------------------------------------------
+  if (session.status === "loading" || !hydrated) {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="mt-4 h-64 w-full" />
+        </section>
+      </PageShell>
+    );
+  }
+  if (session.status === "error") {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12">
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Sessão indisponível</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Não foi possível iniciar sua sessão. Verifique sua internet.
+            </p>
+            <Button className="mt-4" onClick={() => void session.retry()}>
+              Tentar novamente
+            </Button>
+          </Card>
+        </section>
+      </PageShell>
+    );
+  }
+  if (catalogQuery.isPending) {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12 space-y-3">
+          <Skeleton className="h-6 w-40" />
+          <Skeleton className="h-8 w-full" />
+          <Skeleton className="h-24 w-full" />
+        </section>
+      </PageShell>
+    );
+  }
+  if (catalogQuery.isError || !catalogQuery.data) {
+    return (
+      <PageShell>
+        <section className="mx-auto max-w-2xl px-4 py-12">
+          <Card className="p-6">
+            <h2 className="text-lg font-semibold">Catálogo indisponível</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Não conseguimos carregar segmentos e taxonomia do evento.
+            </p>
+            <Button className="mt-4" onClick={() => void catalogQuery.refetch()}>
+              Tentar novamente
+            </Button>
+          </Card>
+        </section>
+      </PageShell>
+    );
   }
 
-  function confirmCodeSaved() {
-    setRecoveryCode(null);
-    toast.success("Perfil criado! Buscando conexões…");
-    navigate({ to: "/participante" });
-  }
+  const catalog = catalogQuery.data;
+  const step = draft.step;
+  const progress = ((step + 1) / STEPS.length) * 100;
 
   return (
     <PageShell>
       <section className="mx-auto max-w-2xl px-4 py-8">
+        {mode === "edit" && !showConflict && (
+          <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+            Você está editando seu perfil.
+          </div>
+        )}
+
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>
@@ -194,16 +410,41 @@ function WizardPage() {
         </div>
 
         {step === 0 && (
-          <StepIdentity draft={draft} update={update} onNext={next} />
+          <StepIdentity
+            draft={draft}
+            update={update}
+            onNext={next}
+            mode={mode}
+            phone={phone}
+            onPhoneChange={setPhone}
+          />
         )}
         {step === 1 && (
-          <StepSegment draft={draft} update={update} onNext={next} onBack={back} />
+          <StepSegment
+            draft={draft}
+            update={update}
+            onNext={next}
+            onBack={back}
+            catalog={catalog}
+          />
         )}
         {step === 2 && (
-          <StepOffers draft={draft} update={update} onNext={next} onBack={back} />
+          <StepOffers
+            draft={draft}
+            update={update}
+            onNext={next}
+            onBack={back}
+            catalog={catalog}
+          />
         )}
         {step === 3 && (
-          <StepNeeds draft={draft} update={update} onNext={next} onBack={back} />
+          <StepNeeds
+            draft={draft}
+            update={update}
+            onNext={next}
+            onBack={back}
+            catalog={catalog}
+          />
         )}
         {step === 4 && (
           <StepPriority
@@ -214,623 +455,84 @@ function WizardPage() {
           />
         )}
         {step === 5 && (
-          <StepReview draft={draft} onBack={back} onSubmit={submit} />
+          <StepReview
+            draft={draft}
+            onBack={back}
+            onSubmit={() => void startSubmit()}
+            onRetryContact={() => void retryContact()}
+            onRetryCode={() => void retryCode()}
+            onRetryMatch={() => void retryMatch()}
+            onGoToPanel={goToPanel}
+            submit={submit}
+            mode={mode}
+            catalog={catalog}
+          />
         )}
       </section>
 
       <RecoveryCodeDialog
-        open={recoveryCode !== null}
-        code={recoveryCode}
-        onConfirm={confirmCodeSaved}
+        open={submit.stage === "awaiting_code_confirmation"}
+        code={submit.recoveryCode}
+        onConfirm={() => void codeConfirmed()}
       />
+
+      <AlertDialog open={showConflict}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Você já tem um perfil neste evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Encontramos um rascunho salvo neste dispositivo. O que deseja fazer?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={continueDraft}>
+              Continuar rascunho
+            </AlertDialogCancel>
+            <AlertDialogAction onClick={loadServerProfile}>
+              Carregar meu perfil
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageShell>
   );
 }
 
-// ------------------------------------------------------------------
-// Steps
-// ------------------------------------------------------------------
-
-interface StepProps {
-  draft: Draft;
-  update: <K extends keyof Draft>(k: K, v: Draft[K]) => void;
-  onNext: () => void;
-  onBack?: () => void;
-}
-
-function StepIdentity({ draft, update, onNext }: StepProps) {
-  const [errors, setErrors] = useState<Record<string, string>>({});
-
-  function handleNext() {
-    const parsed = identitySchema.safeParse(draft);
-    if (!parsed.success) {
-      const errs: Record<string, string> = {};
-      for (const issue of parsed.error.issues) {
-        errs[String(issue.path[0])] = issue.message;
-      }
-      setErrors(errs);
-      return;
+function errorToUserMessage(err: unknown, fallback: string): string {
+  if (err instanceof ApiError) {
+    switch (err.code) {
+      case "invalid_input":
+        return "Dados inválidos. Confira os campos.";
+      case "field_too_long":
+        return "Algum campo passou do limite de caracteres.";
+      case "invalid_segment":
+        return "Segmento inválido.";
+      case "invalid_offers_count":
+        return "Você precisa ter entre 1 e 5 ofertas.";
+      case "invalid_needs_count":
+        return "Você precisa ter entre 1 e 5 necessidades.";
+      case "consent_required":
+        return "É preciso aceitar o consentimento.";
+      case "event_not_active":
+        return "O evento não está ativo.";
+      case "sign_in_failed":
+      case "not_authenticated":
+        return "Sessão expirada. Recarregue a página.";
+      case "rate_limited":
+        return "Muitas tentativas. Aguarde alguns minutos.";
+      case "network":
+        return "Sem conexão. Verifique sua internet.";
+      default:
+        return fallback;
     }
-    setErrors({});
-    onNext();
   }
-
-  return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">Vamos nos conhecer</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Suas informações de contato ficam privadas. Só liberamos com interesse mútuo.
-      </p>
-
-      <div className="mt-6 space-y-4">
-        <Field label="Nome completo" error={errors.name}>
-          <Input
-            value={draft.name}
-            onChange={(e) => update("name", e.target.value)}
-            placeholder="Ex.: Ana Ribeiro"
-            autoComplete="name"
-          />
-        </Field>
-        <Field label="Empresa" error={errors.company}>
-          <Input
-            value={draft.company}
-            onChange={(e) => update("company", e.target.value)}
-            placeholder="Ex.: Ribeiro Consultoria"
-            autoComplete="organization"
-          />
-        </Field>
-        <Field label="WhatsApp" error={errors.whatsapp}>
-          <Input
-            value={draft.whatsapp}
-            onChange={(e) => update("whatsapp", e.target.value)}
-            placeholder="(64) 99999-9999"
-            inputMode="tel"
-            autoComplete="tel"
-          />
-        </Field>
-        <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Cidade" error={errors.city}>
-            <Input
-              value={draft.city}
-              onChange={(e) => update("city", e.target.value)}
-              placeholder="Rio Verde"
-            />
-          </Field>
-          <Field label="Bairro (opcional)">
-            <Input
-              value={draft.neighborhood}
-              onChange={(e) => update("neighborhood", e.target.value)}
-              placeholder="Centro"
-            />
-          </Field>
-        </div>
-        <label className="flex items-start gap-2 rounded-lg border p-3">
-          <Checkbox
-            checked={draft.consent}
-            onCheckedChange={(v) => update("consent", Boolean(v))}
-            aria-invalid={!!errors.consent}
-          />
-          <span className="text-sm">
-            Concordo com o uso das minhas informações para gerar conexões durante o evento.
-            {errors.consent && (
-              <span className="mt-1 block text-xs text-destructive">
-                {errors.consent}
-              </span>
-            )}
-          </span>
-        </label>
-      </div>
-
-      <div className="mt-6 flex justify-end">
-        <Button size="lg" onClick={handleNext}>
-          Continuar
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function StepSegment({ draft, update, onNext, onBack }: StepProps) {
-  const canNext = !!draft.segmentId && draft.summary.trim().length >= 20;
-  return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">Seu segmento</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Escolha o segmento principal e escreva um resumo curto do que você faz.
-      </p>
-
-      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {SEGMENTS.map((s) => {
-          const active = draft.segmentId === s.id;
-          return (
-            <button
-              key={s.id}
-              type="button"
-              onClick={() => update("segmentId", s.id)}
-              aria-pressed={active}
-              className={`rounded-xl border p-3 text-left text-sm transition-all ${
-                active
-                  ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
-                  : "hover:bg-muted"
-              }`}
-            >
-              <span className="mr-1">{s.emoji}</span>
-              {s.label}
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="mt-6">
-        <Label htmlFor="summary">Resumo profissional</Label>
-        <Textarea
-          id="summary"
-          value={draft.summary}
-          onChange={(e) => update("summary", e.target.value)}
-          placeholder="Ex.: Oferecemos serviços de contabilidade para pequenas indústrias e restaurantes na região."
-          className="mt-1 min-h-[110px]"
-          maxLength={500}
-        />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {draft.summary.length}/500 · Mínimo 20 caracteres
-        </p>
-      </div>
-
-      <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
-        <Button onClick={onNext} disabled={!canNext}>
-          Continuar
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function StepOffers({ draft, update, onNext, onBack }: StepProps) {
-  const [loading, setLoading] = useState(false);
-  const [suggestion, setSuggestion] = useState<AISuggestion | null>(null);
-  const [custom, setCustom] = useState("");
-
-  useEffect(() => {
-    let cancelled = false;
-    setLoading(true);
-    suggestFromSummary(draft.summary).then((s) => {
-      if (cancelled) return;
-      setSuggestion(s);
-      setLoading(false);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [draft.summary]);
-
-  function addOffer(label: string) {
-    if (!label.trim() || draft.offers.length >= 5) return;
-    if (draft.offers.some((o) => o.label.toLowerCase() === label.toLowerCase()))
-      return;
-    update("offers", [...draft.offers, { id: uid(), label: label.trim() }]);
+  if (err instanceof WizardMappingError) {
+    if (err.code === "single_priority_required")
+      return "Marque exatamente uma prioridade.";
+    return "Revise os campos do formulário.";
   }
-
-  function removeOffer(id: string) {
-    update("offers", draft.offers.filter((o) => o.id !== id));
-  }
-
-  const segmentTax = useMemo(
-    () => TAXONOMY.filter((t) => t.segmentId === draft.segmentId).slice(0, 8),
-    [draft.segmentId],
-  );
-
-  return (
-    <Card className="p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-display text-2xl font-semibold">O que você oferece</h2>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Até 5 itens. Use as sugestões, edite ou adicione os seus.
-          </p>
-        </div>
-        <Sparkles className="h-5 w-5 shrink-0 text-accent animate-float-slow" />
-      </div>
-
-      {loading && (
-        <div className="mt-4 flex items-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Analisando seu resumo com IA…
-        </div>
-      )}
-
-      {suggestion && !loading && (
-        <div className="mt-5">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Sugeridos para você (confirme os que fazem sentido)
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {suggestion.offers.map((label) => {
-              const added = draft.offers.some(
-                (o) => o.label.toLowerCase() === label.toLowerCase(),
-              );
-              return (
-                <button
-                  key={label}
-                  type="button"
-                  onClick={() => (added ? null : addOffer(label))}
-                  disabled={added || draft.offers.length >= 5}
-                  className={`rounded-full border px-3 py-1.5 text-sm transition-all disabled:opacity-50 ${
-                    added
-                      ? "border-success bg-success/10"
-                      : "hover:border-primary hover:bg-primary/5"
-                  }`}
-                >
-                  {added ? "✓ " : "+ "}
-                  {label}
-                </button>
-              );
-            })}
-          </div>
-          {segmentTax.length > 0 && (
-            <>
-              <p className="mb-2 mt-5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Comuns no seu segmento
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {segmentTax.map((t) => {
-                  const added = draft.offers.some(
-                    (o) => o.label.toLowerCase() === t.label.toLowerCase(),
-                  );
-                  if (added) return null;
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => addOffer(t.label)}
-                      disabled={draft.offers.length >= 5}
-                      className="rounded-full border px-3 py-1.5 text-sm hover:border-primary hover:bg-primary/5 disabled:opacity-50"
-                    >
-                      + {t.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
-      <div className="mt-6 flex gap-2">
-        <Input
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          placeholder="Outro: descreva o que você oferece"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addOffer(custom);
-              setCustom("");
-            }
-          }}
-        />
-        <Button
-          type="button"
-          onClick={() => {
-            addOffer(custom);
-            setCustom("");
-          }}
-          disabled={!custom.trim() || draft.offers.length >= 5}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-      </div>
-
-      <div className="mt-6">
-        <p className="mb-2 text-sm font-medium">
-          Seus itens ({draft.offers.length}/5)
-        </p>
-        {draft.offers.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-            Nenhum item ainda. Escolha das sugestões acima.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {draft.offers.map((o) => (
-              <li
-                key={o.id}
-                className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
-              >
-                <span className="text-sm">{o.label}</span>
-                <button
-                  type="button"
-                  onClick={() => removeOffer(o.id)}
-                  aria-label={`Remover ${o.label}`}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
-        <Button onClick={onNext} disabled={draft.offers.length === 0}>
-          Continuar
-        </Button>
-      </div>
-    </Card>
-  );
+  return fallback;
 }
 
-function StepNeeds({ draft, update, onNext, onBack }: StepProps) {
-  const [kind, setKind] = useState<NeedKind>("servico");
-  const [label, setLabel] = useState("");
-
-  function add() {
-    if (!label.trim()) return;
-    update("needs", [
-      ...draft.needs,
-      { id: uid(), kind, label: label.trim() },
-    ]);
-    setLabel("");
-  }
-
-  function remove(id: string) {
-    update("needs", draft.needs.filter((n) => n.id !== id));
-  }
-
-  return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">O que você procura</h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Adicione o que faria diferença na sua visita à feira.
-      </p>
-
-      <div className="mt-6 space-y-4">
-        <div>
-          <Label>Categoria</Label>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {Object.entries(NEED_KIND_LABELS).map(([k, v]) => (
-              <button
-                type="button"
-                key={k}
-                onClick={() => setKind(k as NeedKind)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition-all ${
-                  kind === k
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/30"
-                    : "hover:bg-muted"
-                }`}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Input
-            value={label}
-            onChange={(e) => setLabel(e.target.value)}
-            placeholder="Ex.: fornecedor de embalagens"
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                add();
-              }
-            }}
-          />
-          <Button type="button" onClick={add} disabled={!label.trim()}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="mt-6">
-        <p className="mb-2 text-sm font-medium">
-          Suas necessidades ({draft.needs.length})
-        </p>
-        {draft.needs.length === 0 ? (
-          <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
-            Adicione pelo menos uma necessidade.
-          </p>
-        ) : (
-          <ul className="space-y-2">
-            {draft.needs.map((n) => (
-              <li
-                key={n.id}
-                className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
-              >
-                <div className="flex items-center gap-2">
-                  <Badge variant="secondary">{NEED_KIND_LABELS[n.kind]}</Badge>
-                  <span className="text-sm">{n.label}</span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => remove(n.id)}
-                  aria-label={`Remover ${n.label}`}
-                  className="text-muted-foreground hover:text-destructive"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
-        <Button onClick={onNext} disabled={draft.needs.length === 0}>
-          Continuar
-        </Button>
-      </div>
-    </Card>
-  );
-}
-
-function StepPriority({ draft, update, onNext, onBack }: StepProps) {
-  const priorityId =
-    draft.needs.find((n) => n.isPriority)?.id ?? draft.needs[0]?.id ?? "";
-  return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">
-        <Star className="mr-1 inline h-6 w-6 text-warning" />
-        Qual é a prioridade?
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Marque a necessidade que, se resolvida, já teria valido sua visita.
-      </p>
-
-      <RadioGroup
-        value={priorityId}
-        onValueChange={(v) => {
-          update(
-            "needs",
-            draft.needs.map((n) => ({ ...n, isPriority: n.id === v })),
-          );
-        }}
-        className="mt-6 space-y-2"
-      >
-        {draft.needs.map((n) => (
-          <label
-            key={n.id}
-            htmlFor={`p-${n.id}`}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40"
-          >
-            <RadioGroupItem id={`p-${n.id}`} value={n.id} />
-            <div>
-              <Badge variant="secondary">{NEED_KIND_LABELS[n.kind]}</Badge>
-              <span className="ml-2 text-sm">{n.label}</span>
-            </div>
-          </label>
-        ))}
-      </RadioGroup>
-
-      <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
-        <Button onClick={onNext}>Continuar</Button>
-      </div>
-    </Card>
-  );
-}
-
-function StepReview({
-  draft,
-  onBack,
-  onSubmit,
-}: {
-  draft: Draft;
-  onBack: () => void;
-  onSubmit: () => void;
-}) {
-  const [submitting, setSubmitting] = useState(false);
-  const seg = SEGMENTS.find((s) => s.id === draft.segmentId);
-  return (
-    <Card className="overflow-hidden">
-      <div className="relative bg-hero-gradient p-6 text-primary-foreground">
-        <div className="absolute inset-0 opacity-25">
-          <NetworkGraphic className="h-full w-full" />
-        </div>
-        <div className="relative">
-          <p className="text-xs uppercase tracking-wide text-white/70">Revisão</p>
-          <h2 className="font-display text-2xl font-semibold">
-            Tudo certo, {draft.name.split(" ")[0]}?
-          </h2>
-        </div>
-      </div>
-      <div className="space-y-5 p-6">
-        <ReviewRow label="Empresa" value={draft.company} />
-        <ReviewRow
-          label="Localização"
-          value={[draft.neighborhood, draft.city].filter(Boolean).join(" · ")}
-        />
-        <ReviewRow label="Segmento" value={`${seg?.emoji ?? ""} ${seg?.label ?? "—"}`} />
-        <ReviewRow label="Resumo" value={draft.summary} />
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Ofereço
-          </p>
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {draft.offers.map((o) => (
-              <Badge key={o.id} variant="secondary">
-                {o.label}
-              </Badge>
-            ))}
-          </div>
-        </div>
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Procuro
-          </p>
-          <ul className="mt-1 space-y-1 text-sm">
-            {draft.needs.map((n) => (
-              <li key={n.id} className="flex items-center gap-2">
-                {n.isPriority && (
-                  <Star className="h-4 w-4 fill-warning text-warning" />
-                )}
-                <Badge variant="outline">{NEED_KIND_LABELS[n.kind]}</Badge>
-                {n.label}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="flex justify-between pt-2">
-          <Button variant="outline" onClick={onBack} disabled={submitting}>
-            Voltar e editar
-          </Button>
-          <Button
-            size="lg"
-            onClick={() => {
-              setSubmitting(true);
-              onSubmit();
-            }}
-            disabled={submitting}
-          >
-            {submitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Buscando conexões…
-              </>
-            ) : (
-              "Encontrar minhas conexões"
-            )}
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function ReviewRow({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
-      <p className="text-sm">{value || "—"}</p>
-    </div>
-  );
-}
-
-function Field({
-  label,
-  error,
-  children,
-}: {
-  label: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <div className="mt-1">{children}</div>
-      {error && <p className="mt-1 text-xs text-destructive">{error}</p>}
-    </div>
-  );
-}
+// Wizard-side helper — kept exported for tests.
+export { isSubmitting };
