@@ -360,7 +360,7 @@ function StaffDashboard({
 
   function updateSearch(patch: Partial<EquipeSearch>) {
     navigate({
-      search: (prev) => ({ ...(prev as EquipeSearch), ...patch }),
+      search: (prev: EquipeSearch) => ({ ...prev, ...patch }),
       replace: true,
     });
   }
