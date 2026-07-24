@@ -123,8 +123,9 @@ describe("D1 — contrato SQL da RPC staff_list_connections_v2", () => {
   });
 
   it("isola por event_id em todas as agregações de contagem", () => {
-    // counts_by_status e counts_by_scope filtram por event_id.
-    const eventFilters = sql.match(/WHERE\s+event_id\s*=\s*_event_id/gi) ?? [];
+    // filtered CTE + counts_by_status + counts_by_scope precisam filtrar por event_id.
+    const eventFilters =
+      sql.match(/event_id\s*=\s*_event_id/gi) ?? [];
     expect(eventFilters.length).toBeGreaterThanOrEqual(3);
   });
 
