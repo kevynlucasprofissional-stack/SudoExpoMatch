@@ -1166,7 +1166,7 @@ function ConnectionDetailDrawer({
                   </li>
                 )}
               </ul>
-              {canAddInternalNote(role) && (
+              {canAddInternalNote() && (
                 <div className="mt-2 space-y-2">
                   <Textarea
                     value={noteInput}
