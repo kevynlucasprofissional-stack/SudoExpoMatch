@@ -190,30 +190,22 @@ function WizardPage() {
   }
 
   // ------------------------------------------------------------------
-  // Catálogo — modo manual quando indisponível
+  // Catálogo — distinção clara entre "cache com refresh falho" e "modo manual"
   // ------------------------------------------------------------------
-  // Se o catálogo falhou/está vazio mas já existe segmentId no perfil ou
-  // rascunho, seguimos em modo manual usando esse segmento como autoridade.
-  const catalogFallback = !catalogQuery.data;
   const fallbackSegmentId = draft.segmentId?.trim() || "";
-  const canFallback = catalogFallback && !!fallbackSegmentId;
-  const manualCatalog = useMemo<EventCatalog>(
-    () => ({
-      segments: fallbackSegmentId
-        ? [
-            {
-              id: fallbackSegmentId,
-              label: fallbackSegmentId,
-              emoji: null,
-            },
-          ]
-        : [],
-      taxonomy: [],
-    }),
-    [fallbackSegmentId],
-  );
+  const catalogAvailability = resolveCatalogAvailability({
+    data: catalogQuery.data ?? null,
+    isPending: catalogQuery.isPending,
+    isError: catalogQuery.isError,
+    fallbackSegmentId,
+  });
   const effectiveCatalog: EventCatalog | null =
-    catalogQuery.data ?? (canFallback ? manualCatalog : null);
+    catalogAvailability.kind === "ready" ? catalogAvailability.catalog : null;
+  const manualCatalogMode =
+    catalogAvailability.kind === "ready" && catalogAvailability.manualMode;
+  const catalogRefreshFailed =
+    catalogAvailability.kind === "ready" && catalogAvailability.refreshFailed;
+
 
   const runRecompute = useCallback(async () => {
     try {
