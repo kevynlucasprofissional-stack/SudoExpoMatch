@@ -124,11 +124,18 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
   const [roleInput, setRoleInput] = useState<AppRole>("staff");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toRemove, setToRemove] = useState<StaffMember | null>(null);
+  const [reassignTo, setReassignTo] = useState<string>("");
+  const [pendingActiveCount, setPendingActiveCount] = useState<number | null>(
+    null,
+  );
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setErrors({});
-    const parsed = addMemberSchema.safeParse({ email: emailInput, role: roleInput });
+    const parsed = addMemberSchema.safeParse({
+      email: emailInput,
+      role: roleInput,
+    });
     if (!parsed.success) {
       const errs: Record<string, string> = {};
       for (const i of parsed.error.issues) errs[String(i.path[0])] = i.message;
@@ -157,13 +164,28 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
 
   async function handleRemove() {
     if (!toRemove) return;
+    const isSelf = toRemove.userId === userId;
     try {
-      await remove.mutateAsync(toRemove.userId);
+      await remove.mutateAsync({
+        userId: toRemove.userId,
+        reassignTo: reassignTo || undefined,
+        confirmSelf: isSelf,
+      });
       toast.success(`${toRemove.email} removido da equipe.`);
-    } catch (err) {
-      toast.error(translateStaffError(err));
-    } finally {
       setToRemove(null);
+      setReassignTo("");
+      setPendingActiveCount(null);
+    } catch (err) {
+      const count = parseActiveConnectionsCount(err);
+      if (count !== null) {
+        // Não fechamos o diálogo — o usuário precisa escolher um substituto.
+        setPendingActiveCount(count);
+        toast.error(translateStaffError(err));
+        return;
+      }
+      toast.error(translateStaffError(err));
+      setToRemove(null);
+      setReassignTo("");
     }
   }
 
