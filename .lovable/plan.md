@@ -1,131 +1,154 @@
-# Auditoria somente leitura — ACIRV Connect / Matchmaker SudoExpo
 
-Nenhum arquivo, migration ou dado foi alterado. Diagnóstico baseado no HEAD, em `supabase/migrations/*.sql` (12 arquivos, ~4.4k linhas) e nas rotas em `src/routes/*` + módulos em `src/features/*`.
+# Auditoria ponta a ponta — ACIRV Connect (somente leitura)
 
-## 1) Arquitetura e estrutura do código
+Nenhum arquivo, migration ou configuração foi alterado.
 
-- **Stack real:** TanStack Start (SSR) + React + TS + TanStack Router/Query + Tailwind + shadcn + Supabase (Cloud). Rotas em `src/routes/`: `index.tsx`, `como-funciona.tsx`, `participar.tsx`, `participante.tsx`, `equipe.tsx`, `admin.tsx`, `publico.tsx`.
-- **Domínios em `src/features/`:** `auth`, `onboarding`, `participant`, `matching`, `taxonomy`, `connections`, `staff`, `admin`, `recovery`. Padrão consistente: `api.ts` (RPC + `ApiError`), `schemas.ts` (Zod), `queries.ts` (TanStack Query), `types.ts`, `presentation.ts`.
-- **Backend:** exclusivamente Supabase Postgres + RPCs `SECURITY DEFINER`. Sem edge functions, sem `createServerFn` de negócio. Cliente único `@/integrations/supabase/client`.
-- **Persistência local:** apenas `sudoexpo:wizard-draft:v2` (rascunho sanitizado, sem WhatsApp/token). Recovery code só em memória.
+## 1. Encadeamento do fluxo
 
-## 2) Fluxos realmente operacionais (além do front-end)
+Legenda: ✅ implementado e conectado · ⚠ implementado com risco/limitação · ❌ ausente.
 
-Operacionais end-to-end contra o banco:
-- Sessão anônima automática (`ensureParticipantSession` em `src/features/participant/session.ts`).
-- Cadastro completo do visitante (`save_own_profile_v2` + `set_own_contact`).
-- Recomputação de matches server-side (`recompute_own_matches`).
-- Listagem de matches (`list_own_matches_v2`), decisão (`record_match_decision_v2`), revelação de contato (`reveal_contact_for_match`).
-- Recuperação por telefone+código (`recover_profile_v2`) com transferência de `owner_id`.
-- Login de equipe/admin por e-mail+senha (`src/features/auth/actions.ts`).
-- Fila operacional server-side com paginação, filtros e realtime (`staff_list_connections_v2` + canal `staff-queue-v2-{eventId}`).
-- Máquina de estados de conexão (`staff_assume_connection`, `staff_advance_connection`, `staff_release_connection`, `admin_reassign_connection`) com timestamps e auditoria em `connection_events`/`connection_status_history`.
-- Notas internas (`staff_add_connection_note` + `connection_notes`).
-- Gestão administrativa de staff (`admin_add_event_staff_by_email`, `admin_change_event_staff_role`, `admin_remove_event_staff`).
-- Estatísticas: `event_stats` (público) e `event_operational_stats` (admin).
+### 1.1 Autenticação do participante ✅
+- Arquivos: `src/features/participant/session.ts` (`ensureParticipantSession`, `useEnsureParticipantSession`), consumido por `routes/participar.tsx` e `routes/participante.tsx`.
+- Mecanismo: `supabase.auth.signInAnonymously()` deduplicado por `inflight` promise; reutiliza sessão staff/admin sem sobrescrever.
+- Conexão com etapa seguinte: toda RPC v2 chama `await ensureParticipantSession()` antes do `rpc(...)`.
+- Testes: `onda-a.test.ts` cobre contrato/sanitização de erro. Sem risco técnico conhecido além da dependência de "Allow anonymous sign-ins" no Auth.
 
-## 3) Cadastro completo
+### 1.2 Persistência de perfil, segmentos, ofertas, necessidades e consentimento ✅
+- Arquivos: `src/features/participant/api.ts::saveOwnProfile`, `src/features/onboarding/{mappers,validate,submitOrchestrator}.ts`, rota `routes/participar.tsx`.
+- Backend: RPC `save_own_profile_v2(_payload jsonb)` (migration `20260724132146…`) grava atômico em `public.profiles`, `profile_segments`, `profile_offers`, `profile_needs` + registra `consents` (tabela dedicada, `policy_version`).
+- Conexão: payload é validado por Zod (`saveOwnProfilePayloadSchema`) antes do envio; erros retornam `ErrorCode` sanitizado.
+- Testes: `onda-b*.test.ts` cobre orquestrador (`preSubmit`, `runWizardSubmit`) e mappers.
+- ⚠ Limitação: `submitOrchestrator` para a máquina em `AWAIT_CODE_CONFIRMATION` no modo `create` e só chama `recomputeOwnMatches` no modo `edit`. Na criação, o recompute só ocorre depois que o usuário confirma o código no `RecoveryCodeDialog` (`routes/participar.tsx:211`). Se o usuário fechar a aba entre "salvou" e "confirmou o código", o perfil existe sem matches — apenas o próximo `list_own_matches_v2` ou nova edição dispara o cálculo.
 
-Funciona. Fluxo em `src/routes/participar.tsx` + `src/features/onboarding/*`:
-1. `ensureParticipantSession` → `signInAnonymously`.
-2. `save_own_profile_v2(payload jsonb)` → grava `profiles`, `profile_segments`, `profile_offers`, `profile_needs`, `consents`; valida limites, taxonomia e prioridade.
-3. `set_own_contact(phone, email, sharing)` → grava `private.profile_contacts` (fone hash SHA-256).
-4. `rotate_own_recovery_code()` → grava hash em `private.profile_recovery` e devolve o código em texto uma única vez.
-5. `recomputeOwnMatches(eventId)` executado ao final do wizard.
+### 1.3 Contatos (WhatsApp) ✅ com nuance
+- Arquivo: `setOwnContact` → RPC `set_own_contact` grava em `private.profile_contacts` (schema privado, hash de telefone).
+- Obrigatório no modo `create` (validado em `preSubmit`). Falha propaga como `PROFILE_FAIL`/`CONTACT_FAIL` na máquina — sem retry parcial automático (o usuário tem que reenviar).
 
-Tabelas envolvidas: `public.profiles`, `public.profile_segments`, `public.profile_offers`, `public.profile_needs`, `public.consents`, `private.profile_contacts`, `private.profile_recovery`.
+### 1.4 Cálculo dos matches ⚠
+- Backend: `recompute_own_matches(_event_id)` (migrations `132146` + hardening `132947`) — 100% SQL, aplica pesos oficiais 55/25/10/5/3/2 via helper `taxonomy_match`, filtra por `consents`, grava em `public.matches` + motivos em `public.match_reasons`.
+- Disparo: **exclusivamente sob demanda** — chamado em `submitOrchestrator` (edit), após confirmação de código (create), e no CTA "Recalcular matches" do painel (`useRecomputeMatchesMutation`).
+- ⚠ Risco: **não há trigger nem job periódico**. Quando um novo perfil B entra depois de A, os matches de A só aparecem se A voltar e clicar em recalcular, ou se A editar o perfil. Isso é a lacuna funcional mais importante do produto.
+- Testes: `onda-c.test.ts`, `onda-b.test.ts` cobrem contratos e ordenação; não há teste E2E de "novo perfil dispara match de perfis antigos".
 
-## 4) Perfil individual (ofertas, necessidades, contatos privados)
+### 1.5 Persistência de matches e motivos ✅
+- Tabelas `public.matches` (score_for_a, score_for_b, kind, label) e `public.match_reasons` (code/weight/detail por perspectiva). Índices e triggers `updated_at` presentes.
 
-Sim. Cada `auth.uid()` possui no máximo 1 perfil não-demo por evento (`profiles.owner_id`). Ofertas/necessidades normalizadas em tabelas próprias com FK a `profiles`, `segments`, opcionalmente `taxonomy_items`, e flags (`is_priority`, `need_kind`, `active`, `source`). Contatos e recuperação vivem no schema `private` (sem acesso via Data API — só via RPCs `SECURITY DEFINER`). RLS em `profile_needs`/`profile_offers`/`profile_segments` restringe SELECT ao dono ou staff do evento; taxonomia é leitura autenticada.
+### 1.6 Visualização no painel do participante ✅
+- Arquivos: `routes/participante.tsx`, `features/participant/components/MatchesList.tsx`, `matchesDisplayState.ts`.
+- RPC: `list_own_matches_v2` + `useOwnMatchesQuery` com **polling de 20s** (`refetchIntervalInBackground: false`).
+- Presentation: `presentation.ts` traduz `MatchLabel`/`MatchKind`/`Decision`.
+- Testes: `onda-c.test.ts` cobre filtros por decisão e cache.
 
-Atividades (auditoria por usuário): registradas em `audit_logs` (transferência de owner, revelação de contato) e `analytics_events`. Não há timeline visível ao próprio participante.
+### 1.7 Decisão de interesse ✅
+- `useDecideMatchMutation` → RPC `record_match_decision_v2` grava em `match_decisions`, `match_status_history` e `connection_events`.
+- Invalida `qk.ownMatches` e `qk.publicStats` no sucesso.
 
-## 5) Matching hoje
+### 1.8 Interesse mútuo → criação de conexão ✅
+- Feito **dentro da própria RPC** `record_match_decision_v2` (bloco checado na migration): quando ambas decisões são `interesse`, faz `INSERT ... ON CONFLICT (match_id) DO NOTHING` em `public.connections` com status `aguardando`. Trigger legado `auto_create_connection` foi neutralizado como `no-op` para não competir — arquitetura correta, sem duplicação.
 
-- **Onde:** função `public.recompute_own_matches(_event_id)` (PL/pgSQL, `SECURITY DEFINER`). É determinística, roda no banco.
-- **Fórmula (pesos oficiais aplicados):** 55 (`outro_oferece_o_que_procuro`) + 25 (`outro_procura_o_que_ofereco`) + 10 (`prioridade` — necessidade prioritária coberta) + 5 (`complementaridade` — segmentos diferentes com overlap) + 3 (`atualidade` — perfil atualizado ≤7 dias) + 2 (`proximidade` — mesma cidade normalizada). Calcula perspectiva de cada lado e cria `matches` bidirecionais com `match_reasons` explicáveis.
-- **Comparação de itens:** `public.taxonomy_match` — mesmo `taxonomy_item_id`, labels normalizados iguais, sinônimos, ou substring ≥4 chars.
-- **Persistência:** tabela `public.matches` (com `is_active`, `score_a`, `score_b`, `label`, `kind`) + `public.match_reasons` (code, weight, label) + `public.match_decisions` + `public.match_status_history`.
-- **Filtro de elegibilidade:** apenas perfis com consentimento `matchmaking` vigente (via `public.consents`), ou perfis demo.
-- **Preservação de histórico:** matches com conexão associada não são desativados no recompute.
+### 1.9 Fila operacional da equipe ✅
+- Arquivos: `routes/equipe.tsx`, `features/staff/useOperationalQueue.ts`, `urlState.ts`, `useConnectionsQueue.ts`.
+- Backend: `staff_list_connections_v2` (paginada, com CTE de prioridade e ordenação determinística — migration `20260724180242`) + `staff_list_connection_detail`, `staff_assume_connection`, `staff_release_connection`, `staff_advance_connection`, `staff_add_connection_note`, `admin_reassign_connection`, `event_operational_stats`.
+- Realtime: subscribe único por evento em `useOperationalQueue` com fallback de polling 20s.
+- Testes: `onda-d*.test.ts` e `onda-d1-block.test.ts` cobrem máquina de estados, filtros/URL e labels.
 
-## 6) IA real ou determinística?
+### 1.10 Atendimento — máquina de estados linear ✅
+- Estados: `aguardando → em_atendimento → apresentados → contato_trocado → concluida` (também `cancelada`).
+- `staff_advance_connection` valida transições e exige nota em cancelamento; grava eventos em `connection_events` com timestamps para auditoria e cálculo de tempos (`secondsSince`).
 
-**Não há IA em execução.** Provider único: `heuristicSuggestionProvider` (`src/features/onboarding/suggestions.ts`) — sugestões determinísticas baseadas em segmento/label. Tabela `public.ai_runs` existe (migration `20260724124124_*.sql`) mas nenhum código de aplicação escreve nela (`grep` só encontra tipos gerados). Nenhuma chamada a OpenAI/Anthropic/Gemini/Lovable AI Gateway no repositório.
+### 1.11 Liberação de contatos ✅
+- Participante: `reveal_contact_for_match` valida interesse mútuo, decisões atuais e retorna telefone/email do outro lado; grava em `audit_logs`. Hook `useRevealContactMutation` com `gcTime: 0` e `reset()` explícito após uso.
+- Staff: `staff_reveal_contact_for_match(_override_reason)` — mesma auditoria, exige role.
+- Testes: `onda-c.test.ts` cobre reset e cache vazio.
 
-## 7) Quando o matching é executado
+### 1.12 Conclusão e histórico ✅
+- `connection_events` e `connection_notes` mantêm timeline consumida pelo `ConnectionDetailDrawer`.
+- `event_operational_stats` alimenta KPIs em `/admin` (`OperationalStatsCard`).
 
-- **No fim do cadastro:** `recomputeOwnMatches(EVENT_ID)` em `src/routes/participar.tsx` (linha ~211) após salvar perfil/contato/código.
-- **Manualmente:** botão "Recomputar" no dashboard do participante (`useRecomputeMatchesMutation` em `src/routes/participante.tsx`).
-- **Polling:** `useOwnMatchesQuery` refaz `list_own_matches_v2` a cada `PARTICIPANT_MATCHES_POLL_MS` (20s), sem background refetch. Isso **lê** matches — não recomputa.
-- **Não há:** trigger de banco, cron, pg_net ou job assíncrono recomputando matches quando outro usuário se cadastra. A trigger `auto_create_connection` existe mas é no-op (comentário no próprio corpo).
+## 2. Bloqueios técnicos e lacunas de fluxo
 
-Consequência: o match de A com B só aparece para A depois que A rodar recompute (cadastro ou botão). Se A já se cadastrou antes de B, A não descobre B automaticamente.
+- **⚠ Descoberta assíncrona de matches (P0 funcional)**: sem trigger/cron/edge que rode `recompute_own_matches` quando um perfil entra ou é atualizado. Impacto direto na proposta ("o outro visitante te encontra quando chega"). Correção sem IA possível: trigger `AFTER INSERT/UPDATE ON profiles` que enfileira recompute assíncrono, ou pg_cron a cada N minutos, ou disparar recompute do lado do B para todos os perfis compatíveis.
+- **⚠ Notificações**: nenhum canal push/e-mail/WhatsApp para novos matches ou interesse recíproco. Só polling na aba aberta.
+- **⚠ Recompute pós-criação depende de confirmação do dialog**: se usuário fecha antes, perfil fica sem `matches` até próxima ação.
+- **⚠ Consent gating no matching**: correto, mas se `consents` falhar por qualquer razão, o perfil some do pool silenciosamente. Sem alerta ao owner.
+- **⚠ Nenhum dado real em produção**: fluxo cobre criação/consulta, mas não há seed operacional além de 5 perfis demo (`is_demo=true`) filtrados fora do matching por `recover_profile_v2`.
+- **RPCs v1 legadas**: já não são referenciadas pelo frontend (grep negativo), mas continuam expostas no banco — superfície de risco.
 
-## 8) Descoberta de novos matches / notificações
+## 3. Veredito do fluxo ponta a ponta
 
-- Dashboard `/participante` recarrega a cada 20s via polling da query `list_own_matches_v2`.
-- **Não há notificações** (push, email, in-app toast passivo, badge). Nenhum canal Realtime está inscrito no lado do participante — `supabase.channel` só é usado em `useOperationalQueue.ts` (equipe). Sem subscription em `matches`/`connections` para o dono.
-- Nenhuma integração de e-mail/SMS/WhatsApp para avisar novo match ou nova conexão.
+**O fluxo técnico ponta a ponta é funcional e consistente** do ponto A (cadastro) ao ponto Z (atendimento e revelação), **com uma única lacuna estrutural bloqueante para o valor do produto**: matches novos não aparecem sozinhos. Todo o resto (autenticação, persistência, scoring, decisão, conexão, atendimento, auditoria, contato) está implementado, testado (~320 testes) e conectado corretamente. Sem essa lacuna, um par (A, B) que se cadastra em janelas diferentes só se encontra por sorte.
 
-## 9) Matches armazenados?
+## 4. Mapa de necessidades de IA
 
-Sim, persistidos em `public.matches` (com `score_a`, `score_b`, `is_active`, `label`, `kind`), motivos em `public.match_reasons`, decisões em `public.match_decisions`, transições em `public.match_status_history`. Conexões derivadas em `public.connections` + auditoria em `connection_events`, `connection_status_history` e notas em `connection_notes`.
+Classificação: **(A) Necessária**, **(B) Fortemente recomendada**, **(C) Opcional**.  
+Não conta como IA o que é regra determinística já implementada (pesos, máquina de estados, taxonomy_match trigram, `secondsSince`).
 
-## 10) O que equipe/admin veem/gerenciam
+### (A) Necessárias para cumprir a proposta
 
-**Equipe (`/equipe`)** — via `staff_list_connections_v2` (paginação, filtros por status/segmento/escopo, ordenação, busca) e `staff_list_connection_detail`:
-- Fila em tempo real (canal `staff-queue-v2-*` com `postgres_changes` + fallback 20s).
-- Assumir conexão (`staff_assume_connection` com lock), avançar estados lineares, cancelar com nota obrigatória, liberar, adicionar notas internas.
-- Revelar contato com auditoria (`staff_reveal_contact_for_match` com `_override_reason`).
+1. **Interpretação de texto livre do perfil + extração de ofertas/necessidades**  
+   - Entrada: `summary`, `company`, e campos livres.  
+   - Saída: sugestões estruturadas `{label, taxonomy_item_id, need_kind, is_priority}`.  
+   - Momento: durante o wizard (`StepOffers`/`StepNeeds`), pós-blur do `summary`.  
+   - Modelo: LLM pequeno via Lovable AI Gateway (ex.: `google/gemini-2.5-flash`) com JSON mode + few-shot da taxonomia real.  
+   - Armazenamento: opcional em `ai_runs` (tabela já existe) para auditoria.  
+   - Fallback: `heuristicSuggestionProvider` já presente.  
+   - Custo/latência: <1s, ~$0.0002/request. Baixo.  
+   - Prioridade: alta — hoje o wizard exige que o usuário monte tudo à mão, o que reduz qualidade dos matches.
 
-**Admin (`/admin`)**:
-- Gestão de equipe do evento (adicionar por e-mail, alterar papel, remover — protegido por `has_event_role('admin')` e regra `last_admin`).
-- Reatribuir conexões (`admin_reassign_connection`).
-- Indicadores operacionais (`event_operational_stats`): conversão, carga por operador, KPIs.
+2. **Normalização/classificação na taxonomia**  
+   - Entrada: label digitado pelo usuário (modo manual) + lista de `taxonomy_items` do segmento.  
+   - Saída: melhor `taxonomy_item_id` (ou "novo item sugerido" para o admin).  
+   - Momento: no submit de cada oferta/necessidade.  
+   - Técnica: embeddings (ex.: `text-embedding-3-small`) + cosine top-k, ou LLM classificador.  
+   - Armazenamento: cache por `norm_label(label)` → `taxonomy_item_id` em nova tabela `taxonomy_alias`.  
+   - Fallback: `taxonomy_match` trigram atual (já implementado no SQL).  
+   - Prioridade: alta — sem isso, matching semântico continua raso.
 
-**Público (`/publico`)** — `event_stats(_event_id)` com contadores agregados; nada de PII.
+### (B) Fortemente recomendadas
 
-## 11) Riscos, dependências, lacunas
+3. **Matching semântico complementar aos pesos**  
+   - Entrada: embeddings das ofertas/necessidades de cada perfil.  
+   - Saída: `score_semantic ∈ [0,1]` combinado como sinal adicional ao score determinístico (ex.: bônus até 10pts).  
+   - Momento: dentro de `recompute_own_matches` (via edge function que faz callback à RPC, ou via `pgvector`).  
+   - Modelo: embeddings pequenos + `pgvector`.  
+   - Armazenamento: `profile_offer_embeddings`, `profile_need_embeddings`.  
+   - Fallback: só pesos atuais.  
+   - Custo: linear em nº de perfis; cacheável (só recalcula quando muda oferta/necessidade).  
+   - Prioridade: média/alta.
 
-- **Descoberta reativa:** sem trigger/cron, matches são "puxados" pelo dono. Novo cadastro não avisa perfis anteriores até eles recomputarem. Sério para o valor do produto durante o evento.
-- **Sem canal de notificação** (nem realtime no dashboard do participante, nem push/email/WhatsApp).
-- **IA ausente** apesar de tabela `ai_runs` provisionada — funcionalidade prometida no briefing original não foi implementada.
-- **Duas versões coexistem** de várias RPCs (`recover_profile` vs `recover_profile_v2`, `record_match_decision` vs `_v2`, `staff_advance_connection` sobrecarregada, `staff_reveal_contact_for_match` duplicada, `upsert_own_profile` legada). O frontend usa apenas as v2, mas as v1 continuam no banco expostas via Data API/RPC.
-- **Políticas RLS legadas permissivas** ainda existentes em migrations antigas (`profiles publicly readable USING (true)`, `connection insertable by anyone`, `match insertable by anyone`). Migrations posteriores adicionaram políticas restritivas, mas as permissivas antigas não foram dropadas explicitamente em todas — auditar `pg_policies` para confirmar estado final.
-- **`recovery_code` como coluna em `public.profiles`** existe historicamente (chamada em `save_own_profile_v2` com valor `''`) — coluna deveria ser removida se não é mais usada.
-- **Sem SSR de dados protegidos**: `/equipe` e `/admin` são protegidos client-side; se a sessão sumir há tela em branco antes do redirect.
-- **Nenhum teste E2E de banco** garantindo idempotência do recompute quando dois participantes salvam simultaneamente.
-- **Botão "Recomputar" manual** é a UX principal de descoberta — friction alto para o visitante.
+4. **Explicação humana do match ("por que vocês combinam")**  
+   - Entrada: `match_reasons` + resumos dos dois perfis.  
+   - Saída: 1–2 frases em português para o card do painel.  
+   - Momento: on-demand ao expandir o card (com cache em `matches.ai_explanation`).  
+   - Modelo: LLM pequeno.  
+   - Fallback: já existe texto determinístico por reason (`detail` do `match_reasons`).  
+   - Prioridade: média — melhora conversão de "interesse".
 
-## 12) Diagnóstico final
+5. **Detecção de perfis incompletos/ambíguos**  
+   - Entrada: perfil salvo.  
+   - Saída: score de completude + dicas ("descreva 1 exemplo concreto de cliente ideal").  
+   - Momento: pós-save, exibido no painel.  
+   - Modelo: LLM ou heurística assistida por LLM.  
+   - Fallback: contagem de campos vazios/curtos.  
+   - Prioridade: média.
 
-**Funcionando (end-to-end contra o banco):**
-- Cadastro completo do visitante (perfil + contato + código de recuperação).
-- Matching server-side determinístico com pesos oficiais, motivos explicáveis persistidos e filtro por consentimento.
-- Registro de interesse, criação de conexão mútua, revelação de contato pós-mútuo.
-- Recuperação de perfil por telefone+código com transferência de owner.
-- Fluxo operacional completo da equipe: fila paginada, filtros, realtime, máquina de estados linear, notas internas, auditoria, cancelamento com justificativa.
-- Administração de staff por evento + reatribuição + indicadores operacionais.
-- Painel público agregado.
-- Autenticação (anônima para visitante, e-mail/senha para staff/admin).
+### (C) Opcionais
 
-**Parcial:**
-- Descoberta de matches: só via cadastro, botão manual ou polling 20s da listagem — sem recompute automático quando novos perfis surgem.
-- RLS: hardening feito nas migrations recentes, mas políticas antigas permissivas coexistem — precisa auditoria de `pg_policies` para confirmar estado efetivo.
-- Coexistência de RPCs v1/v2 no banco (o front só chama v2, mas superfície v1 ainda exposta).
-- Tabela `ai_runs` existe mas nunca é escrita.
-- Auditoria (`audit_logs`, `analytics_events`) grava eventos, mas nenhuma UI expõe timeline ao participante.
+6. **Deduplicação** de perfis (mesma empresa/pessoa cadastrada duas vezes) — embeddings + trigram no `company`. Fallback: hash de telefone já bloqueia.  
+7. **Re-ranking** dos matches por perfil comportamental (quais tipos de match o usuário costuma aceitar) — LLM ou LTR simples. Só faz sentido com volume.  
+8. **Aprendizado com decisões** — usar `match_decisions` como sinal para ajustar pesos por segmento (regressão simples, não precisa LLM).  
+9. **Notificações** — a decisão *de notificar* é regra; o *texto* pode ser LLM (opcional). Prioridade real é criar o canal, não a IA.  
+10. **Resumos administrativos** em `/admin` (ex.: "Nas últimas 2h, 12 conexões avançaram; gargalo em 'apresentados'"). LLM sobre `event_operational_stats`.  
+11. **Moderação** de `summary`/labels (linguagem ofensiva, dados pessoais indevidos). LLM classificador leve ou serviço dedicado.
 
-**Não implementado:**
-- IA real (sugestões, ranking assistido, resumos, embeddings) — o briefing original pedia IA; entrega atual é 100% heurística.
-- Notificações ao participante de novo match/interesse/conexão (push, email, WhatsApp, in-app realtime).
-- Realtime no dashboard do participante — nenhum `supabase.channel` inscrito fora da equipe.
-- Recompute automático server-side em resposta a novos cadastros (trigger, pg_cron, pg_net → serverFn, ou fan-out por Realtime).
-- Fluxo de convite de staff por link (hoje precisa o usuário já existir em `auth.users`).
-- Testes de concorrência entre visitantes cadastrando simultaneamente.
+## 5. Estimativa qualitativa da demanda de IA
 
----
+- **MVP suficiente**: itens (A1) + (A2). Um único LLM pequeno via AI Gateway + uma tabela de aliases. Baixo custo, baixa latência, alto ganho de qualidade de matching.
+- **Versão avançada**: adicionar (B3) embeddings + pgvector, (B4) explicação, (B5) completude, (C11) moderação e (C10) resumos. Aqui vale ter uma edge/server function dedicada que orquestra AI Gateway, `ai_runs` para auditoria e budget por evento.
 
-**Como prosseguir:** este é o resultado da auditoria solicitada. Nenhuma alteração foi feita. Se quiser, posso abrir planos específicos para (a) fechar as lacunas de descoberta/notificação, (b) remover as RPCs/políticas v1 legadas, ou (c) introduzir IA real via Lovable AI Gateway.
+## 6. Recomendação de ordem (para próxima rodada, se aprovado)
+
+1. Fechar a lacuna estrutural: disparo automático de `recompute_own_matches` para perfis afetados (trigger + fila).  
+2. Implementar A1/A2 com Lovable AI Gateway.  
+3. Adicionar canal mínimo de notificação (mesmo que só badge no painel via realtime em `matches`).  
+4. Depois: embeddings/pgvector e explicações.
