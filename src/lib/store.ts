@@ -379,7 +379,9 @@ export const store = {
   session: {
     set(profileId: string) {
       if (!isBrowser()) return;
+      if (window.localStorage.getItem(SESSION_KEY) === profileId) return;
       window.localStorage.setItem(SESSION_KEY, profileId);
+      sessionVersion++;
       window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     },
     get(): string | null {
@@ -388,10 +390,13 @@ export const store = {
     },
     clear() {
       if (!isBrowser()) return;
+      if (window.localStorage.getItem(SESSION_KEY) == null) return;
       window.localStorage.removeItem(SESSION_KEY);
+      sessionVersion++;
       window.dispatchEvent(new CustomEvent("sudoexpo:session"));
     },
   },
+
   stats(eventId = EVENT_ID) {
     const db = loadCache();
     const profiles = db.profiles.filter((p) => p.eventId === eventId);
