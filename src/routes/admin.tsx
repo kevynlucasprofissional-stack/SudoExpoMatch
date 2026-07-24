@@ -287,6 +287,10 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             </ul>
           )}
         </Card>
+
+        <div className="mt-8">
+          <OperationalStatsCard eventId={EVENT_ID} />
+        </div>
       </section>
 
       <AlertDialog open={toRemove !== null} onOpenChange={(o) => !o && setToRemove(null)}>
