@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { z } from "zod";
-import { LogOut, Mail, ShieldCheck } from "lucide-react";
+import { LogOut, Mail, ShieldCheck, RefreshCw } from "lucide-react";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -32,6 +31,7 @@ import {
   useStaffRevealContacts,
   type QueueItem,
 } from "@/features/staff/useConnectionsQueue";
+import { cancelNoteSchema, translateStaffRevealError } from "@/features/staff/schemas";
 import { signInWithPassword, signOut, loginSchema } from "@/features/auth/actions";
 
 export const Route = createFileRoute("/equipe")({
@@ -248,33 +248,49 @@ function StaffDashboard({ email, role }: { email: string; role: "admin" | "staff
     totalSegments: 0,
   };
 
+  const queueItems = queueQuery.data ?? [];
+  const queueCounts = useMemo(() => {
+    const c = { aguardando: 0, em_atendimento: 0, apresentados: 0, contato_trocado: 0, concluido: 0, cancelado: 0 };
+    for (const q of queueItems) c[q.status]++;
+    return c;
+  }, [queueItems]);
+
   async function handleAdvance(c: QueueItem, next: ConnectionStatus) {
     try {
       await advance.mutateAsync({ connectionId: c.id, newStatus: next });
       toast.success(`Status: ${LABELS[next]}`);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao atualizar.");
+      const msg = err instanceof Error ? err.message : "Falha ao atualizar.";
+      toast.error(msg);
+      // Concorrência: se a fila mudou por outro membro, re-sincroniza.
+      if (msg.toLowerCase().includes("transi") || msg.toLowerCase().includes("não encontrada")) {
+        queueQuery.refetch();
+      }
     }
   }
 
   async function handleConfirmCancel() {
     if (!cancelTarget) return;
-    const note = cancelNote.trim();
-    if (note.length < 3 || note.length > 500) {
-      toast.error("A observação precisa ter entre 3 e 500 caracteres.");
+    const parsed = cancelNoteSchema.safeParse(cancelNote);
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Observação inválida.");
       return;
     }
     try {
       await advance.mutateAsync({
         connectionId: cancelTarget.id,
         newStatus: "cancelado",
-        note,
+        note: parsed.data,
       });
       toast.success("Conexão cancelada.");
       setCancelTarget(null);
       setCancelNote("");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao cancelar.");
+      const msg = err instanceof Error ? err.message : "Falha ao cancelar.";
+      toast.error(msg);
+      if (msg.toLowerCase().includes("transi") || msg.toLowerCase().includes("não encontrada")) {
+        queueQuery.refetch();
+      }
     }
   }
 
