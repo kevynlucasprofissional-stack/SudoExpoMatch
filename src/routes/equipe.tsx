@@ -1074,17 +1074,13 @@ function ConnectionDetailDrawer({
                 <div>
                   <span className="opacity-70">Tempo na etapa atual: </span>
                   <span className="font-medium">
-                    {formatDurationPt(
-                      secondsSince(
-                        stageStartAt(q.data),
-                      ),
-                    )}
+                    {formatElapsedSeconds(secondsSince(q.data.updated_at))}
                   </span>
                 </div>
                 <div>
                   <span className="opacity-70">Tempo total desde a criação: </span>
                   <span className="font-medium">
-                    {formatDurationPt(secondsSince(q.data.created_at))}
+                    {formatElapsedSeconds(secondsSince(q.data.created_at))}
                   </span>
                 </div>
               </div>
