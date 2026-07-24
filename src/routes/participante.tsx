@@ -41,11 +41,10 @@ import {
   Check,
 } from "lucide-react";
 
-import { store, useStoreSelector } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { LABEL_TEXT } from "@/domains/matching/score";
-import { SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
-import type { Match, Profile } from "@/lib/types";
+import { EVENT_ID, SEGMENTS, NEED_KIND_LABELS } from "@/lib/mock-data";
+import type { ConnectionStatus } from "@/lib/types";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 import {
   canParticipantRevealContact,
@@ -56,6 +55,18 @@ import {
   useRevealContact,
   type RevealedContact,
 } from "@/features/connections/useRevealContact";
+import { useSession } from "@/features/auth/useSession";
+import {
+  useOwnProfile,
+  type OwnProfileDTO,
+} from "@/features/participant/useOwnProfile";
+import {
+  useDecideMatch,
+  useOwnMatches,
+  type OwnMatchDTO,
+} from "@/features/participant/useOwnMatches";
+import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
+import { ensureAnonSession } from "@/features/participant/session";
 
 export const Route = createFileRoute("/participante")({
   head: () => ({
@@ -72,25 +83,17 @@ export const Route = createFileRoute("/participante")({
 
 function ParticipantPage() {
   const navigate = useNavigate();
-  const [hydrated, setHydrated] = useState(false);
-  useEffect(() => setHydrated(true), []);
+  const { user, isLoading: sessionLoading } = useSession();
 
-  const data = useStoreSelector(() => {
-    const sessionId = store.session.get();
-    if (!sessionId) return { sessionId: null as string | null, profile: null as Profile | null, matches: [] as Match[] };
-    const profile = store.getProfile(sessionId) ?? null;
-    const matches = profile ? store.matchesFor(profile.id) : [];
-    return { sessionId, profile, matches };
-  });
-
-  // Session referencing a missing profile → clear once, in an effect (never during render).
+  // Garante sessão anônima assim que a página monta, caso não haja user.
   useEffect(() => {
-    if (hydrated && data.sessionId && !data.profile) {
-      store.session.clear();
-    }
-  }, [hydrated, data.sessionId, data.profile]);
+    if (!sessionLoading && !user) void ensureAnonSession();
+  }, [sessionLoading, user]);
 
-  if (!hydrated) {
+  const profileQuery = useOwnProfile(EVENT_ID);
+  const matchesQuery = useOwnMatches(EVENT_ID, { enabled: !!profileQuery.data });
+
+  if (profileQuery.isLoading || sessionLoading) {
     return (
       <PageShell>
         <div className="mx-auto max-w-3xl px-4 py-12">
@@ -102,18 +105,12 @@ function ParticipantPage() {
     );
   }
 
-  if (!data.sessionId || !data.profile) return <RecoveryView />;
-  const profile = data.profile;
-  const matches = data.matches;
-  const mutual = matches.filter(
-    (m) => m.decisionA === "interesse" && m.decisionB === "interesse",
-  );
-  const interested = matches.filter(
-    (m) =>
-      (m.aProfileId === profile.id && m.decisionA === "interesse") ||
-      (m.bProfileId === profile.id && m.decisionB === "interesse"),
-  );
+  const profile = profileQuery.data;
+  if (!profile) return <RecoveryView />;
 
+  const matches = matchesQuery.data ?? [];
+  const mutual = matches.filter((m) => m.connection != null);
+  const interested = matches.filter((m) => m.my_decision === "interesse");
 
   return (
     <PageShell>
@@ -135,8 +132,8 @@ function ParticipantPage() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                store.session.clear();
+              onClick={async () => {
+                await supabase.auth.signOut();
                 navigate({ to: "/" });
               }}
             >
@@ -154,13 +151,22 @@ function ParticipantPage() {
           </TabsList>
 
           <TabsContent value="matches" className="mt-6">
-            <MatchesList profile={profile} matches={matches} />
+            <MatchesList
+              matches={matches}
+              loading={matchesQuery.isLoading}
+              error={matchesQuery.error}
+            />
           </TabsContent>
           <TabsContent value="interested" className="mt-6">
-            <MatchesList profile={profile} matches={interested} emptyMessage="Você ainda não marcou interesse em ninguém." />
+            <MatchesList
+              matches={interested}
+              loading={matchesQuery.isLoading}
+              error={matchesQuery.error}
+              emptyMessage="Você ainda não marcou interesse em ninguém."
+            />
           </TabsContent>
           <TabsContent value="connections" className="mt-6">
-            <ConnectionsList profile={profile} matches={mutual} />
+            <ConnectionsList matches={mutual} />
           </TabsContent>
           <TabsContent value="profile" className="mt-6">
             <ProfileCard profile={profile} />
@@ -188,11 +194,6 @@ function RotateRecoveryButton() {
     } finally {
       setLoading(false);
     }
-  }
-
-  function handleClose() {
-    // Limpa o código da memória após confirmação de que foi salvo.
-    setCode(null);
   }
 
   return (
@@ -232,7 +233,7 @@ function RotateRecoveryButton() {
       <RecoveryCodeDialog
         open={code !== null}
         code={code}
-        onConfirm={handleClose}
+        onConfirm={() => setCode(null)}
         title="Seu novo código de recuperação"
         description="Guarde-o em local seguro. O código anterior deixou de funcionar."
       />
@@ -241,14 +242,31 @@ function RotateRecoveryButton() {
 }
 
 function MatchesList({
-  profile,
   matches,
+  loading,
+  error,
   emptyMessage,
 }: {
-  profile: Profile;
-  matches: Match[];
+  matches: OwnMatchDTO[];
+  loading: boolean;
+  error: unknown;
   emptyMessage?: string;
 }) {
+  if (error) {
+    return (
+      <Card className="p-6 text-sm text-destructive">
+        Não conseguimos carregar seus matches. Recarregue a página.
+      </Card>
+    );
+  }
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-40 w-full" />
+        <Skeleton className="h-40 w-full" />
+      </div>
+    );
+  }
   if (matches.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -268,30 +286,36 @@ function MatchesList({
   return (
     <div className="space-y-3">
       {matches.map((m) => (
-        <MatchCard key={m.id} match={m} profile={profile} />
+        <MatchCard key={m.match_id} match={m} />
       ))}
     </div>
   );
 }
 
-function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
-  const isA = match.aProfileId === profile.id;
-  const otherId = isA ? match.bProfileId : match.aProfileId;
-  const other = store.getProfile(otherId);
-  if (!other) return null;
-  const myDecision = isA ? match.decisionA : match.decisionB;
-  const theirDecision = isA ? match.decisionB : match.decisionA;
-  const reasons = isA ? match.reasonsForA : match.reasonsForB;
-  const mutual = myDecision === "interesse" && theirDecision === "interesse";
-  const seg = SEGMENTS.find((s) => s.id === other.segmentId);
+function MatchCard({ match }: { match: OwnMatchDTO }) {
+  const decideMutation = useDecideMatch(EVENT_ID);
+  const myDecision = match.my_decision;
+  const theirDecision = match.other_decision;
+  const mutual = match.connection != null;
+  const other = match.other;
+  const seg = SEGMENTS.find((s) => s.id === other.segment_id);
 
   function decide(d: "interesse" | "agora_nao") {
-    store.decideMatch(match.id, profile.id, d);
-    if (d === "interesse" && theirDecision === "interesse") {
-      toast.success("Deu match! 🎉 A equipe vai apresentar vocês.");
-    } else if (d === "interesse") {
-      toast("Interesse registrado. Aguardando a outra parte.");
-    }
+    decideMutation.mutate(
+      { matchId: match.match_id, decision: d },
+      {
+        onSuccess: (res) => {
+          if (res.mutual && res.connection_created) {
+            toast.success("Deu match! 🎉 A equipe vai apresentar vocês.");
+          } else if (d === "interesse") {
+            toast("Interesse registrado. Aguardando a outra parte.");
+          }
+        },
+        onError: (err) => {
+          toast.error(err instanceof Error ? err.message : "Falha ao registrar.");
+        },
+      },
+    );
   }
 
   return (
@@ -324,7 +348,7 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
               {other.company}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {other.name} · {seg?.emoji} {seg?.label}
+              {other.name} · {seg?.emoji} {seg?.label ?? other.segment_id}
             </p>
             <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
               <MapPin className="h-3 w-3" /> {other.city}
@@ -338,12 +362,17 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
             Por que este match
           </p>
           <ul className="mt-2 space-y-1 text-sm">
-            {reasons.map((r) => (
+            {match.reasons.map((r) => (
               <li key={r.code} className="flex items-start gap-2">
                 <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
-                <span>{r.detail}</span>
+                <span>{r.label}</span>
               </li>
             ))}
+            {match.reasons.length === 0 && (
+              <li className="text-muted-foreground">
+                Motivos ainda estão sendo calculados…
+              </li>
+            )}
           </ul>
         </div>
 
@@ -358,8 +387,8 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
                 Oferece
               </p>
               <div className="mt-1 flex flex-wrap gap-1">
-                {other.offers.map((o) => (
-                  <Badge key={o.id} variant="secondary">
+                {match.other_offers.map((o, i) => (
+                  <Badge key={`o-${i}`} variant="secondary">
                     {o.label}
                   </Badge>
                 ))}
@@ -370,10 +399,10 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
                 Procura
               </p>
               <ul className="mt-1 space-y-0.5 text-xs">
-                {other.needs.map((n) => (
-                  <li key={n.id}>
+                {match.other_needs.map((n, i) => (
+                  <li key={`n-${i}`}>
                     <Badge variant="outline" className="mr-1">
-                      {NEED_KIND_LABELS[n.kind]}
+                      {NEED_KIND_LABELS[n.need_kind] ?? n.need_kind}
                     </Badge>
                     {n.label}
                   </li>
@@ -400,7 +429,7 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
               className="flex-1"
               variant={myDecision === "interesse" ? "secondary" : "default"}
               onClick={() => decide("interesse")}
-              disabled={myDecision === "interesse"}
+              disabled={myDecision === "interesse" || decideMutation.isPending}
             >
               <Heart className="mr-1 h-4 w-4" />
               {myDecision === "interesse" ? "Interesse enviado" : "Tenho interesse"}
@@ -408,10 +437,15 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
             <Button
               variant="ghost"
               onClick={() => decide("agora_nao")}
-              disabled={myDecision === "agora_nao"}
+              disabled={myDecision === "agora_nao" || decideMutation.isPending}
             >
               <X className="mr-1 h-4 w-4" /> Agora não
             </Button>
+            {theirDecision === "interesse" && myDecision !== "interesse" && (
+              <span className="self-center text-xs text-muted-foreground">
+                A outra parte já demonstrou interesse.
+              </span>
+            )}
           </div>
         )}
       </div>
@@ -419,13 +453,7 @@ function MatchCard({ match, profile }: { match: Match; profile: Profile }) {
   );
 }
 
-function ConnectionsList({
-  profile,
-  matches,
-}: {
-  profile: Profile;
-  matches: Match[];
-}) {
+function ConnectionsList({ matches }: { matches: OwnMatchDTO[] }) {
   if (matches.length === 0) {
     return (
       <Card className="p-8 text-center">
@@ -441,17 +469,14 @@ function ConnectionsList({
   }
   return (
     <div className="space-y-3">
-      {matches.map((m) => {
-        const otherId = m.aProfileId === profile.id ? m.bProfileId : m.aProfileId;
-        const other = store.getProfile(otherId);
-        if (!other) return null;
-        return <ConnectionRow key={m.id} matchId={m.id} other={other} />;
-      })}
+      {matches.map((m) => (
+        <ConnectionRow key={m.match_id} match={m} />
+      ))}
     </div>
   );
 }
 
-const CONN_LABEL: Record<string, string> = {
+const CONN_LABEL: Record<ConnectionStatus, string> = {
   aguardando: "Aguardando equipe",
   em_atendimento: "Equipe organizando",
   apresentados: "Apresentados",
@@ -459,7 +484,7 @@ const CONN_LABEL: Record<string, string> = {
   concluido: "Concluída",
   cancelado: "Cancelada",
 };
-const CONN_TONE: Record<string, string> = {
+const CONN_TONE: Record<ConnectionStatus, string> = {
   aguardando: "bg-warning/15 text-warning-foreground border-warning/40",
   em_atendimento: "bg-accent/15 text-accent-foreground border-accent/40",
   apresentados: "bg-primary/15 text-primary border-primary/30",
@@ -468,20 +493,18 @@ const CONN_TONE: Record<string, string> = {
   cancelado: "bg-muted text-muted-foreground border-muted",
 };
 
-function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) {
+function ConnectionRow({ match }: { match: OwnMatchDTO }) {
   const { contact, error, loading, reveal, clear } = useRevealContact();
   const [open, setOpen] = useState(false);
-
-  // Status real derivado do store (reflete Realtime da equipe).
-  const conn = useStoreSelector(() => store.connectionForMatch(matchId));
-  const status = conn?.status ?? "aguardando";
+  const status: ConnectionStatus = match.connection?.status ?? "aguardando";
   const canReveal = canParticipantRevealContact(status);
   const isCancelled = status === "cancelado";
   const statusMessage = PARTICIPANT_STATUS_MESSAGE[status];
+  const other = match.other;
 
   async function handleReveal() {
     setOpen(true);
-    await reveal(matchId);
+    await reveal(match.match_id);
   }
 
   return (
@@ -492,10 +515,7 @@ function ConnectionRow({ matchId, other }: { matchId: string; other: Profile }) 
           <p className="text-sm text-muted-foreground">
             {other.name} · {other.city}
           </p>
-          <Badge
-            variant="outline"
-            className={`mt-2 border ${CONN_TONE[status]}`}
-          >
+          <Badge variant="outline" className={`mt-2 border ${CONN_TONE[status]}`}>
             {CONN_LABEL[status]}
           </Badge>
         </div>
@@ -599,13 +619,13 @@ function RevealedContactBlock({ contact }: { contact: RevealedContact }) {
   );
 }
 
-function ProfileCard({ profile }: { profile: Profile }) {
-  const seg = SEGMENTS.find((s) => s.id === profile.segmentId);
+function ProfileCard({ profile }: { profile: OwnProfileDTO }) {
+  const seg = SEGMENTS.find((s) => s.id === profile.segment_id);
   return (
     <Card className="p-6">
       <h3 className="font-display text-lg font-semibold">{profile.company}</h3>
       <p className="text-sm text-muted-foreground">
-        {profile.name} · {seg?.emoji} {seg?.label} · {profile.city}
+        {profile.name} · {seg?.emoji} {seg?.label ?? profile.segment_id} · {profile.city}
       </p>
       <p className="mt-4 text-sm">{profile.summary}</p>
       <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -629,10 +649,10 @@ function ProfileCard({ profile }: { profile: Profile }) {
             {profile.needs.map((n) => (
               <li key={n.id}>
                 <Badge variant="outline" className="mr-1">
-                  {NEED_KIND_LABELS[n.kind]}
+                  {NEED_KIND_LABELS[n.need_kind] ?? n.need_kind}
                 </Badge>
                 {n.label}
-                {n.isPriority && (
+                {n.is_priority && (
                   <span className="ml-1 text-xs text-warning">★ prioridade</span>
                 )}
               </li>
@@ -654,17 +674,26 @@ function RecoveryView() {
   const [whatsapp, setWhatsapp] = useState("");
   const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [rotatedCode, setRotatedCode] = useState<string | null>(null);
+  const recoverMutation = useRecoverProfile();
 
   async function recover() {
     setError(null);
-    const p = await store.recoverProfile(whatsapp, code);
-    if (!p) {
-      setError("Não encontramos um perfil com esses dados, ou o código está bloqueado por tentativas. Tente novamente em alguns minutos.");
-      return;
+    try {
+      const res = await recoverMutation.mutateAsync({
+        eventId: EVENT_ID,
+        whatsapp,
+        code,
+      });
+      if (res.newRecoveryCode) {
+        setRotatedCode(res.newRecoveryCode);
+      } else {
+        toast.success("Bem-vindo(a) de volta!");
+        navigate({ to: "/participante" });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Falha ao recuperar.");
     }
-    store.session.set(p.id);
-    toast.success(`Bem-vindo(a) de volta, ${p.name.split(" ")[0]}!`);
-    navigate({ to: "/participante" });
   }
 
   return (
@@ -701,8 +730,16 @@ function RecoveryView() {
                 {error}
               </p>
             )}
-            <Button onClick={recover} className="w-full" disabled={!whatsapp || !code}>
-              Entrar
+            <Button
+              onClick={recover}
+              className="w-full"
+              disabled={!whatsapp || !code || recoverMutation.isPending}
+            >
+              {recoverMutation.isPending ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Recuperando…</>
+              ) : (
+                "Entrar"
+              )}
             </Button>
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
@@ -713,6 +750,18 @@ function RecoveryView() {
           </div>
         </Card>
       </section>
+
+      <RecoveryCodeDialog
+        open={rotatedCode !== null}
+        code={rotatedCode}
+        onConfirm={() => {
+          setRotatedCode(null);
+          toast.success("Bem-vindo(a) de volta!");
+          navigate({ to: "/participante" });
+        }}
+        title="Seu novo código de recuperação"
+        description="Rotacionamos seu código por segurança. Guarde-o em local seguro — o antigo deixou de funcionar."
+      />
     </PageShell>
   );
 }
