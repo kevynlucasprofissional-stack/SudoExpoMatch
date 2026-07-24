@@ -883,10 +883,10 @@ function ConnectionCard({
               Criada {new Date(c.created_at).toLocaleString("pt-BR")}
             </span>
             <span className="text-xs text-muted-foreground" title="Tempo total desde a criação">
-              · Espera {formatDurationShortPt(c.seconds_waiting)}
+              · Espera: {formatElapsedSeconds(c.seconds_waiting)}
             </span>
             <span className="text-xs text-muted-foreground" title="Tempo na etapa atual">
-              · Etapa {formatDurationShortPt(c.seconds_in_stage)}
+              · Nesta etapa: {formatElapsedSeconds(c.seconds_in_stage)}
             </span>
           </div>
           <p className="mt-2 font-medium">
