@@ -91,20 +91,20 @@ function StaffQueue() {
         </header>
 
         <div className="mb-6 grid gap-3 sm:grid-cols-4">
-          <Stat label="Perfis" value={stats.profiles} />
-          <Stat label="Matches" value={stats.matches} />
-          <Stat label="Mútuos" value={stats.mutualMatches} />
-          <Stat label="Concluídas" value={stats.completedConnections} />
+          <Stat label="Perfis" value={showStats.profiles} />
+          <Stat label="Matches" value={showStats.matches} />
+          <Stat label="Mútuos" value={showStats.mutualMatches} />
+          <Stat label="Concluídas" value={showStats.completedConnections} />
         </div>
 
-        {conns.length === 0 ? (
+        {showConns.length === 0 ? (
           <Card className="p-8 text-center text-sm text-muted-foreground">
             Ainda não há conexões mútuas. Assim que dois participantes marcarem
             interesse recíproco, aparecerão aqui em tempo real.
           </Card>
         ) : (
           <ul className="space-y-3">
-            {conns.map((c) => {
+            {showConns.map((c) => {
               const a = byId.get(c.aProfileId);
               const b = byId.get(c.bProfileId);
               return (
