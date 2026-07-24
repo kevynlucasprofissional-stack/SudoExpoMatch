@@ -104,9 +104,7 @@ import {
   translateOperationalError,
 } from "@/features/connections/domain";
 import {
-  formatDurationShortPt,
   secondsSince,
-  stageStartAt,
 } from "@/features/connections/time";
 import {
   canAddInternalNote,
