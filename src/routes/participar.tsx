@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
+import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
 import { NEED_KIND_LABELS, SEGMENTS, TAXONOMY } from "@/lib/mock-data";
 import { store } from "@/lib/store";
@@ -115,6 +116,7 @@ function WizardPage() {
   const [step, setStep] = useState(0);
   const [draft, setDraft] = useState<Draft>(() => emptyDraft());
   const [hydrated, setHydrated] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState<string | null>(null);
 
   useEffect(() => {
     setDraft(loadDraft());
@@ -158,12 +160,25 @@ function WizardPage() {
       const profile = await store.createProfile(profileData);
       store.session.set(profile.id);
       if (typeof window !== "undefined") window.localStorage.removeItem(DRAFT_KEY);
-      toast.success("Perfil criado! Buscando conexões…");
-      navigate({ to: "/participante" });
+      // Exige que o usuário confirme que salvou o código antes de avançar.
+      if (profile.recoveryCode) {
+        setRecoveryCode(profile.recoveryCode);
+      } else {
+        toast.success("Perfil criado! Buscando conexões…");
+        navigate({ to: "/participante" });
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(`Não foi possível salvar seu perfil: ${msg}`);
     }
+  }
+
+  function confirmCodeSaved() {
+    // Consome do storage e navega apenas após confirmação do usuário.
+    store.consumeLastRecoveryCode();
+    setRecoveryCode(null);
+    toast.success("Perfil criado! Buscando conexões…");
+    navigate({ to: "/participante" });
   }
 
   return (
@@ -203,6 +218,12 @@ function WizardPage() {
           <StepReview draft={draft} onBack={back} onSubmit={submit} />
         )}
       </section>
+
+      <RecoveryCodeDialog
+        open={recoveryCode !== null}
+        code={recoveryCode}
+        onConfirm={confirmCodeSaved}
+      />
     </PageShell>
   );
 }
