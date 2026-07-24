@@ -316,19 +316,59 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
         </div>
       </section>
 
-      <AlertDialog open={toRemove !== null} onOpenChange={(o) => !o && setToRemove(null)}>
+      <AlertDialog
+        open={toRemove !== null}
+        onOpenChange={(o) => {
+          if (!o) {
+            setToRemove(null);
+            setReassignTo("");
+            setPendingActiveCount(null);
+          }
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remover da equipe?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {toRemove?.userId === userId
+                ? "Remover você mesmo da equipe?"
+                : "Remover da equipe?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {toRemove?.email} perderá o acesso à fila de conexões e às ações de equipe deste
-              evento. Esta ação pode ser desfeita adicionando-o(a) novamente.
+              {toRemove?.email} perderá o acesso à fila de conexões e às ações
+              de equipe deste evento. Esta ação pode ser desfeita adicionando-
+              o(a) novamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          {pendingActiveCount !== null && (
+            <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+              <p>
+                Este membro tem <strong>{pendingActiveCount}</strong> conexão
+                (ões) em andamento. Escolha quem receberá:
+              </p>
+              <Select value={reassignTo} onValueChange={setReassignTo}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Escolha um membro" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(listQuery.data ?? [])
+                    .filter((m) => m.userId !== toRemove?.userId)
+                    .map((m) => (
+                      <SelectItem key={m.userId} value={m.userId}>
+                        {m.email} ({m.role})
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemove}
+              disabled={
+                remove.isPending ||
+                (pendingActiveCount !== null && !reassignTo)
+              }
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remover
