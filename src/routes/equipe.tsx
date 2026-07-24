@@ -652,7 +652,6 @@ function StaffDashboard({
         onClose={() => setDetailId(null)}
         userId={userId}
         isAdmin={isAdmin}
-        role={role}
       />
 
       {/* Cancelar (nota obrigatória 3–500) */}
