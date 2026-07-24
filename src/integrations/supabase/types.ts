@@ -878,6 +878,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_add_event_staff_by_email: {
+        Args: {
+          _email: string
+          _event_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: string
+      }
+      admin_change_event_staff_role: {
+        Args: {
+          _event_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: undefined
+      }
+      admin_list_event_staff: {
+        Args: { _event_id: string }
+        Returns: {
+          created_at: string
+          email: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }[]
+      }
+      admin_remove_event_staff: {
+        Args: { _event_id: string; _user_id: string }
+        Returns: undefined
+      }
       event_stats: {
         Args: { _event_id: string }
         Returns: {
