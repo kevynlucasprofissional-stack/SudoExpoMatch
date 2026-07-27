@@ -14,7 +14,7 @@ function q(sql: string): string {
 d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
   it("analytics_events: policy INSERT restritiva presente, sem UPDATE/DELETE", () => {
     const rows = q(
-      "SELECT polname||':'||polcmd FROM pg_policy WHERE polrelid='public.analytics_events'::regclass ORDER BY 1",
+      "SELECT polname||':'||polcmd::text FROM pg_policy WHERE polrelid='public.analytics_events'::regclass ORDER BY 1",
     )
       .split("\n")
       .filter(Boolean);
@@ -68,7 +68,7 @@ d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
 
   it("taxonomy_items: policies separadas por comando; sem policy ALL", () => {
     const rows = q(
-      "SELECT polname||':'||polcmd FROM pg_policy WHERE polrelid='public.taxonomy_items'::regclass ORDER BY 1",
+      "SELECT polname||':'||polcmd::text FROM pg_policy WHERE polrelid='public.taxonomy_items'::regclass ORDER BY 1",
     )
       .split("\n")
       .filter(Boolean);
