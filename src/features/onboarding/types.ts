@@ -2,12 +2,16 @@ import type { NeedKind } from "@/lib/types";
 
 export type { NeedKind };
 
+export type WizardItemSource = "user" | "ai" | "heuristic";
+
 export interface WizardOffer {
   localId: string;
   label: string;
   detail?: string;
   segmentId: string;
   taxonomyItemId: string | null;
+  /** Origem do item — usado para auditoria e recompute. Default: "user". */
+  source?: WizardItemSource;
 }
 
 export interface WizardNeed extends WizardOffer {
