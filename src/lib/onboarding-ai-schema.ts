@@ -1,8 +1,14 @@
 import { z } from "zod";
-import type { EventCatalog } from "@/features/participant/types";
+import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
-export const PROMPT_VERSION = "a1a2-v1";
-export const AI_MODEL = "google/gemini-3.6-flash";
+export const PROMPT_VERSION = "a1a2-v2";
+
+/**
+ * ID EXATO do modelo no catálogo do Lovable AI Gateway (Cloud AI Models).
+ * `google/gemini-2.5-flash-lite` é o mais barato/rápido da família Flash e
+ * foi validado com chamada real via curl (200 + JSON estruturado).
+ */
+export const AI_MODEL = "google/gemini-2.5-flash-lite";
 
 /** Payload que o cliente envia ao server fn. Sem PII. */
 export const suggestOnboardingInputSchema = z.object({
@@ -137,23 +143,41 @@ export function normalizeAgainstCatalog(
   };
 }
 
+async function sha256Hex(src: string): Promise<string> {
+  const bytes = new TextEncoder().encode(src);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
 /**
  * Hash SHA-256 (Web Crypto) para chave de cache/ai_runs.
  * Não é reversível — o summary bruto nunca sai daqui.
  */
 export async function hashCacheKey(parts: string[]): Promise<string> {
-  const src = parts.join("|");
-  const bytes = new TextEncoder().encode(src);
-  const digest = await crypto.subtle.digest("SHA-256", bytes);
-  const hex = Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
+  const hex = await sha256Hex(parts.join("|"));
   return `k${hex.slice(0, 32)}`;
 }
 
 /**
+ * Hash estável do catálogo relevante: usa id + label + kind + segment_id
+ * de todos os itens ativos, ordenados. Isso invalida cache automaticamente
+ * quando o catálogo muda (novo item, renomeação, kind alterado, etc.),
+ * sem depender só de `taxonomy.length`.
+ */
+export async function stableCatalogHash(items: CatalogTaxonomyItem[]): Promise<string> {
+  const parts = items
+    .map((t) => `${t.id}|${t.label}|${t.kind}|${t.segment_id}`)
+    .sort()
+    .join("\n");
+  const hex = await sha256Hex(parts);
+  return hex.slice(0, 16);
+}
+
+/**
  * Classifica erros da chamada ao Lovable AI Gateway.
- * - `terminal_4xx`  → não retentar; ir direto ao fallback (400, 401, 403, 404, 422, etc.).
+ * - `terminal_4xx`  → não retentar; ir direto ao fallback (400, 401, 402, 403, 404, 422).
  * - `transient`     → 1 retry curto com backoff (429, 5xx, timeout, network).
  * - `unknown`       → tratar como terminal para não gastar créditos à toa.
  */

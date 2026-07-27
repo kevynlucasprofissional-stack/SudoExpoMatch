@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
 import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
+import type { SharedAiAnalysis } from "./aiAnalysisState";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,7 +330,8 @@ export function StepOffers({
   onBack,
   catalog,
   eventId,
-}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
+  aiAnalysis,
+}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
