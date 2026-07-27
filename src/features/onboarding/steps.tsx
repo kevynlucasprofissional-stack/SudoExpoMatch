@@ -652,6 +652,31 @@ export function StepNeeds({
         Adicione o que faria diferença na sua visita à feira (até 5).
       </p>
 
+      {eventId && draft.summary.trim().length >= 10 && (
+        <AiAssistantPanel
+          kind="need"
+          eventId={eventId}
+          segmentId={draft.segmentId}
+          summary={draft.summary}
+          existingLabels={draft.needs.map((n) => n.label)}
+          onAcceptOffer={() => {}}
+          onAcceptNeed={(s: AiSuggestionItem) => {
+            if (draft.needs.length >= 5) return;
+            if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
+            const need: WizardNeed = {
+              localId: cryptoUid(),
+              label: s.label,
+              segmentId: draft.segmentId,
+              taxonomyItemId: s.taxonomyItemId,
+              needKind: kind,
+              isPriority: false,
+            };
+            update("needs", [...draft.needs, need]);
+          }}
+          disabled={draft.needs.length >= 5}
+        />
+      )}
+
       <div className="mt-6 space-y-4">
         <div>
           <Label>Categoria</Label>
