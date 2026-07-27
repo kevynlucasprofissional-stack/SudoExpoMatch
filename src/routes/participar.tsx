@@ -245,7 +245,6 @@ function WizardPage() {
           saveOwnProfile,
           setOwnContact,
           rotateOwnRecoveryCode,
-          recomputeOwnMatches,
         },
       });
       for (const evt of events) {
