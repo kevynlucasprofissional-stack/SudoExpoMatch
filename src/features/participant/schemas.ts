@@ -147,11 +147,14 @@ export const revealedContactSchema = z.object({
 export const revealedContactListSchema = z.array(revealedContactSchema);
 
 // ---------- Payload de gravação ----------
+export const itemSourceSchema = z.enum(["user", "ai", "heuristic"]);
+
 const saveOfferPayloadSchema = z.object({
   label: z.string().min(1),
   detail: z.string().nullable().optional(),
   segment_id: z.string().min(1),
   taxonomy_item_id: z.string().nullable(),
+  source: itemSourceSchema.optional(),
 });
 const saveNeedPayloadSchema = saveOfferPayloadSchema.extend({
   need_kind: needKindSchema,
