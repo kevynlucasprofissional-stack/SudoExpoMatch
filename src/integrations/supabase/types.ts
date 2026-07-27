@@ -1152,17 +1152,15 @@ export type Database = {
         Args: { _connection_id: string; _new_user_id: string; _note?: string }
         Returns: undefined
       }
-      admin_remove_event_staff:
-        | { Args: { _event_id: string; _user_id: string }; Returns: undefined }
-        | {
-            Args: {
-              _confirm_self?: boolean
-              _event_id: string
-              _reassign_to?: string
-              _user_id: string
-            }
-            Returns: undefined
-          }
+      admin_remove_event_staff: {
+        Args: {
+          _confirm_self?: boolean
+          _event_id: string
+          _reassign_to?: string
+          _user_id: string
+        }
+        Returns: undefined
+      }
       event_operational_stats: { Args: { _event_id: string }; Returns: Json }
       event_stats: {
         Args: { _event_id: string }
@@ -1198,24 +1196,6 @@ export type Database = {
       hash_phone: { Args: { _phone_e164: string }; Returns: string }
       hash_recovery_code: { Args: { _code: string }; Returns: string }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
-      list_event_profile_cards: {
-        Args: { _event_id: string }
-        Returns: {
-          city: string
-          company: string
-          created_at: string
-          event_id: string
-          id: string
-          is_demo: boolean
-          name: string
-          needs: Json
-          neighborhood: string
-          offers: Json
-          segment_id: string
-          summary: string
-          updated_at: string
-        }[]
-      }
       list_event_segments_and_taxonomy: {
         Args: { _event_id: string }
         Returns: Json
@@ -1229,23 +1209,12 @@ export type Database = {
         Returns: number
       }
       recompute_own_matches: { Args: { _event_id: string }; Returns: number }
-      record_match_decision: {
-        Args: {
-          _decision: Database["public"]["Enums"]["decision"]
-          _match_id: string
-        }
-        Returns: undefined
-      }
       record_match_decision_v2: {
         Args: {
           _decision: Database["public"]["Enums"]["decision"]
           _match_id: string
         }
         Returns: Json
-      }
-      recover_profile: {
-        Args: { _code: string; _event_id: string; _phone_e164: string }
-        Returns: string
       }
       recover_profile_v2: {
         Args: { _code: string; _event_id: string; _phone_e164: string }
@@ -1265,15 +1234,6 @@ export type Database = {
       }
       rotate_own_recovery_code: { Args: never; Returns: string }
       save_own_profile_v2: { Args: { _payload: Json }; Returns: string }
-      segment_distribution: {
-        Args: { _event_id: string }
-        Returns: {
-          emoji: string
-          label: string
-          segment_id: string
-          total: number
-        }[]
-      }
       set_own_contact: {
         Args: { _email?: string; _phone_e164: string; _sharing?: boolean }
         Returns: undefined
@@ -1328,7 +1288,6 @@ export type Database = {
           profile_id: string
         }[]
       }
-      store_computed_matches: { Args: { _matches: Json }; Returns: number }
       taxonomy_match: {
         Args: {
           _a_label: string
@@ -1337,21 +1296,6 @@ export type Database = {
           _b_tax: string
         }
         Returns: boolean
-      }
-      upsert_own_profile: {
-        Args: {
-          _city: string
-          _company: string
-          _consent: boolean
-          _event_id: string
-          _name: string
-          _needs: Json
-          _neighborhood: string
-          _offers: Json
-          _segment_id: string
-          _summary: string
-        }
-        Returns: string
       }
       verify_recovery_code: {
         Args: { _code: string; _hash: string }
