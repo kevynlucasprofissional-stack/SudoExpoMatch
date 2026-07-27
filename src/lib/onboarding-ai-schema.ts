@@ -137,12 +137,38 @@ export function normalizeAgainstCatalog(
   };
 }
 
-/** Hash simples para chave de cache. */
-export function hashCacheKey(parts: string[]): string {
-  let h = 5381;
+/**
+ * Hash SHA-256 (Web Crypto) para chave de cache/ai_runs.
+ * Não é reversível — o summary bruto nunca sai daqui.
+ */
+export async function hashCacheKey(parts: string[]): Promise<string> {
   const src = parts.join("|");
-  for (let i = 0; i < src.length; i++) h = ((h << 5) + h + src.charCodeAt(i)) | 0;
-  return `k${(h >>> 0).toString(36)}`;
+  const bytes = new TextEncoder().encode(src);
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const hex = Array.from(new Uint8Array(digest))
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+  return `k${hex.slice(0, 32)}`;
+}
+
+/**
+ * Classifica erros da chamada ao Lovable AI Gateway.
+ * - `terminal_4xx`  → não retentar; ir direto ao fallback (400, 401, 403, 404, 422, etc.).
+ * - `transient`     → 1 retry curto com backoff (429, 5xx, timeout, network).
+ * - `unknown`       → tratar como terminal para não gastar créditos à toa.
+ */
+export function classifyGatewayError(err: unknown): "terminal_4xx" | "transient" | "unknown" {
+  const msg = err instanceof Error ? err.message : String(err ?? "");
+  const lower = msg.toLowerCase();
+  if (lower === "timeout" || /network|fetch|ecconn|econnreset|socket/i.test(lower)) return "transient";
+  const m = msg.match(/\b(4\d{2}|5\d{2})\b/);
+  if (m) {
+    const code = Number(m[1]);
+    if (code === 429 || code >= 500) return "transient";
+    if (code >= 400 && code < 500) return "terminal_4xx";
+  }
+  if (/rate.?limit|too many/i.test(lower)) return "transient";
+  return "unknown";
 }
 
 /** Payload de log seguro em `ai_runs` — sem PII e sem summary bruto. */
