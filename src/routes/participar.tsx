@@ -592,6 +592,7 @@ function WizardPage() {
             onNext={next}
             onBack={back}
             catalog={catalog}
+            eventId={EVENT_ID}
           />
         )}
         {step === 3 && (
@@ -601,6 +602,7 @@ function WizardPage() {
             onNext={next}
             onBack={back}
             catalog={catalog}
+            eventId={EVENT_ID}
           />
         )}
         {step === 4 && (

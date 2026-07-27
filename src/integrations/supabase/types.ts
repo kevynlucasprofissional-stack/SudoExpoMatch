@@ -1098,6 +1098,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _recompute_matches_for_profile: {
+        Args: { p_event_id: string; p_profile_id: string }
+        Returns: number
+      }
       admin_add_event_staff_by_email: {
         Args: {
           _email: string

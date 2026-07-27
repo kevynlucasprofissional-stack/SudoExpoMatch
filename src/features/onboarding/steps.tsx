@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import { AiAssistantPanel } from "./AiAssistantPanel";
+import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -326,7 +328,8 @@ export function StepOffers({
   onNext,
   onBack,
   catalog,
-}: BaseProps & { catalog: EventCatalog }) {
+  eventId,
+}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -425,6 +428,24 @@ export function StepOffers({
         </div>
         <Sparkles className="h-5 w-5 shrink-0 text-accent animate-float-slow" />
       </div>
+
+      {eventId && draft.summary.trim().length >= 10 && (
+        <AiAssistantPanel
+          kind="offer"
+          eventId={eventId}
+          segmentId={draft.segmentId}
+          summary={draft.summary}
+          existingLabels={draft.offers.map((o) => o.label)}
+          onAcceptOffer={(s: AiSuggestionItem) => addFromSuggestion({
+            taxonomyItemId: s.taxonomyItemId,
+            label: s.label,
+            kind: "offer",
+            confidence: s.confidence,
+          })}
+          onAcceptNeed={() => {}}
+          disabled={draft.offers.length >= 5}
+        />
+      )}
 
       {loading && (
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
@@ -568,7 +589,8 @@ export function StepNeeds({
   onNext,
   onBack,
   catalog,
-}: BaseProps & { catalog: EventCatalog }) {
+  eventId,
+}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
@@ -629,6 +651,31 @@ export function StepNeeds({
       <p className="mt-1 text-sm text-muted-foreground">
         Adicione o que faria diferença na sua visita à feira (até 5).
       </p>
+
+      {eventId && draft.summary.trim().length >= 10 && (
+        <AiAssistantPanel
+          kind="need"
+          eventId={eventId}
+          segmentId={draft.segmentId}
+          summary={draft.summary}
+          existingLabels={draft.needs.map((n) => n.label)}
+          onAcceptOffer={() => {}}
+          onAcceptNeed={(s: AiSuggestionItem) => {
+            if (draft.needs.length >= 5) return;
+            if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
+            const need: WizardNeed = {
+              localId: cryptoUid(),
+              label: s.label,
+              segmentId: draft.segmentId,
+              taxonomyItemId: s.taxonomyItemId,
+              needKind: kind,
+              isPriority: false,
+            };
+            update("needs", [...draft.needs, need]);
+          }}
+          disabled={draft.needs.length >= 5}
+        />
+      )}
 
       <div className="mt-6 space-y-4">
         <div>
