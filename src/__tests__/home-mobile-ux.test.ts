@@ -20,9 +20,9 @@ describe("Home mobile UX — estrutura do código", () => {
     expect(hero).toContain("<HeroVisualMobile />");
   });
 
-  it("Hero: usa clamp() na headline e não força whitespace-nowrap nos destaques", () => {
-    expect(hero).toMatch(/clamp\(2\.1rem,\s*10vw,\s*3\.25rem\)/);
-    expect(hero).not.toContain("whitespace-nowrap");
+  it("Hero: usa clamp() na headline e envolve destaques em whitespace-nowrap para não separar da vírgula", () => {
+    expect(hero).toMatch(/clamp\(2rem,\s*9\.5vw,\s*3\.25rem\)/);
+    expect(hero).toMatch(/whitespace-nowrap[\s\S]*?<Highlight bg="var\(--success\)">clientes<\/Highlight>,/);
   });
 
   it("Hero: apresenta 3 categorias mobile (Clientes, Fornecedores, Parceiros)", () => {
