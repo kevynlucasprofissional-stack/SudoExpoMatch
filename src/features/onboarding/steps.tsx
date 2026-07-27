@@ -3,6 +3,7 @@ import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
 import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
+import { mergeCapped } from "./mergeItems";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -440,17 +441,16 @@ export function StepOffers({
           summary={draft.summary}
           existingLabels={draft.offers.map((o) => o.label)}
           analysis={aiAnalysis}
-          onAccept={(s: AiSuggestionItem, source) =>
-            addFromSuggestion(
-              {
-                taxonomyItemId: s.taxonomyItemId,
-                label: s.label,
-                kind: "offer",
-                confidence: s.confidence,
-              },
+          onAcceptMany={(picks: AiSuggestionItem[], source) => {
+            const additions: WizardOffer[] = picks.map((s) => ({
+              localId: cryptoUid(),
+              label: s.label,
+              segmentId: draft.segmentId,
+              taxonomyItemId: s.taxonomyItemId,
               source,
-            )
-          }
+            }));
+            update("offers", mergeCapped(draft.offers, additions, 5));
+          }}
           disabled={draft.offers.length >= 5}
         />
       )}
@@ -669,10 +669,8 @@ export function StepNeeds({
           summary={draft.summary}
           existingLabels={draft.needs.map((n) => n.label)}
           analysis={aiAnalysis}
-          onAccept={(s: AiSuggestionItem, source) => {
-            if (draft.needs.length >= 5) return;
-            if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
-            const need: WizardNeed = {
+          onAcceptMany={(picks: AiSuggestionItem[], source) => {
+            const additions: WizardNeed[] = picks.map((s) => ({
               localId: cryptoUid(),
               label: s.label,
               segmentId: draft.segmentId,
@@ -680,8 +678,8 @@ export function StepNeeds({
               needKind: kind,
               isPriority: false,
               source,
-            };
-            update("needs", [...draft.needs, need]);
+            }));
+            update("needs", mergeCapped(draft.needs, additions, 5));
           }}
           disabled={draft.needs.length >= 5}
         />
