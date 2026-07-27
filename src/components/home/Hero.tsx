@@ -38,11 +38,20 @@ export function Hero() {
 
           <h1
             className="mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
-            style={{ fontSize: "clamp(2.1rem, 10vw, 3.25rem)" }}
+            style={{ fontSize: "clamp(2rem, 9.5vw, 3.25rem)" }}
           >
-            Encontre <Highlight bg="var(--success)">clientes</Highlight>,{" "}
-            <Highlight bg="var(--secondary)">fornecedores</Highlight> e{" "}
-            <Highlight bg="var(--accent)">parceiros</Highlight> dentro da SudoExpo.
+            Encontre{" "}
+            <span className="whitespace-nowrap">
+              <Highlight bg="var(--success)">clientes</Highlight>,
+            </span>{" "}
+            <span className="whitespace-nowrap">
+              <Highlight bg="var(--secondary)">fornecedores</Highlight>
+            </span>{" "}
+            e{" "}
+            <span className="whitespace-nowrap">
+              <Highlight bg="var(--accent)">parceiros</Highlight>
+            </span>{" "}
+            dentro da SudoExpo.
           </h1>
 
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
