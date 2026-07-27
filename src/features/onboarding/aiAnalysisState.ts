@@ -78,7 +78,8 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
       setStatus({ s: "loading", keyId });
       callCountRef.current += 1;
 
-      const run = (async () => {
+      let self: Promise<void>;
+      const run = async () => {
         try {
           const result = await suggest({
             data: {
@@ -99,13 +100,14 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
         } finally {
           // Só remove a entrada de in-flight se ela ainda for a mesma
           // promise — evita apagar uma request mais nova para a mesma chave.
-          if (inFlight.current.get(keyId) === run) {
+          if (inFlight.current.get(keyId) === self) {
             inFlight.current.delete(keyId);
           }
         }
-      })();
-      inFlight.current.set(keyId, run);
-      return run;
+      };
+      self = run();
+      inFlight.current.set(keyId, self);
+      return self;
     },
     [suggest],
   );
