@@ -84,11 +84,7 @@ function Person({
           />
         )}
         {hairStyle === "short" && (
-          <path
-            d="M38 46 C 38 26, 82 26, 82 46 L 84 62 L 36 62 Z"
-            fill={hair}
-            opacity="0.9"
-          />
+          <path d="M38 46 C 38 26, 82 26, 82 46 L 84 62 L 36 62 Z" fill={hair} opacity="0.9" />
         )}
       </g>
 
@@ -206,12 +202,7 @@ function Person({
         {/* gravata (mais curta para não conflitar com o crachá) */}
         {tie && <rect x="56" y="118" width="8" height="18" fill={tie} rx="1" />}
         {/* cordão do crachá — simétrico */}
-        <path
-          d="M46 108 C 54 120 66 120 74 108"
-          stroke="#f1ff0a"
-          strokeWidth="2"
-          fill="none"
-        />
+        <path d="M46 108 C 54 120 66 120 74 108" stroke="#f1ff0a" strokeWidth="2" fill="none" />
         {/* crachá abaixo da gravata */}
         <rect x="52" y="140" width="16" height="18" rx="2" fill="#ffffff" />
         <rect x="55" y="144" width="10" height="2" fill="#0b1252" />

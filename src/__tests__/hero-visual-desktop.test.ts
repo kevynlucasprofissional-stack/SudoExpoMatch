@@ -40,7 +40,9 @@ describe("HeroVisual desktop — refinamento estrutural", () => {
   it("cards inferiores usam grid com coluna central reservada para o selo de match", () => {
     expect(src).toContain('data-testid="hero-visual-cards"');
     expect(src).toContain('data-testid="hero-visual-match-badge"');
-    expect(src).toMatch(/gridTemplateColumns:\s*"minmax\(0,1fr\)\s+minmax\(80px,\s*110px\)\s+minmax\(0,1fr\)"/);
+    expect(src).toMatch(
+      /gridTemplateColumns:\s*"minmax\(0,1fr\)\s+minmax\(80px,\s*110px\)\s+minmax\(0,1fr\)"/,
+    );
   });
 
   it("NÃO usa as posições antigas de colisão (left:-8px bottom:-8px, right:52px bottom:-8px, bottom:-36px)", () => {
