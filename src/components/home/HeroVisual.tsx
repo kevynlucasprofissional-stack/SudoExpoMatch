@@ -180,7 +180,7 @@ export function HeroVisual() {
         </defs>
 
         {/* Faixa de fundo (feira) — estandes desfocados */}
-        <g clipPath="inset(0 round 14)">
+        <g>
           <rect x="20" y="40" width="580" height="150" rx="12" fill="url(#fair-bg)" />
           <g filter="url(#soft)" opacity="0.9">
             <rect x="40" y="70" width="90" height="110" fill="url(#booth-a)" rx="6" />
