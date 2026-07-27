@@ -57,7 +57,7 @@ function writeCache(key: string, value: AiSuggestionResult) {
 // ---------- Prompt ----------
 function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog): string {
   const segTax = catalog.taxonomy
-    .filter((t) => t.segment_id === input.segmentId && t.active !== false)
+    .filter((t) => t.segment_id === input.segmentId)
     .slice(0, 40)
     .map((t) => `- ${t.id} | ${t.label} | ${t.kind}`)
     .join("\n");
@@ -146,7 +146,7 @@ async function logAiRun(args: {
       event_id: args.eventId,
       run_kind: "onboarding_suggest",
       input: buildAiRunInput(args.input, args.cacheKey),
-      output: args.output ? (args.output as object) : {},
+      output: (args.output ?? {}) as never,
       model: args.model ?? null,
       latency_ms: args.latencyMs,
       succeeded: args.succeeded,

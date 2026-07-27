@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import { AiAssistantPanel } from "./AiAssistantPanel";
+import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -326,7 +328,8 @@ export function StepOffers({
   onNext,
   onBack,
   catalog,
-}: BaseProps & { catalog: EventCatalog }) {
+  eventId,
+}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -568,7 +571,8 @@ export function StepNeeds({
   onNext,
   onBack,
   catalog,
-}: BaseProps & { catalog: EventCatalog }) {
+  eventId,
+}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
