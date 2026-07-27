@@ -101,8 +101,12 @@ describe("buildAiRunInput", () => {
 });
 
 describe("hashCacheKey", () => {
-  it("mesmas partes -> mesma chave; partes diferentes -> chaves diferentes", () => {
-    expect(hashCacheKey(["a", "b"])).toBe(hashCacheKey(["a", "b"]));
-    expect(hashCacheKey(["a", "b"])).not.toBe(hashCacheKey(["a", "c"]));
+  it("mesmas partes -> mesma chave; partes diferentes -> chaves diferentes (SHA-256)", async () => {
+    const a = await hashCacheKey(["a", "b"]);
+    const a2 = await hashCacheKey(["a", "b"]);
+    const b = await hashCacheKey(["a", "c"]);
+    expect(a).toBe(a2);
+    expect(a).not.toBe(b);
+    expect(a).toMatch(/^k[0-9a-f]{32}$/);
   });
 });
