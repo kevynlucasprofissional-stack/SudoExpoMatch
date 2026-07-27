@@ -178,7 +178,7 @@ describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
       actorUserId,
       deps,
     });
-    const promptSent = call.mock.calls[0][0].prompt as string;
+    const promptSent = String(call.mock.calls[0]?.[0]?.prompt ?? "");
     expect(promptSent).toContain(summary);
     // Nada de PII "vazando" via prompt (o input schema já bloqueia esses campos,
     // mas garantimos a defesa em profundidade no builder do prompt).
