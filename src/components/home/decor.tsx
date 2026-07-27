@@ -62,3 +62,27 @@ export function CornerLines({ className = "" }: { className?: string }) {
     </svg>
   );
 }
+
+// Pequenos fragmentos de papel branco espalhados discretamente no fundo escuro.
+export function PaperFragments({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden
+      className={className}
+      viewBox="0 0 1600 1000"
+      preserveAspectRatio="xMidYMid slice"
+    >
+      <g fill="#ffffff" opacity="0.05">
+        <polygon points="120,220 220,200 240,280 140,300" />
+        <polygon points="1420,120 1520,140 1500,210 1400,190" />
+        <polygon points="80,720 200,700 210,780 90,790" />
+        <polygon points="1360,760 1470,780 1450,850 1340,830" />
+        <polygon points="760,940 860,930 870,990 770,995" />
+      </g>
+      <g fill="#ffffff" opacity="0.035">
+        <polygon points="520,420 600,410 620,470 540,485" />
+        <polygon points="1080,520 1170,510 1180,580 1090,590" />
+      </g>
+    </svg>
+  );
+}
