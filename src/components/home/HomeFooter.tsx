@@ -1,8 +1,8 @@
 export function HomeFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#0b1252] text-white">
-      <div className="mx-auto grid max-w-[1480px] gap-3 px-4 py-4 text-sm md:grid-cols-3 md:items-center md:px-8">
-        <div className="flex items-center gap-2.5">
+      <div className="mx-auto grid max-w-[1480px] gap-3 px-4 py-5 text-sm md:grid-cols-3 md:items-center md:px-8">
+        <div className="flex items-center justify-center gap-2.5 md:justify-start">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-white font-display text-base font-black text-primary">
             M
           </span>
@@ -14,7 +14,7 @@ export function HomeFooter() {
           <span className="text-success">conectado</span>.
         </p>
 
-        <div className="flex items-center gap-3 md:justify-end">
+        <div className="flex flex-col items-center gap-2 md:flex-row md:justify-end md:gap-3">
           <span className="text-xs text-white/75">SudoExpo 2026 · Uma realização</span>
           <span
             aria-label="ACIRV"
