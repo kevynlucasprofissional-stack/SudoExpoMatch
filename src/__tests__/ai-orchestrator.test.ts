@@ -141,7 +141,32 @@ describe("runOnboardingAi — cache hit e rate limit", () => {
     expect(deps.fallback).toHaveBeenCalledTimes(1);
     expect(out.source).toBe("heuristic");
   });
+
+  it("cache inválido (shape errado): tratado como miss, chama Gateway", async () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const deps = makeDeps({ readCache: vi.fn(async () => ({ garbage: true } as any)) });
+    const out = await runOnboardingAi({ input, catalog, actorUserId, deps });
+    expect(deps.callGateway).toHaveBeenCalledTimes(1);
+    expect(out.source).toBe("ai");
+  });
+
+  it("limitador com falha de infra (throw): NUNCA chama Gateway; log distingue de rate_limited", async () => {
+    const logRun = vi.fn(async () => {});
+    const deps = makeDeps({
+      consumeRateLimit: vi.fn(async () => {
+        throw new Error("limiter_rpc_error:boom");
+      }),
+      logRun,
+    });
+    const out = await runOnboardingAi({ input, catalog, actorUserId, deps });
+    expect(deps.callGateway).not.toHaveBeenCalled();
+    expect(deps.fallback).toHaveBeenCalledTimes(1);
+    expect(out.source).toBe("heuristic");
+    const row = (logRun as unknown as { mock: { calls: Array<[{ error?: string }]> } }).mock.calls[0][0];
+    expect(row.error).toBe("limiter_error");
+  });
 });
+
 
 describe("runOnboardingAi — normalização", () => {
   it("converte id inexistente, segmento errado e kind errado para null", async () => {

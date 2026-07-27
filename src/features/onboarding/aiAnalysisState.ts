@@ -39,48 +39,77 @@ export interface SharedAiAnalysis {
 
 /**
  * Estado compartilhado da IA de onboarding — vive no WizardPage, é passado
- * para StepOffers e StepNeeds. Garante que só há uma chamada por
- * (evento + segmento + resumo). Se o resumo/segmento mudar, o resultado
- * fica órfão (não é exibido) até o usuário clicar em "Analisar" de novo.
+ * para StepOffers e StepNeeds.
+ *
+ * Concorrência: cada chamada de `analyze` recebe um `gen` incremental;
+ * somente a chamada de maior `gen` (a mais recente) pode escrever no
+ * `status`. Assim, se o usuário mudar o resumo enquanto uma request antiga
+ * ainda está em voo, a request antiga que resolver depois será silenciada
+ * — resultado, keyId e status refletem sempre a última entrada válida.
+ *
+ * Dedup: chamadas concorrentes com a MESMA `keyId` reusam a mesma promise
+ * (nenhuma chamada extra ao servidor).
  */
 export function useSharedAiAnalysis(): SharedAiAnalysis {
   const suggest = useServerFn(suggestOnboardingItems);
   const [status, setStatus] = useState<AnalysisStatus>({ s: "idle" });
-  const inFlight = useRef<string | null>(null);
+  const inFlight = useRef<Map<string, Promise<void>>>(new Map());
+  const activeGen = useRef(0);
   const callCountRef = useRef(0);
+  const statusRef = useRef<AnalysisStatus>(status);
+  statusRef.current = status;
 
   const analyze = useCallback(
     async (key: AnalysisKey, existingLabels: string[]) => {
       const keyId = serializeAnalysisKey(key);
       // Reutiliza resultado válido para a mesma chave — sem chamada.
-      const cur = status;
+      const cur = statusRef.current;
       if ((cur.s === "done" || cur.s === "dismissed") && cur.keyId === keyId) {
         if (cur.s === "dismissed") {
           setStatus({ s: "done", result: cur.result, keyId });
         }
         return;
       }
-      if (inFlight.current === keyId) return;
-      inFlight.current = keyId;
+      // Dedup por chave — chamadas concorrentes esperam a mesma promise.
+      const pending = inFlight.current.get(keyId);
+      if (pending) return pending;
+
+      const gen = ++activeGen.current;
       setStatus({ s: "loading", keyId });
       callCountRef.current += 1;
-      try {
-        const result = await suggest({
-          data: {
-            eventId: key.eventId,
-            segmentId: key.segmentId,
-            summary: key.summary,
-            existingLabels,
-          },
-        });
-        setStatus({ s: "done", result, keyId });
-      } catch {
-        setStatus({ s: "error", keyId });
-      } finally {
-        inFlight.current = null;
-      }
+
+      let self: Promise<void>;
+      const run = async () => {
+        try {
+          const result = await suggest({
+            data: {
+              eventId: key.eventId,
+              segmentId: key.segmentId,
+              summary: key.summary,
+              existingLabels,
+            },
+          });
+          // Só a request mais recente pode mutar o estado compartilhado.
+          if (gen === activeGen.current) {
+            setStatus({ s: "done", result, keyId });
+          }
+        } catch {
+          if (gen === activeGen.current) {
+            setStatus({ s: "error", keyId });
+          }
+        } finally {
+          // Só remove a entrada de in-flight se ela ainda for a mesma
+          // promise — evita apagar uma request mais nova para a mesma chave.
+          if (inFlight.current.get(keyId) === self) {
+            inFlight.current.delete(keyId);
+          }
+        }
+      };
+      self = run();
+      inFlight.current.set(keyId, self);
+      return self;
     },
-    [status, suggest],
+    [suggest],
   );
 
   const dismiss = useCallback(() => {
