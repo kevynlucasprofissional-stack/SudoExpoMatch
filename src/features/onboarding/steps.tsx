@@ -429,6 +429,24 @@ export function StepOffers({
         <Sparkles className="h-5 w-5 shrink-0 text-accent animate-float-slow" />
       </div>
 
+      {eventId && draft.summary.trim().length >= 10 && (
+        <AiAssistantPanel
+          kind="offer"
+          eventId={eventId}
+          segmentId={draft.segmentId}
+          summary={draft.summary}
+          existingLabels={draft.offers.map((o) => o.label)}
+          onAcceptOffer={(s: AiSuggestionItem) => addFromSuggestion({
+            taxonomyItemId: s.taxonomyItemId,
+            label: s.label,
+            kind: "offer",
+            confidence: s.confidence,
+          })}
+          onAcceptNeed={() => {}}
+          disabled={draft.offers.length >= 5}
+        />
+      )}
+
       {loading && (
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Analisando seu resumo…
