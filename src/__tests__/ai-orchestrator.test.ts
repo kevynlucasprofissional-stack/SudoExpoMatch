@@ -168,7 +168,7 @@ describe("runOnboardingAi — normalização", () => {
 
 describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
   it("prompt enviado ao Gateway não contém nome, telefone, email, WhatsApp, código", async () => {
-    const call = vi.fn(async () => ({ output: goodModelOutput }));
+    const call: OrchestratorDeps["callGateway"] = vi.fn(async () => ({ output: goodModelOutput }));
     const deps = makeDeps({ callGateway: call });
     const summary =
       "Somos uma software house B2B focada em ERPs para pequenas indústrias em Ribeirão Preto.";
@@ -178,10 +178,10 @@ describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
       actorUserId,
       deps,
     });
-    const promptSent = String(call.mock.calls[0]?.[0]?.prompt ?? "");
+    const mockCalls = (call as unknown as { mock: { calls: Array<[{ prompt: string }]> } }).mock.calls;
+    const promptSent = mockCalls[0]?.[0]?.prompt ?? "";
     expect(promptSent).toContain(summary);
-    // Nada de PII "vazando" via prompt (o input schema já bloqueia esses campos,
-    // mas garantimos a defesa em profundidade no builder do prompt).
+    // Defesa em profundidade — o input schema já bloqueia PII fora do summary.
     expect(promptSent).not.toMatch(/\bJoão\b|\bMaria\b|\bFulano\b/i);
     expect(promptSent).not.toMatch(/\+?55[\s-]?\d{2}[\s-]?9?\d{4,5}[\s-]?\d{4}/);
     expect(promptSent).not.toMatch(/whatsapp/i);
