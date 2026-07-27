@@ -432,20 +432,25 @@ export function StepOffers({
         <Sparkles className="h-5 w-5 shrink-0 text-accent animate-float-slow" />
       </div>
 
-      {eventId && draft.summary.trim().length >= 10 && (
+      {eventId && aiAnalysis && draft.summary.trim().length >= 10 && (
         <AiAssistantPanel
           kind="offer"
           eventId={eventId}
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.offers.map((o) => o.label)}
-          onAcceptOffer={(s: AiSuggestionItem) => addFromSuggestion({
-            taxonomyItemId: s.taxonomyItemId,
-            label: s.label,
-            kind: "offer",
-            confidence: s.confidence,
-          }, "ai")}
-          onAcceptNeed={() => {}}
+          analysis={aiAnalysis}
+          onAccept={(s: AiSuggestionItem, source) =>
+            addFromSuggestion(
+              {
+                taxonomyItemId: s.taxonomyItemId,
+                label: s.label,
+                kind: "offer",
+                confidence: s.confidence,
+              },
+              source,
+            )
+          }
           disabled={draft.offers.length >= 5}
         />
       )}
