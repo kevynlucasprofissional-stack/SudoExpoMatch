@@ -365,11 +365,18 @@ function WizardPage() {
     runningRef.current = true;
     try {
       dispatch({ type: "CODE_CONFIRMED" });
-      await runRecompute();
+      // Descoberta automática já rodou dentro de save_own_profile_v2.
+      // Apenas invalida cache e navega para o painel.
+      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      dispatch({ type: "MATCH_OK" });
+      clearWizardDraft();
+      toast.success("Perfil criado! Buscando conexões…");
+      navigate({ to: "/participante" });
     } finally {
       runningRef.current = false;
     }
-  }, [runRecompute]);
+  }, [qc, navigate]);
+
 
   const goToPanel = useCallback(() => {
     clearWizardDraft();
