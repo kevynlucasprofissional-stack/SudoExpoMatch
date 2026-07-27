@@ -162,7 +162,7 @@ describe("runOnboardingAi — cache hit e rate limit", () => {
     expect(deps.callGateway).not.toHaveBeenCalled();
     expect(deps.fallback).toHaveBeenCalledTimes(1);
     expect(out.source).toBe("heuristic");
-    const row = logRun.mock.calls[0][0] as { error?: string };
+    const row = (logRun as unknown as { mock: { calls: Array<[{ error?: string }]> } }).mock.calls[0][0];
     expect(row.error).toBe("limiter_error");
   });
 });
