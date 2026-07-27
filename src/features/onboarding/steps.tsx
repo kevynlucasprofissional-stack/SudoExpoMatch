@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
 import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
+import type { SharedAiAnalysis } from "./aiAnalysisState";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -329,7 +330,8 @@ export function StepOffers({
   onBack,
   catalog,
   eventId,
-}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
+  aiAnalysis,
+}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -430,20 +432,25 @@ export function StepOffers({
         <Sparkles className="h-5 w-5 shrink-0 text-accent animate-float-slow" />
       </div>
 
-      {eventId && draft.summary.trim().length >= 10 && (
+      {eventId && aiAnalysis && draft.summary.trim().length >= 10 && (
         <AiAssistantPanel
           kind="offer"
           eventId={eventId}
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.offers.map((o) => o.label)}
-          onAcceptOffer={(s: AiSuggestionItem) => addFromSuggestion({
-            taxonomyItemId: s.taxonomyItemId,
-            label: s.label,
-            kind: "offer",
-            confidence: s.confidence,
-          }, "ai")}
-          onAcceptNeed={() => {}}
+          analysis={aiAnalysis}
+          onAccept={(s: AiSuggestionItem, source) =>
+            addFromSuggestion(
+              {
+                taxonomyItemId: s.taxonomyItemId,
+                label: s.label,
+                kind: "offer",
+                confidence: s.confidence,
+              },
+              source,
+            )
+          }
           disabled={draft.offers.length >= 5}
         />
       )}
@@ -591,7 +598,8 @@ export function StepNeeds({
   onBack,
   catalog,
   eventId,
-}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
+  aiAnalysis,
+}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
@@ -653,15 +661,15 @@ export function StepNeeds({
         Adicione o que faria diferença na sua visita à feira (até 5).
       </p>
 
-      {eventId && draft.summary.trim().length >= 10 && (
+      {eventId && aiAnalysis && draft.summary.trim().length >= 10 && (
         <AiAssistantPanel
           kind="need"
           eventId={eventId}
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.needs.map((n) => n.label)}
-          onAcceptOffer={() => {}}
-          onAcceptNeed={(s: AiSuggestionItem) => {
+          analysis={aiAnalysis}
+          onAccept={(s: AiSuggestionItem, source) => {
             if (draft.needs.length >= 5) return;
             if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
             const need: WizardNeed = {
@@ -671,7 +679,7 @@ export function StepNeeds({
               taxonomyItemId: s.taxonomyItemId,
               needKind: kind,
               isPriority: false,
-              source: "ai",
+              source,
             };
             update("needs", [...draft.needs, need]);
           }}

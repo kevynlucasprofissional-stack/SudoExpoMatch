@@ -16,43 +16,64 @@ export type Database = {
     Tables: {
       ai_runs: {
         Row: {
+          actor_user_id: string | null
+          cache_hit: boolean
           created_at: string
           error: string | null
           event_id: string | null
+          fallback_used: boolean
           id: string
           input: Json
+          input_hash: string | null
           latency_ms: number | null
           model: string | null
           output: Json
           profile_id: string | null
+          prompt_version: string | null
           run_kind: string
           succeeded: boolean
+          tokens_input: number | null
+          tokens_output: number | null
         }
         Insert: {
+          actor_user_id?: string | null
+          cache_hit?: boolean
           created_at?: string
           error?: string | null
           event_id?: string | null
+          fallback_used?: boolean
           id?: string
           input?: Json
+          input_hash?: string | null
           latency_ms?: number | null
           model?: string | null
           output?: Json
           profile_id?: string | null
+          prompt_version?: string | null
           run_kind: string
           succeeded?: boolean
+          tokens_input?: number | null
+          tokens_output?: number | null
         }
         Update: {
+          actor_user_id?: string | null
+          cache_hit?: boolean
           created_at?: string
           error?: string | null
           event_id?: string | null
+          fallback_used?: boolean
           id?: string
           input?: Json
+          input_hash?: string | null
           latency_ms?: number | null
           model?: string | null
           output?: Json
           profile_id?: string | null
+          prompt_version?: string | null
           run_kind?: string
           succeeded?: boolean
+          tokens_input?: number | null
+          tokens_output?: number | null
         }
         Relationships: [
           {

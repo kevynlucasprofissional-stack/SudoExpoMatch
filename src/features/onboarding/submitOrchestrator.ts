@@ -9,7 +9,8 @@ export interface SubmitOrchestratorDeps {
   saveOwnProfile: (input: ReturnType<typeof mapWizardToSaveProfileInput>) => Promise<unknown>;
   setOwnContact: (input: { phone_e164: string; sharing: boolean }) => Promise<unknown>;
   rotateOwnRecoveryCode: () => Promise<string>;
-  recomputeOwnMatches: (eventId: string) => Promise<unknown>;
+  // NOTA: recomputeOwnMatches removido — `save_own_profile_v2` já dispara
+  // `_recompute_matches_for_profile` transacionalmente no banco.
 }
 
 export type PreSubmitResult =

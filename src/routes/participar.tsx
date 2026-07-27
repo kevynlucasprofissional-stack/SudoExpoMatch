@@ -60,6 +60,7 @@ import {
   StepPriority,
   StepReview,
 } from "@/features/onboarding/steps";
+import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
 import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
 import { resolveWizardPageState } from "@/features/onboarding/pageState";
@@ -166,6 +167,8 @@ function WizardPage() {
     setDraft((d) => ({ ...d, [k]: v }));
   }
 
+  const aiAnalysis = useSharedAiAnalysis();
+
   function next() {
     setDraft((d) => ({ ...d, step: Math.min(d.step + 1, STEPS.length - 1) }));
   }
@@ -245,7 +248,6 @@ function WizardPage() {
           saveOwnProfile,
           setOwnContact,
           rotateOwnRecoveryCode,
-          recomputeOwnMatches,
         },
       });
       for (const evt of events) {
@@ -600,6 +602,7 @@ function WizardPage() {
             onBack={back}
             catalog={catalog}
             eventId={EVENT_ID}
+            aiAnalysis={aiAnalysis}
           />
         )}
         {step === 3 && (
@@ -610,6 +613,7 @@ function WizardPage() {
             onBack={back}
             catalog={catalog}
             eventId={EVENT_ID}
+            aiAnalysis={aiAnalysis}
           />
         )}
         {step === 4 && (
