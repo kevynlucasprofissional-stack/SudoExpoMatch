@@ -92,6 +92,7 @@ export async function saveOwnProfile(
       detail: o.detail ?? null,
       segment_id: o.segment_id,
       taxonomy_item_id: o.taxonomy_item_id,
+      source: o.source ?? "user",
     })),
     needs: input.needs.map((n) => ({
       label: n.label,
@@ -100,6 +101,7 @@ export async function saveOwnProfile(
       taxonomy_item_id: n.taxonomy_item_id,
       need_kind: n.need_kind,
       is_priority: n.is_priority ?? false,
+      source: n.source ?? "user",
     })),
   });
   const { data, error } = await supabase.rpc("save_own_profile_v2", {

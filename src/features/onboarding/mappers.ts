@@ -60,6 +60,7 @@ function normalizeOffer(o: WizardOffer, fallbackSegment: string) {
     detail: o.detail?.trim() ? o.detail.trim().slice(0, 200) : null,
     segment_id: o.segmentId?.trim() || fallbackSegment,
     taxonomy_item_id: o.taxonomyItemId ?? null,
+    source: o.source ?? "user",
   };
 }
 

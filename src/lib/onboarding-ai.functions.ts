@@ -8,6 +8,7 @@ import {
   PROMPT_VERSION,
   aiSuggestionResultSchema,
   buildAiRunInput,
+  classifyGatewayError,
   hashCacheKey,
   modelOutputSchema,
   normalizeAgainstCatalog,
@@ -177,9 +178,9 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
     }
     const catalog = catalogRaw as unknown as EventCatalog;
 
-    // Cache-key inclui summary — evita gasto repetido no mesmo texto.
+    // Cache-key inclui hash do summary — evita gasto repetido no mesmo texto.
     const catalogVersion = String(catalog.taxonomy.length);
-    const cacheKey = hashCacheKey([
+    const cacheKey = await hashCacheKey([
       data.eventId,
       data.segmentId,
       data.summary,
@@ -220,11 +221,10 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
       return result;
     }
 
-    try {
+    const attemptOnce = async () => {
       const { createLovableAiGatewayProvider } = await import("./ai-gateway.server");
       const gateway = createLovableAiGatewayProvider(apiKey);
       const model = gateway(AI_MODEL);
-
       const call = generateText({
         model,
         output: Output.object({ schema: modelOutputSchema }),
@@ -233,7 +233,20 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
       const timeout = new Promise<never>((_, reject) => {
         setTimeout(() => reject(new Error("timeout")), 12_000);
       });
-      const gen = await Promise.race([call, timeout]);
+      return Promise.race([call, timeout]);
+    };
+
+    try {
+      let gen: Awaited<ReturnType<typeof attemptOnce>>;
+      try {
+        gen = await attemptOnce();
+      } catch (firstErr) {
+        // 4xx terminais (400/401/403/422) NUNCA são retentados — vão direto ao fallback.
+        const kind = classifyGatewayError(firstErr);
+        if (kind !== "transient") throw firstErr;
+        await new Promise((r) => setTimeout(r, 250));
+        gen = await attemptOnce();
+      }
       const rawOutput = (gen as { output: unknown }).output;
       const parsed = modelOutputSchema.parse(rawOutput);
       const normalized = normalizeAgainstCatalog(parsed, {
@@ -263,6 +276,7 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
       return result;
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
+      const kind = classifyGatewayError(error);
       const result = await fallbackToHeuristic(data, catalog);
       await logAiRun({
         userId,
@@ -272,7 +286,7 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
         succeeded: false,
         model: AI_MODEL,
         latencyMs: Date.now() - start,
-        error: msg.slice(0, 240),
+        error: `${kind}:${msg.slice(0, 200)}`,
       });
       return result;
     }

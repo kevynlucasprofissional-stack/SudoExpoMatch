@@ -364,7 +364,7 @@ export function StepOffers({
     };
   }, [draft.segmentId, draft.summary, catalog]);
 
-  function addFromSuggestion(s: SuggestionItem) {
+  function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
     if (
       draft.offers.some(
@@ -377,6 +377,7 @@ export function StepOffers({
       label: s.label,
       segmentId: draft.segmentId,
       taxonomyItemId: s.taxonomyItemId,
+      source,
     };
     update("offers", [...draft.offers, offer]);
   }
@@ -441,7 +442,7 @@ export function StepOffers({
             label: s.label,
             kind: "offer",
             confidence: s.confidence,
-          })}
+          }, "ai")}
           onAcceptNeed={() => {}}
           disabled={draft.offers.length >= 5}
         />
@@ -670,6 +671,7 @@ export function StepNeeds({
               taxonomyItemId: s.taxonomyItemId,
               needKind: kind,
               isPriority: false,
+              source: "ai",
             };
             update("needs", [...draft.needs, need]);
           }}
