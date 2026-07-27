@@ -34,7 +34,7 @@ export function HomeHeader() {
             <Link
               key={item.label}
               to={item.to}
-              className="text-white/80 transition-colors hover:text-white"
+              className="text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] rounded-sm"
             >
               {item.label}
             </Link>
@@ -42,13 +42,13 @@ export function HomeHeader() {
           <span aria-hidden className="h-5 w-px bg-white/20" />
           <Link
             to="/participante"
-            className="text-white/80 transition-colors hover:text-white"
+            className="text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] rounded-sm"
           >
             Entrar
           </Link>
           <Link
             to="/participar"
-            className="inline-flex h-10 items-center rounded-md bg-success px-4 font-semibold text-[#0b1252] transition-transform hover:scale-[1.02]"
+            className="inline-flex h-10 items-center rounded-md bg-success px-4 font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252]"
           >
             Criar perfil
           </Link>
