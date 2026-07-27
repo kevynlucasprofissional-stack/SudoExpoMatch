@@ -11,18 +11,24 @@ describe("Home mobile UX — estrutura do código", () => {
   const heroMobile = read("src/components/home/HeroVisualMobile.tsx");
 
   it("Hero: visual desktop está oculto em < md (hidden md:block) e mobile visível em < md (md:hidden)", () => {
-    expect(hero).toMatch(/data-testid="hero-visual-desktop"[\s\S]*?hidden md:block|hidden md:block[\s\S]*?data-testid="hero-visual-desktop"/);
-    expect(hero).toMatch(/md:hidden[\s\S]*?data-testid="hero-visual-mobile"|data-testid="hero-visual-mobile"[\s\S]*?md:hidden/);
+    expect(hero).toMatch(
+      /data-testid="hero-visual-desktop"[\s\S]*?hidden md:block|hidden md:block[\s\S]*?data-testid="hero-visual-desktop"/,
+    );
+    expect(hero).toMatch(
+      /md:hidden[\s\S]*?data-testid="hero-visual-mobile"|data-testid="hero-visual-mobile"[\s\S]*?md:hidden/,
+    );
   });
 
   it("Hero: importa HeroVisualMobile dedicado (não é apenas o desktop escondido)", () => {
-    expect(hero).toContain('import { HeroVisualMobile }');
+    expect(hero).toContain("import { HeroVisualMobile }");
     expect(hero).toContain("<HeroVisualMobile />");
   });
 
   it("Hero: usa clamp() na headline e envolve destaques em whitespace-nowrap para não separar da vírgula", () => {
     expect(hero).toMatch(/clamp\(2rem,\s*9\.5vw,\s*3\.25rem\)/);
-    expect(hero).toMatch(/whitespace-nowrap[\s\S]*?<Highlight bg="var\(--success\)">clientes<\/Highlight>,/);
+    expect(hero).toMatch(
+      /whitespace-nowrap[\s\S]*?<Highlight bg="var\(--success\)">clientes<\/Highlight>,/,
+    );
   });
 
   it("Hero: apresenta 3 categorias mobile (Clientes, Fornecedores, Parceiros)", () => {
