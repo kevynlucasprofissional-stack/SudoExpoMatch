@@ -95,11 +95,11 @@ export async function runWizardSubmit(args: {
     }
   }
 
-  try {
-    await args.deps.recomputeOwnMatches(args.eventId);
-    events.push({ type: "MATCH_OK" });
-  } catch (error) {
-    events.push({ type: "MATCH_FAIL", error });
-  }
+  // Descoberta automática: save_own_profile_v2 já dispara o recálculo
+  // transacional no banco (_recompute_matches_for_profile). Não chamamos
+  // recomputeOwnMatches aqui para evitar RPC redundante — o MATCH_OK é
+  // emitido como sinal de "matches prontos" para o reducer/UI.
+  events.push({ type: "MATCH_OK" });
   return events;
+
 }

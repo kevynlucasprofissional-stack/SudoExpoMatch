@@ -180,7 +180,7 @@ describe("runWizardSubmit", () => {
     expect(pre.ok).toBe(false);
   });
 
-  it("edit sem phone: salva perfil, pula contato/code, chama recompute", async () => {
+  it("edit sem phone: salva perfil e emite MATCH_OK sem chamar recompute (auto-recompute no banco)", async () => {
     const deps = noopDeps();
     const events = await runWizardSubmit({
       draft: baseDraft(),
@@ -194,8 +194,11 @@ describe("runWizardSubmit", () => {
     expect(deps.saveOwnProfile).toHaveBeenCalledTimes(1);
     expect(deps.setOwnContact).not.toHaveBeenCalled();
     expect(deps.rotateOwnRecoveryCode).not.toHaveBeenCalled();
-    expect(deps.recomputeOwnMatches).toHaveBeenCalledTimes(1);
+    // save_own_profile_v2 dispara _recompute_matches_for_profile no banco,
+    // então o orquestrador não faz mais RPC client-side de recompute.
+    expect(deps.recomputeOwnMatches).not.toHaveBeenCalled();
   });
+
 
   it("create feliz: perfil -> contato -> code -> aguarda confirmação (sem recompute)", async () => {
     const deps = noopDeps();
