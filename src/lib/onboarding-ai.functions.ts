@@ -8,6 +8,7 @@ import {
   PROMPT_VERSION,
   aiSuggestionResultSchema,
   buildAiRunInput,
+  classifyGatewayError,
   hashCacheKey,
   modelOutputSchema,
   normalizeAgainstCatalog,
