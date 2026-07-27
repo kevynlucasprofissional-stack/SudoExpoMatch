@@ -441,7 +441,7 @@ export function StepOffers({
             label: s.label,
             kind: "offer",
             confidence: s.confidence,
-          })}
+          }, "ai")}
           onAcceptNeed={() => {}}
           disabled={draft.offers.length >= 5}
         />
