@@ -1,4 +1,6 @@
-// @vitest-environment happy-dom
+/**
+ * @vitest-environment happy-dom
+ */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderHook, act } from "@testing-library/react";
 import { mergeCapped } from "@/features/onboarding/mergeItems";
