@@ -598,7 +598,8 @@ export function StepNeeds({
   onBack,
   catalog,
   eventId,
-}: BaseProps & { catalog: EventCatalog; eventId?: string }) {
+  aiAnalysis,
+}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
@@ -660,15 +661,15 @@ export function StepNeeds({
         Adicione o que faria diferença na sua visita à feira (até 5).
       </p>
 
-      {eventId && draft.summary.trim().length >= 10 && (
+      {eventId && aiAnalysis && draft.summary.trim().length >= 10 && (
         <AiAssistantPanel
           kind="need"
           eventId={eventId}
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.needs.map((n) => n.label)}
-          onAcceptOffer={() => {}}
-          onAcceptNeed={(s: AiSuggestionItem) => {
+          analysis={aiAnalysis}
+          onAccept={(s: AiSuggestionItem, source) => {
             if (draft.needs.length >= 5) return;
             if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
             const need: WizardNeed = {
@@ -678,7 +679,7 @@ export function StepNeeds({
               taxonomyItemId: s.taxonomyItemId,
               needKind: kind,
               isPriority: false,
-              source: "ai",
+              source,
             };
             update("needs", [...draft.needs, need]);
           }}
