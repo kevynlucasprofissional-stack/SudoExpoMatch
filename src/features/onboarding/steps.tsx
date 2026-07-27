@@ -671,6 +671,7 @@ export function StepNeeds({
               taxonomyItemId: s.taxonomyItemId,
               needKind: kind,
               isPriority: false,
+              source: "ai",
             };
             update("needs", [...draft.needs, need]);
           }}
