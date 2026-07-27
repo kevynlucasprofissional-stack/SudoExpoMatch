@@ -334,7 +334,7 @@ export function HeroVisual() {
 
       {/* Pilha lateral de chips — coluna dedicada, sem invadir cards */}
       <div
-        className="pointer-events-none absolute z-[4] hidden flex-col gap-1.5 md:flex"
+        className="pointer-events-none absolute z-[4] hidden flex-col gap-1.5 xl:flex"
         data-testid="hero-visual-chips"
         style={{
           right: "clamp(-8px, -1vw, 4px)",
