@@ -8,7 +8,8 @@ import { execSync } from "node:child_process";
  */
 
 function psql(sql: string): string {
-  return execSync(`psql -Atc ${JSON.stringify(sql)}`, {
+  const oneLine = sql.replace(/\s+/g, " ").trim();
+  return execSync(`psql -Atc ${JSON.stringify(oneLine)}`, {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
