@@ -1201,7 +1201,6 @@ export type Database = {
         Returns: Json
       }
       list_own_matches_v2: { Args: { _event_id: string }; Returns: Json }
-      list_staff_connections: { Args: { _event_id: string }; Returns: Json }
       norm_label: { Args: { _s: string }; Returns: string }
       normalize_phone: { Args: { _raw: string }; Returns: string }
       recompute_matches_for_profile_id: {
