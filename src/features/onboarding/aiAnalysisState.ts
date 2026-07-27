@@ -14,49 +14,56 @@ export interface AnalysisKey {
   summary: string;
 }
 
-function serializeKey(k: AnalysisKey): string {
+export function serializeAnalysisKey(k: AnalysisKey): string {
   return `${k.eventId}\u0001${k.segmentId}\u0001${k.summary.trim()}`;
 }
 
 export type AnalysisStatus =
   | { s: "idle" }
-  | { s: "loading" }
+  | { s: "loading"; keyId: string }
   | { s: "done"; result: AiSuggestionResult; keyId: string }
-  | { s: "dismissed"; keyId: string }
-  | { s: "error" };
+  | { s: "dismissed"; result: AiSuggestionResult; keyId: string }
+  | { s: "error"; keyId: string };
 
 export interface SharedAiAnalysis {
   status: AnalysisStatus;
-  currentKey: AnalysisKey | null;
   /** Dispara análise. Reutiliza resultado se a chave não mudou. */
   analyze: (key: AnalysisKey, existingLabels: string[]) => Promise<void>;
-  /** Fecha painel para a chave atual (não reanalisa até ação explícita). */
+  /** Fecha painel para a chave atual, PRESERVANDO o resultado em memória. */
   dismiss: () => void;
-  /** Reabre o painel se estava fechado. */
+  /** Reabre o painel: restaura `done` com o mesmo resultado, sem nova chamada. */
   reopen: () => void;
+  /** Debug/tests: contagem de chamadas ao server function. */
+  callCount: () => number;
 }
 
 /**
  * Estado compartilhado da IA de onboarding — vive no WizardPage, é passado
  * para StepOffers e StepNeeds. Garante que só há uma chamada por
- * (evento + segmento + resumo). Se o resumo/segmento mudar, invalida o
- * resultado local sem chamar o Gateway até o usuário clicar em "Analisar".
+ * (evento + segmento + resumo). Se o resumo/segmento mudar, o resultado
+ * fica órfão (não é exibido) até o usuário clicar em "Analisar" de novo.
  */
 export function useSharedAiAnalysis(): SharedAiAnalysis {
   const suggest = useServerFn(suggestOnboardingItems);
   const [status, setStatus] = useState<AnalysisStatus>({ s: "idle" });
-  const [currentKey, setCurrentKey] = useState<AnalysisKey | null>(null);
   const inFlight = useRef<string | null>(null);
+  const callCountRef = useRef(0);
 
   const analyze = useCallback(
     async (key: AnalysisKey, existingLabels: string[]) => {
-      const keyId = serializeKey(key);
-      // Reutiliza resultado válido para a mesma chave.
-      if (status.s === "done" && status.keyId === keyId) return;
+      const keyId = serializeAnalysisKey(key);
+      // Reutiliza resultado válido para a mesma chave — sem chamada.
+      const cur = status;
+      if ((cur.s === "done" || cur.s === "dismissed") && cur.keyId === keyId) {
+        if (cur.s === "dismissed") {
+          setStatus({ s: "done", result: cur.result, keyId });
+        }
+        return;
+      }
       if (inFlight.current === keyId) return;
       inFlight.current = keyId;
-      setCurrentKey(key);
-      setStatus({ s: "loading" });
+      setStatus({ s: "loading", keyId });
+      callCountRef.current += 1;
       try {
         const result = await suggest({
           data: {
@@ -68,7 +75,7 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
         });
         setStatus({ s: "done", result, keyId });
       } catch {
-        setStatus({ s: "error" });
+        setStatus({ s: "error", keyId });
       } finally {
         inFlight.current = null;
       }
@@ -77,34 +84,26 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
   );
 
   const dismiss = useCallback(() => {
-    setStatus((prev) => {
-      if (prev.s === "done") return { s: "dismissed", keyId: prev.keyId };
-      return { s: "idle" };
-    });
+    setStatus((prev) =>
+      prev.s === "done"
+        ? { s: "dismissed", result: prev.result, keyId: prev.keyId }
+        : prev,
+    );
   }, []);
 
   const reopen = useCallback(() => {
-    setStatus((prev) => (prev.s === "dismissed" ? { s: "idle" } : prev));
+    setStatus((prev) =>
+      prev.s === "dismissed"
+        ? { s: "done", result: prev.result, keyId: prev.keyId }
+        : prev,
+    );
   }, []);
 
-  return { status, currentKey, analyze, dismiss, reopen };
-}
-
-/**
- * Retorna resultado válido para a chave, ou null se a chave mudou/foi limpa.
- * Compara chave atual vs a que produziu o resultado.
- */
-export function pickResultForKey(
-  analysis: SharedAiAnalysis,
-  key: AnalysisKey,
-): { result: AiSuggestionResult; dismissed: boolean } | null {
-  const keyId = serializeKey(key);
-  if (analysis.status.s === "done" && analysis.status.keyId === keyId) {
-    return { result: analysis.status.result, dismissed: false };
-  }
-  if (analysis.status.s === "dismissed" && analysis.status.keyId === keyId) {
-    // Ainda temos o resultado se o hook decidir persistir; caso contrário nulo.
-    return null;
-  }
-  return null;
+  return {
+    status,
+    analyze,
+    dismiss,
+    reopen,
+    callCount: () => callCountRef.current,
+  };
 }
