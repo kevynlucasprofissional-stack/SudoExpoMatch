@@ -364,7 +364,7 @@ export function StepOffers({
     };
   }, [draft.segmentId, draft.summary, catalog]);
 
-  function addFromSuggestion(s: SuggestionItem) {
+  function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
     if (
       draft.offers.some(
@@ -377,6 +377,7 @@ export function StepOffers({
       label: s.label,
       segmentId: draft.segmentId,
       taxonomyItemId: s.taxonomyItemId,
+      source,
     };
     update("offers", [...draft.offers, offer]);
   }
