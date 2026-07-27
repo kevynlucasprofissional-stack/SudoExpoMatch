@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { AiSuggestionItem, AiSuggestionResult } from "@/lib/onboarding-ai-schema";
 import type { AnalysisKey, SharedAiAnalysis } from "./aiAnalysisState";
+import { serializeAnalysisKey } from "./aiAnalysisState";
 
 interface Props {
   kind: "offer" | "need";
@@ -11,8 +12,12 @@ interface Props {
   summary: string;
   existingLabels: string[];
   analysis: SharedAiAnalysis;
-  /** Handler para aceitar um item. Recebe a origem REAL do resultado. */
-  onAccept: (item: AiSuggestionItem, source: "ai" | "heuristic") => void;
+  /**
+   * Aceita um lote de sugestões atomicamente. `source` é a origem REAL do
+   * resultado (ai vs heuristic). O parent deve fazer o merge respeitando o
+   * limite total; use `mergeCapped` de `./mergeItems`.
+   */
+  onAcceptMany: (items: AiSuggestionItem[], source: "ai" | "heuristic") => void;
   disabled?: boolean;
 }
 
@@ -23,17 +28,16 @@ function analysisKey(p: Props): AnalysisKey {
 export function AiAssistantPanel(props: Props) {
   const { analysis } = props;
   const key = analysisKey(props);
-  const activeKeyId = `${key.eventId}\u0001${key.segmentId}\u0001${key.summary.trim()}`;
+  const activeKeyId = serializeAnalysisKey(key);
 
-  // Só mostramos resultado se a chave da análise bater com o input atual.
+  const st = analysis.status;
   const matched =
-    (analysis.status.s === "done" || analysis.status.s === "dismissed") &&
-    analysis.status.keyId === activeKeyId;
-  const showResult = matched && analysis.status.s === "done";
-  const dismissedForKey = matched && analysis.status.s === "dismissed";
+    (st.s === "done" || st.s === "dismissed") && st.keyId === activeKeyId;
+  const showResult = matched && st.s === "done";
+  const dismissedForKey = matched && st.s === "dismissed";
 
   const result: AiSuggestionResult | null = showResult
-    ? (analysis.status as { s: "done"; result: AiSuggestionResult }).result
+    ? (st as { s: "done"; result: AiSuggestionResult }).result
     : null;
   const items = result ? (props.kind === "offer" ? result.offers : result.needs) : [];
   const source: "ai" | "heuristic" = result?.source ?? "ai";
@@ -46,17 +50,21 @@ export function AiAssistantPanel(props: Props) {
 
   function acceptAll() {
     if (!result) return;
-    for (const item of items) {
-      const already = props.existingLabels.some(
-        (l) => l.toLowerCase() === item.label.toLowerCase(),
-      );
-      if (already) continue;
-      props.onAccept(item, source);
-    }
+    // Filtra apenas o que ainda NÃO está em existingLabels (case-insensitive).
+    // Merge e cap acontecem no parent, garantindo atomicidade em uma única
+    // atualização do draft.
+    const existingLower = new Set(
+      props.existingLabels.map((l) => l.trim().toLowerCase()),
+    );
+    const toAdd = items.filter(
+      (i) => !existingLower.has(i.label.trim().toLowerCase()),
+    );
+    if (toAdd.length === 0) return;
+    props.onAcceptMany(toAdd, source);
   }
 
-  const loading = analysis.status.s === "loading";
-  const error = analysis.status.s === "error";
+  const loading = st.s === "loading" && st.keyId === activeKeyId;
+  const error = st.s === "error" && st.keyId === activeKeyId;
 
   // Painel fechado (dismissed) para esta chave: link discreto para reabrir.
   if (dismissedForKey) {
@@ -68,7 +76,7 @@ export function AiAssistantPanel(props: Props) {
           onClick={analysis.reopen}
           className="text-xs text-muted-foreground"
         >
-          <Wand2 className="mr-1 h-3 w-3" /> Analisar com IA
+          <Wand2 className="mr-1 h-3 w-3" /> Reabrir sugestões
         </Button>
       </div>
     );
@@ -175,7 +183,7 @@ export function AiAssistantPanel(props: Props) {
                   key={s.label + (s.taxonomyItemId ?? "")}
                   type="button"
                   disabled={already || props.disabled}
-                  onClick={() => props.onAccept(s, source)}
+                  onClick={() => props.onAcceptMany([s], source)}
                   className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-all disabled:opacity-50 ${
                     already ? "border-success bg-success/10" : "hover:border-primary hover:bg-primary/5"
                   }`}
