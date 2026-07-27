@@ -129,8 +129,12 @@ export async function runOnboardingAi(args: {
   const cacheKey = await buildCacheKey(input, catalog);
   const inputSummary = buildAiRunInput(input, cacheKey);
 
-  // 1. Cache persistente
-  const cached = await deps.readCache(cacheKey);
+  // 1. Cache persistente — valida shape antes de servir ao cliente.
+  const cachedRaw = await deps.readCache(cacheKey);
+  const cachedParsed = cachedRaw
+    ? aiSuggestionResultSchema.safeParse(cachedRaw)
+    : null;
+  const cached = cachedParsed?.success ? cachedParsed.data : null;
   if (cached) {
     void deps.logRun({
       eventId: input.eventId,
@@ -147,9 +151,17 @@ export async function runOnboardingAi(args: {
     return cached;
   }
 
-  // 2. Rate limit persistente (nunca chama Gateway se estourou)
-  const withinLimit = await deps.consumeRateLimit(actorUserId);
-  if (!withinLimit) {
+  // 2. Rate limit persistente (nunca chama Gateway se estourou ou se o
+  // limitador em si falhar — fail-closed para não gastar créditos sem
+  // controle nem esconder um bug de infra).
+  let withinLimit = false;
+  let limiterError: unknown = null;
+  try {
+    withinLimit = await deps.consumeRateLimit(actorUserId);
+  } catch (err) {
+    limiterError = err;
+  }
+  if (limiterError || !withinLimit) {
     const fb = await deps.fallback(input, catalog);
     void deps.logRun({
       eventId: input.eventId,
@@ -161,7 +173,7 @@ export async function runOnboardingAi(args: {
       fallbackUsed: true,
       model: null,
       latencyMs: deps.now() - start,
-      error: "rate_limited",
+      error: limiterError ? "limiter_error" : "rate_limited",
     });
     return fb;
   }
