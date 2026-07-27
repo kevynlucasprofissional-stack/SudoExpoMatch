@@ -43,9 +43,7 @@ export function ProcessPanel() {
         <div className="grid gap-6 lg:grid-cols-[46fr_30fr_24fr] lg:gap-0 lg:divide-x lg:divide-white/10">
           {/* Coluna 1: Como funciona */}
           <div className="lg:pr-6">
-            <h2 className="font-display text-xl font-black md:text-2xl">
-              Como funciona
-            </h2>
+            <h2 className="font-display text-xl font-black md:text-2xl">Como funciona</h2>
             <p className="mt-0.5 font-display text-sm font-semibold text-success md:text-base">
               Conexões profissionais em quatro etapas
             </p>
@@ -101,12 +99,8 @@ export function ProcessPanel() {
 
           {/* Coluna 3: Preview em janela com 3 cards horizontais */}
           <div className="lg:pl-6">
-            <h3 className="font-display text-base font-bold">
-              Veja quem estará na SudoExpo
-            </h3>
-            <p className="mt-1 text-xs text-white/75">
-              Explore os participantes já confirmados.
-            </p>
+            <h3 className="font-display text-base font-bold">Veja quem estará na SudoExpo</h3>
+            <p className="mt-1 text-xs text-white/75">Explore os participantes já confirmados.</p>
             <Link
               to="/publico"
               className="mt-3 inline-flex min-h-10 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#070d3a]"
@@ -136,12 +130,8 @@ export function ProcessPanel() {
                       {c.name[0]}
                     </span>
                     <div className="w-full min-w-0 text-center">
-                      <div className="truncate text-[10px] font-bold leading-tight">
-                        {c.name}
-                      </div>
-                      <div className="text-[9px] font-semibold text-slate-500">
-                        {c.tag}
-                      </div>
+                      <div className="truncate text-[10px] font-bold leading-tight">{c.name}</div>
+                      <div className="text-[9px] font-semibold text-slate-500">{c.tag}</div>
                     </div>
                   </div>
                 ))}

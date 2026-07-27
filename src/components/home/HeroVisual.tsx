@@ -15,15 +15,7 @@ function Avatar({ tone, initials }: { tone: string; initials: string }) {
   );
 }
 
-function ChipVertical({
-  label,
-  color,
-  text,
-}: {
-  label: string;
-  color: string;
-  text?: string;
-}) {
+function ChipVertical({ label, color, text }: { label: string; color: string; text?: string }) {
   return (
     <div
       className="flex min-h-9 items-center justify-center whitespace-nowrap rounded-lg px-3 py-1.5 text-[11px] font-semibold shadow-sm"
@@ -57,33 +49,18 @@ function Person({
       {/* pescoço */}
       <rect x="52" y="70" width="16" height="18" fill={skin} />
       {/* ombros/torso */}
-      <path
-        d="M6 200 C 6 130, 30 100, 60 100 C 90 100, 114 130, 114 200 Z"
-        fill={shirt}
-      />
+      <path d="M6 200 C 6 130, 30 100, 60 100 C 90 100, 114 130, 114 200 Z" fill={shirt} />
       {/* lapelas */}
-      <path
-        d="M60 100 L 44 140 L 60 150 L 76 140 Z"
-        fill="#ffffff"
-        opacity="0.9"
-      />
+      <path d="M60 100 L 44 140 L 60 150 L 76 140 Z" fill="#ffffff" opacity="0.9" />
       {tie && <rect x="56" y="118" width="8" height="34" fill={tie} />}
       {/* crachá + cordão */}
-      <path
-        d={`M46 108 C 54 118 66 118 74 108`}
-        stroke="#f1ff0a"
-        strokeWidth="2"
-        fill="none"
-      />
+      <path d={`M46 108 C 54 118 66 118 74 108`} stroke="#f1ff0a" strokeWidth="2" fill="none" />
       <rect x="54" y="118" width="12" height="14" rx="1.5" fill="#ffffff" />
       <rect x="56" y="121" width="8" height="2" fill="#0b1252" />
       <rect x="56" y="125" width="6" height="1.5" fill="#0b1252" />
       {/* braço em gesto */}
       {pose === "left" && (
-        <path
-          d="M18 140 C 8 160, 6 180, 20 190 L 30 180 C 24 170, 28 160, 34 152 Z"
-          fill={shirt}
-        />
+        <path d="M18 140 C 8 160, 6 180, 20 190 L 30 180 C 24 170, 28 160, 34 152 Z" fill={shirt} />
       )}
       {pose === "right" && (
         <path
@@ -229,14 +206,7 @@ export function HeroVisual() {
         </g>
 
         {/* Três profissionais em pé, em conversa */}
-        <Person
-          x={90}
-          hair="#3b2a1a"
-          skin="#f2c9a3"
-          shirt="#1b26ae"
-          hairStyle="long"
-          pose="left"
-        />
+        <Person x={90} hair="#3b2a1a" skin="#f2c9a3" shirt="#1b26ae" hairStyle="long" pose="left" />
         <Person
           x={250}
           hair="#1f1a12"
@@ -290,9 +260,7 @@ export function HeroVisual() {
               </span>
             </div>
           </div>
-          <p className="mt-2 text-xs text-slate-600">
-            Automação e integração de sistemas
-          </p>
+          <p className="mt-2 text-xs text-slate-600">Automação e integração de sistemas</p>
           <div className="mt-2 flex items-center justify-between">
             <span className="rounded-md bg-[#129cdf]/15 px-2 py-0.5 text-[10px] font-bold text-[#0b1252]">
               SERVIÇOS
@@ -317,9 +285,7 @@ export function HeroVisual() {
               </span>
             </div>
           </div>
-          <p className="mt-2 text-xs text-slate-600">
-            Fornecedores de tecnologia e parceiros
-          </p>
+          <p className="mt-2 text-xs text-slate-600">Fornecedores de tecnologia e parceiros</p>
           <div className="mt-2 flex items-center justify-between">
             <span className="rounded-md bg-secondary/20 px-2 py-0.5 text-[10px] font-bold text-[#0b1252]">
               FORNECEDORES
@@ -380,7 +346,10 @@ export function HeroVisual() {
       </div>
 
       {/* Ícone de grupo decorativo, canto */}
-      <div aria-hidden className="absolute left-3 top-1 z-[2] rounded-full bg-white/90 p-1.5 shadow">
+      <div
+        aria-hidden
+        className="absolute left-3 top-1 z-[2] rounded-full bg-white/90 p-1.5 shadow"
+      >
         <Users className="h-4 w-4 text-primary" />
       </div>
     </div>

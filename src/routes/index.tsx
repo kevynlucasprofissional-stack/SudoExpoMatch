@@ -5,12 +5,7 @@ import { Hero } from "@/components/home/Hero";
 import { BenefitCards } from "@/components/home/BenefitCards";
 import { ProcessPanel } from "@/components/home/ProcessPanel";
 import { FinalCta } from "@/components/home/FinalCta";
-import {
-  CornerLines,
-  CornerLeaves,
-  DotTexture,
-  PaperFragments,
-} from "@/components/home/decor";
+import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
 
 export const Route = createFileRoute("/")({
   head: () => ({

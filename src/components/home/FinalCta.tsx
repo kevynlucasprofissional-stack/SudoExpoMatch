@@ -7,8 +7,7 @@ export function FinalCta() {
       <div
         className="relative overflow-hidden rounded-2xl px-4 py-4 md:px-6 md:py-4"
         style={{
-          background:
-            "linear-gradient(120deg, #0b1252 0%, #1b26ae 55%, #129cdf 130%)",
+          background: "linear-gradient(120deg, #0b1252 0%, #1b26ae 55%, #129cdf 130%)",
         }}
       >
         {/* Ilustração monocromática no extremo direito */}

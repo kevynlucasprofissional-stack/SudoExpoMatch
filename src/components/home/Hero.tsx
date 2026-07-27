@@ -2,13 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { ArrowRight, Clock, Star } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
 
-function Highlight({
-  children,
-  bg,
-}: {
-  children: React.ReactNode;
-  bg: string;
-}) {
+function Highlight({ children, bg }: { children: React.ReactNode; bg: string }) {
   return (
     <span
       className="relative inline-block whitespace-nowrap px-2 py-0.5 text-[#0b1252]"
@@ -36,17 +30,16 @@ export function Hero() {
           </span>
 
           <h1 className="mt-4 font-display text-[36px] font-black leading-[1.02] tracking-tight sm:text-[44px] md:text-[48px] lg:text-[52px]">
-            Encontre{" "}
-            <Highlight bg="var(--success)">clientes</Highlight>,{" "}
+            Encontre <Highlight bg="var(--success)">clientes</Highlight>,{" "}
             <Highlight bg="var(--secondary)">fornecedores</Highlight> e{" "}
             <Highlight bg="var(--accent)">parceiros</Highlight> dentro da SudoExpo.
           </h1>
 
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
-            Informe o que você oferece e o que está procurando. O Matchmaker analisa
-            os perfis dos participantes e recomenda as conexões profissionais que
-            mais fazem sentido para você. Quando houver interesse dos dois lados,
-            a equipe da ACIRV ajuda a aproximar vocês durante a feira.
+            Informe o que você oferece e o que está procurando. O Matchmaker analisa os perfis dos
+            participantes e recomenda as conexões profissionais que mais fazem sentido para você.
+            Quando houver interesse dos dois lados, a equipe da ACIRV ajuda a aproximar vocês
+            durante a feira.
           </p>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">

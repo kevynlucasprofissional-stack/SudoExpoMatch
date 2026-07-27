@@ -22,12 +22,7 @@ export function DotTexture({ className = "" }: { className?: string }) {
 
 export function CornerLeaves({ className = "" }: { className?: string }) {
   return (
-    <svg
-      aria-hidden
-      viewBox="0 0 200 200"
-      className={className}
-      fill="none"
-    >
+    <svg aria-hidden viewBox="0 0 200 200" className={className} fill="none">
       <path
         d="M180 20 C 150 40 130 70 140 110 C 148 140 180 150 195 130"
         stroke="var(--secondary)"
@@ -56,9 +51,24 @@ export function CornerLeaves({ className = "" }: { className?: string }) {
 export function CornerLines({ className = "" }: { className?: string }) {
   return (
     <svg aria-hidden viewBox="0 0 200 200" className={className} fill="none">
-      <path d="M-10 180 C 40 150 70 170 120 130" stroke="var(--accent)" strokeWidth="3" opacity="0.7" />
-      <path d="M-10 200 C 50 175 90 190 140 160" stroke="var(--accent)" strokeWidth="2" opacity="0.5" />
-      <path d="M-10 160 C 30 140 60 160 100 120" stroke="var(--warning)" strokeWidth="2" opacity="0.6" />
+      <path
+        d="M-10 180 C 40 150 70 170 120 130"
+        stroke="var(--accent)"
+        strokeWidth="3"
+        opacity="0.7"
+      />
+      <path
+        d="M-10 200 C 50 175 90 190 140 160"
+        stroke="var(--accent)"
+        strokeWidth="2"
+        opacity="0.5"
+      />
+      <path
+        d="M-10 160 C 30 140 60 160 100 120"
+        stroke="var(--warning)"
+        strokeWidth="2"
+        opacity="0.6"
+      />
     </svg>
   );
 }

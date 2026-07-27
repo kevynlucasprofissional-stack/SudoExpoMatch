@@ -14,7 +14,11 @@ export function HomeHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/95 text-white backdrop-blur">
       <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-4 px-4 md:px-8">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="Matchmaker SudoExpo — Início">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 shrink-0"
+          aria-label="Matchmaker SudoExpo — Início"
+        >
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white font-display text-lg font-black text-primary">
             M
           </span>
@@ -26,10 +30,7 @@ export function HomeHeader() {
           </div>
         </Link>
 
-        <nav
-          className="hidden items-center gap-7 text-sm md:flex"
-          aria-label="Navegação principal"
-        >
+        <nav className="hidden items-center gap-7 text-sm md:flex" aria-label="Navegação principal">
           {NAV.map((item) => (
             <Link
               key={item.label}

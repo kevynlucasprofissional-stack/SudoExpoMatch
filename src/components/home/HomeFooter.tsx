@@ -15,9 +15,7 @@ export function HomeFooter() {
         </p>
 
         <div className="flex items-center gap-3 md:justify-end">
-          <span className="text-xs text-white/75">
-            SudoExpo 2026 · Uma realização
-          </span>
+          <span className="text-xs text-white/75">SudoExpo 2026 · Uma realização</span>
           <span
             aria-label="ACIRV"
             className="inline-flex items-center rounded-md border border-white/25 bg-white/5 px-2.5 py-1 font-display text-xs font-black tracking-widest"
