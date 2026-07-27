@@ -14,7 +14,11 @@ export function HomeHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/95 text-white backdrop-blur">
       <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-4 px-4 md:px-8">
-        <Link to="/" className="flex items-center gap-2.5 shrink-0" aria-label="Matchmaker SudoExpo — Início">
+        <Link
+          to="/"
+          className="flex items-center gap-2.5 shrink-0"
+          aria-label="Matchmaker SudoExpo — Início"
+        >
           <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-white font-display text-lg font-black text-primary">
             M
           </span>
@@ -26,15 +30,12 @@ export function HomeHeader() {
           </div>
         </Link>
 
-        <nav
-          className="hidden items-center gap-7 text-sm md:flex"
-          aria-label="Navegação principal"
-        >
+        <nav className="hidden items-center gap-7 text-sm md:flex" aria-label="Navegação principal">
           {NAV.map((item) => (
             <Link
               key={item.label}
               to={item.to}
-              className="text-white/80 transition-colors hover:text-white"
+              className="text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] rounded-sm"
             >
               {item.label}
             </Link>
@@ -42,13 +43,13 @@ export function HomeHeader() {
           <span aria-hidden className="h-5 w-px bg-white/20" />
           <Link
             to="/participante"
-            className="text-white/80 transition-colors hover:text-white"
+            className="text-white/80 transition-colors hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] rounded-sm"
           >
             Entrar
           </Link>
           <Link
             to="/participar"
-            className="inline-flex h-10 items-center rounded-md bg-success px-4 font-semibold text-[#0b1252] transition-transform hover:scale-[1.02]"
+            className="inline-flex h-10 items-center rounded-md bg-success px-4 font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252]"
           >
             Criar perfil
           </Link>

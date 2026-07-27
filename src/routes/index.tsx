@@ -5,7 +5,7 @@ import { Hero } from "@/components/home/Hero";
 import { BenefitCards } from "@/components/home/BenefitCards";
 import { ProcessPanel } from "@/components/home/ProcessPanel";
 import { FinalCta } from "@/components/home/FinalCta";
-import { CornerLines } from "@/components/home/decor";
+import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -31,15 +31,19 @@ export const Route = createFileRoute("/")({
 
 function Index() {
   return (
-    <div className="relative flex min-h-screen flex-col bg-background">
+    <div className="relative flex min-h-screen flex-col bg-[#0b1252] text-white">
       <HomeHeader />
-      <main className="flex-1">
-        <Hero />
+      <main className="relative flex-1">
+        {/* Fundo azul-marinho contínuo com textura pontilhada e fragmentos de papel */}
+        <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+          <DotTexture className="absolute inset-0 h-full w-full opacity-25" />
+          <PaperFragments className="absolute inset-0 h-full w-full opacity-70" />
+          <CornerLeaves className="absolute -bottom-4 -right-6 h-64 w-64 opacity-90 hidden md:block" />
+          <CornerLines className="absolute -left-6 bottom-6 hidden h-40 w-40 opacity-70 md:block" />
+        </div>
+
         <div className="relative">
-          <CornerLines
-            aria-hidden
-            className="pointer-events-none absolute -left-8 bottom-0 hidden h-48 w-48 opacity-70 md:block"
-          />
+          <Hero />
           <BenefitCards />
           <ProcessPanel />
           <FinalCta />
