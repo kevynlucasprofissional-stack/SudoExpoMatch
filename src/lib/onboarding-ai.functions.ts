@@ -6,6 +6,7 @@ import type { EventCatalog } from "@/features/participant/types";
 import {
   AI_MODEL,
   PROMPT_VERSION,
+  aiSuggestionResultSchema,
   modelOutputSchema,
   suggestOnboardingInputSchema,
   type AiSuggestionItem,
