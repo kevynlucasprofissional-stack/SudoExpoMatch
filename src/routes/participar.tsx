@@ -166,6 +166,8 @@ function WizardPage() {
     setDraft((d) => ({ ...d, [k]: v }));
   }
 
+  const aiAnalysis = useSharedAiAnalysis();
+
   function next() {
     setDraft((d) => ({ ...d, step: Math.min(d.step + 1, STEPS.length - 1) }));
   }
@@ -599,6 +601,7 @@ function WizardPage() {
             onBack={back}
             catalog={catalog}
             eventId={EVENT_ID}
+            aiAnalysis={aiAnalysis}
           />
         )}
         {step === 3 && (
@@ -609,6 +612,7 @@ function WizardPage() {
             onBack={back}
             catalog={catalog}
             eventId={EVENT_ID}
+            aiAnalysis={aiAnalysis}
           />
         )}
         {step === 4 && (
