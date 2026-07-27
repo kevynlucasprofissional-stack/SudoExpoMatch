@@ -179,7 +179,7 @@ describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
       deps,
     });
     const mockCalls = (call as unknown as { mock: { calls: Array<[{ prompt: string }]> } }).mock.calls;
-    const promptSent = mockCalls[0]?.[0]?.prompt ?? "";
+    const promptSent: string = mockCalls[0]?.[0]?.prompt ?? "";
     expect(promptSent).toContain(summary);
     // Defesa em profundidade — o input schema já bloqueia PII fora do summary.
     expect(promptSent).not.toMatch(/\bJoão\b|\bMaria\b|\bFulano\b/i);
