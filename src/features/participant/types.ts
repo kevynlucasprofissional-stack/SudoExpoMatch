@@ -91,11 +91,13 @@ export interface DecideMatchResult {
 }
 
 // ---------- Salvamento ----------
+export type ItemSource = "user" | "ai" | "heuristic";
 export interface SaveOfferInput {
   label: string;
   detail?: string | null;
   segment_id: string;
   taxonomy_item_id: string | null;
+  source?: ItemSource;
 }
 export interface SaveNeedInput extends SaveOfferInput {
   need_kind: NeedKind;
