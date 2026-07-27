@@ -77,18 +77,23 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
         output: Output.object({ schema: modelOutputSchema }),
         prompt,
       });
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
       const timeout = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error("timeout")), timeoutMs);
+        timeoutHandle = setTimeout(() => reject(new Error("timeout")), timeoutMs);
       });
-      const gen = (await Promise.race([call, timeout])) as {
-        output: unknown;
-        usage?: { promptTokens?: number; completionTokens?: number };
-      };
-      return {
-        output: gen.output,
-        tokensInput: gen.usage?.promptTokens,
-        tokensOutput: gen.usage?.completionTokens,
-      };
+      try {
+        const gen = (await Promise.race([call, timeout])) as {
+          output: unknown;
+          usage?: { promptTokens?: number; completionTokens?: number };
+        };
+        return {
+          output: gen.output,
+          tokensInput: gen.usage?.promptTokens,
+          tokensOutput: gen.usage?.completionTokens,
+        };
+      } finally {
+        if (timeoutHandle) clearTimeout(timeoutHandle);
+      }
     },
     readCache: async (key) => {
       const q = priv
@@ -101,7 +106,12 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
       const { data, error } = (await q) as { data: { result: unknown; expires_at: string } | null; error: unknown };
       if (error || !data) return null;
       if (new Date(data.expires_at).getTime() < Date.now()) return null;
-      return data.result as AiSuggestionResult;
+      // Defesa em profundidade — cache é validado de novo no orquestrador,
+      // mas rejeitamos aqui também para nunca devolver JSON com shape
+      // antigo/corrompido.
+      const parsed = aiSuggestionResultSchema.safeParse(data.result);
+      if (!parsed.success) return null;
+      return parsed.data;
     },
     writeCache: async (key, value, ttlSec) => {
       const expires = new Date(Date.now() + ttlSec * 1000).toISOString();
@@ -122,8 +132,14 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
         _window_sec: 300,
         _max_calls: 10,
       });
-      if (error) return true; // fail-open para não bloquear o participante
-      return Boolean(data);
+      // Fail-CLOSED: se o limitador em si falhar (erro de RPC ou resposta
+      // com shape inválido), o orquestrador vai para fallback sem chamar
+      // Gateway — evita gastar créditos sem controle.
+      if (error) throw new Error(`limiter_rpc_error:${error.message ?? "unknown"}`);
+      if (typeof data !== "boolean") {
+        throw new Error(`limiter_invalid_response:${typeof data}`);
+      }
+      return data;
     },
     logRun: async (row: AiRunLogRow) => {
       try {
