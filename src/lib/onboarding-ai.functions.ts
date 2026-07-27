@@ -186,13 +186,51 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
     const userId = context.userId;
 
     // Catálogo real do banco (fonte de verdade da normalização).
-    const { data: catalogRaw, error: catErr } = await context.supabase.rpc(
-      "list_event_segments_and_taxonomy",
-      { _event_id: data.eventId },
-    );
+    let catalogRaw: unknown = null;
+    let catErr: unknown = null;
+    try {
+      const res = await context.supabase.rpc("list_event_segments_and_taxonomy", {
+        _event_id: data.eventId,
+      });
+      catalogRaw = res.data;
+      catErr = res.error;
+    } catch (err) {
+      catErr = err;
+    }
     if (catErr || !catalogRaw) {
-      // Sem catálogo, normalizamos com catálogo vazio → só heurística.
-      return fallbackToHeuristic(data, { segments: [], taxonomy: [] });
+      // Sem catálogo, retornamos o heurístico e registramos um ai_run
+      // seguro (sem summary bruto, sem detalhes do erro do banco).
+      const fb = await fallbackToHeuristic(data, { segments: [], taxonomy: [] });
+      try {
+        const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+        await (supabaseAdmin as unknown as {
+          from: (t: string) => { insert: (r: unknown) => Promise<unknown> };
+        })
+          .from("ai_runs")
+          .insert({
+            event_id: data.eventId,
+            run_kind: "onboarding_suggest",
+            input: {
+              eventId: data.eventId,
+              segmentId: data.segmentId,
+              summaryLen: data.summary.length,
+              existingCount: data.existingLabels?.length ?? 0,
+              promptVersion: PROMPT_VERSION,
+            },
+            output: {},
+            model: null,
+            latency_ms: 0,
+            succeeded: false,
+            error: "catalog_unavailable",
+            actor_user_id: userId,
+            prompt_version: PROMPT_VERSION,
+            cache_hit: false,
+            fallback_used: true,
+          });
+      } catch {
+        // Log é best-effort; nunca pode quebrar o fluxo do usuário.
+      }
+      return fb;
     }
     const catalog = catalogRaw as unknown as EventCatalog;
 
