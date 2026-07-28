@@ -210,7 +210,7 @@ export function HeroVisual() {
 
   return (
     <div
-      className="relative isolate mx-auto w-full max-w-[620px]"
+      className="relative isolate mx-auto w-full max-w-[620px] overflow-x-clip"
       data-testid="hero-visual-desktop-root"
       style={{ paddingBottom: "clamp(48px, 5vw, 72px)" }}
     >
