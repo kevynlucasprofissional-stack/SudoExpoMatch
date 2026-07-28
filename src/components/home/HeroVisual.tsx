@@ -1,484 +1,435 @@
 import { useId } from "react";
-import { Plus, Check, Users } from "lucide-react";
+import { Check, Plus, Users } from "lucide-react";
 
-// Ilustração editorial desktop — bustos/meio-corpo de 3 profissionais
-// conversando, fundo de feira sutil, cards integrados e selo central
-// generoso. Composição editorial madura, sem áreas mortas.
+type HairStyle = "long" | "short" | "bob";
+
+type ProfessionalBustProps = {
+  x: number;
+  y: number;
+  scale: number;
+  hairStyle: HairStyle;
+  hairColor: string;
+  skinColor: string;
+  shirtColor: string;
+  tieColor?: string;
+  label: string;
+};
 
 function Avatar({ tone, initials }: { tone: string; initials: string }) {
   return (
     <div
-      className="inline-flex h-9 w-9 items-center justify-center rounded-full font-display text-xs font-bold text-white shadow-sm"
-      style={{ background: tone }}
       aria-hidden
+      className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full font-display text-xs font-bold text-white shadow-sm"
+      style={{ background: tone }}
     >
       {initials}
     </div>
   );
 }
 
-function ChipVertical({ label, color, text }: { label: string; color: string; text?: string }) {
+function ChipVertical({
+  label,
+  color,
+  textColor = "#0b1252",
+}: {
+  label: string;
+  color: string;
+  textColor?: string;
+}) {
   return (
     <div
       className="flex min-h-7 items-center justify-center whitespace-nowrap rounded-md px-2.5 py-1 text-[10px] font-semibold shadow-[0_4px_10px_-6px_rgba(0,0,0,0.35)]"
-      style={{ background: color, color: text ?? "#0b1252" }}
+      style={{ background: color, color: textColor }}
     >
       {label}
     </div>
   );
 }
 
-/**
- * Person — busto editorial. Camadas ordenadas:
- *  hair-back → neck → torso → face → hair-front → features → wear-front
- *
- * Todo o corpo é centralizado em x=60. viewBox local implícito: 120×180.
- * O torso termina em y≈180 (recorte inferior faz o efeito de busto).
- */
-function Person({
-  x,
-  y = 0,
-  scale = 1,
-  rotate = 0,
-  hair,
-  skin,
-  shirt,
-  tie,
-  hairStyle = "short",
-  pose = "center",
-}: {
-  x: number;
-  y?: number;
-  scale?: number;
-  rotate?: number;
-  hair: string;
-  skin: string;
-  shirt: string;
-  tie?: string;
-  hairStyle?: "short" | "long" | "bob";
-  pose?: "left" | "center" | "right";
-}) {
-  const faceShade = "rgba(0,0,0,0.06)";
-  const eyeY = 58;
+function HairBack({ style, color }: { style: HairStyle; color: string }) {
+  if (style === "long") {
+    return (
+      <path
+        d="M31 54 C31 29 43 18 60 18 C77 18 89 29 89 54 L89 112 C89 119 85 124 78 126 L76 126 L76 70 C76 52 70 42 60 42 C50 42 44 52 44 70 L44 126 L42 126 C35 124 31 119 31 112 Z"
+        fill={color}
+      />
+    );
+  }
+
+  if (style === "bob") {
+    return (
+      <path
+        d="M31 53 C31 29 43 18 60 18 C77 18 89 29 89 53 L89 91 C89 99 84 104 76 106 L73 106 L73 70 C73 53 68 43 60 43 C52 43 47 53 47 70 L47 106 L44 106 C36 104 31 99 31 91 Z"
+        fill={color}
+      />
+    );
+  }
 
   return (
-    <g
-      transform={`translate(${x} ${y}) scale(${scale}) rotate(${rotate} 60 90)`}
-      data-person-pose={pose}
-    >
-      {/* 1. hair-back — massa traseira, coroa curva sem faixa reta */}
-      <g data-layer="hair-back">
-        {hairStyle === "long" && (
-          <path
-            d="M32 52 C 30 22, 90 22, 88 52 C 92 78, 92 108, 86 128 L 76 128 C 76 100, 74 82, 60 82 C 46 82, 44 100, 44 128 L 34 128 C 28 108, 28 78, 32 52 Z"
-            fill={hair}
-          />
-        )}
-        {hairStyle === "bob" && (
-          <path
-            d="M32 50 C 30 22, 90 22, 88 50 C 90 68, 88 84, 84 92 L 74 92 C 74 82, 70 76, 60 76 C 50 76, 46 82, 46 92 L 36 92 C 32 84, 30 68, 32 50 Z"
-            fill={hair}
-          />
-        )}
-        {hairStyle === "short" && (
-          <path
-            d="M36 52 C 34 26, 86 26, 84 52 C 84 62, 82 68, 80 70 L 40 70 C 38 68, 36 62, 36 52 Z"
-            fill={hair}
-            opacity="0.95"
-          />
-        )}
-      </g>
+    <path
+      d="M35 50 C35 31 45 21 60 21 C75 21 85 31 85 50 C85 57 83 63 80 68 L40 68 C37 63 35 57 35 50 Z"
+      fill={color}
+    />
+  );
+}
 
-      {/* 2. neck — atrás do tronco/gola */}
-      <g data-layer="neck">
-        <path d="M54 78 L 54 92 Q 60 96 66 92 L 66 78 Z" fill={skin} />
-        <path d="M54 78 Q 60 82 66 78 L 66 82 Q 60 86 54 82 Z" fill="rgba(0,0,0,0.08)" />
-      </g>
-
-      {/* 3. torso — ombros naturais, mais estreitos */}
-      <g data-layer="torso">
+function HairFront({ style, color }: { style: HairStyle; color: string }) {
+  if (style === "long") {
+    return (
+      <>
         <path
-          d="M22 180 C 22 132, 40 108, 60 108 C 80 108, 98 132, 98 180 Z"
-          fill={shirt}
+          d="M35 51 C37 30 47 23 60 23 C73 23 83 30 85 51 C80 44 72 40 60 40 C48 40 40 44 35 51 Z"
+          fill={color}
         />
+        <path d="M35 51 C34 68 35 83 39 96 L44 94 L44 62 Z" fill={color} />
+        <path d="M85 51 C86 68 85 83 81 96 L76 94 L76 62 Z" fill={color} />
+      </>
+    );
+  }
+
+  if (style === "bob") {
+    return (
+      <>
+        <path
+          d="M34 50 C36 29 47 22 60 22 C73 22 84 29 86 50 C80 43 72 40 60 40 C48 40 40 43 34 50 Z"
+          fill={color}
+        />
+        <path d="M34 50 C33 65 34 77 38 87 L45 84 L45 60 Z" fill={color} />
+        <path d="M86 50 C87 65 86 77 82 87 L75 84 L75 60 Z" fill={color} />
+      </>
+    );
+  }
+
+  return (
+    <path
+      d="M35 50 C38 31 47 24 60 24 C73 24 82 31 85 50 C79 44 72 41 64 42 C57 39 48 42 41 46 C39 47 37 48 35 50 Z"
+      fill={color}
+    />
+  );
+}
+
+function ProfessionalBust({
+  x,
+  y,
+  scale,
+  hairStyle,
+  hairColor,
+  skinColor,
+  shirtColor,
+  tieColor,
+  label,
+}: ProfessionalBustProps) {
+  return (
+    <g
+      transform={`translate(${x} ${y}) scale(${scale})`}
+      data-professional={label}
+      aria-hidden="true"
+    >
+      <g data-layer="hair-back">
+        <HairBack style={hairStyle} color={hairColor} />
       </g>
 
-      {/* 4. face — cabeça ligeiramente maior */}
+      <path d="M52 80 L52 101 Q60 108 68 101 L68 80 Z" fill={skinColor} />
+      <path d="M53 82 Q60 87 67 82 L67 88 Q60 93 53 88 Z" fill="rgba(11,18,82,0.08)" />
+
+      <path
+        d="M18 174 C18 132 35 105 60 105 C85 105 102 132 102 174 Z"
+        fill={shirtColor}
+      />
+
       <g data-layer="face">
-        <ellipse cx="37" cy="58" rx="3" ry="5" fill={skin} />
-        <ellipse cx="83" cy="58" rx="3" ry="5" fill={skin} />
-        <ellipse cx="60" cy="56" rx="26" ry="30" fill={skin} />
-        <ellipse cx="60" cy="70" rx="18" ry="6" fill={faceShade} />
+        <ellipse cx="36" cy="58" rx="3.3" ry="5.4" fill={skinColor} />
+        <ellipse cx="84" cy="58" rx="3.3" ry="5.4" fill={skinColor} />
+        <ellipse cx="60" cy="57" rx="25" ry="29" fill={skinColor} />
       </g>
 
-      {/* 5. hair-front — coroa curva/mechas, cobrindo topo sem invadir olhos (y=58) */}
       <g data-layer="hair-front">
-        {hairStyle === "short" && (
-          <path
-            d="M34 52 C 40 30, 80 30, 86 52 C 82 44, 74 42, 66 44 C 60 42, 54 44, 46 46 C 42 46, 38 48, 34 52 Z"
-            fill={hair}
-          />
-        )}
-        {hairStyle === "long" && (
-          <>
-            {/* coroa suave */}
-            <path
-              d="M32 52 C 34 26, 86 26, 88 52 C 84 44, 76 42, 66 44 C 60 44, 54 46, 48 48 C 42 46, 36 48, 32 52 Z"
-              fill={hair}
-            />
-            {/* mechas laterais frontais */}
-            <path d="M34 54 C 30 78, 30 96, 34 108 L 40 106 C 38 92, 38 76, 40 62 Z" fill={hair} />
-            <path d="M86 54 C 90 78, 90 96, 86 108 L 80 106 C 82 92, 82 76, 80 62 Z" fill={hair} />
-          </>
-        )}
-        {hairStyle === "bob" && (
-          <path
-            d="M32 50 C 34 24, 86 24, 88 50 C 84 42, 74 42, 66 46 C 60 44, 54 46, 48 48 C 42 44, 36 46, 32 50 Z"
-            fill={hair}
-          />
-        )}
+        <HairFront style={hairStyle} color={hairColor} />
       </g>
 
-      {/* 6. features — olhos, sobrancelhas, sorriso */}
       <g data-layer="features">
         <path
-          d="M48 52 Q 52 50 56 52"
+          d="M47 51 Q51 49 55 51"
+          fill="none"
           stroke="#0b1252"
+          strokeLinecap="round"
           strokeWidth="1.2"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.7"
+          opacity="0.72"
         />
         <path
-          d="M64 52 Q 68 50 72 52"
+          d="M65 51 Q69 49 73 51"
+          fill="none"
           stroke="#0b1252"
+          strokeLinecap="round"
           strokeWidth="1.2"
-          fill="none"
-          strokeLinecap="round"
-          opacity="0.7"
+          opacity="0.72"
         />
-        <circle cx="52" cy={eyeY} r="1.8" fill="#0b1252" />
-        <circle cx="68" cy={eyeY} r="1.8" fill="#0b1252" />
-        {/* nariz sutil */}
+        <circle cx="51" cy="58" r="1.7" fill="#0b1252" />
+        <circle cx="69" cy="58" r="1.7" fill="#0b1252" />
+        <circle cx="46" cy="67" r="3" fill="#ff8d76" opacity="0.12" />
+        <circle cx="74" cy="67" r="3" fill="#ff8d76" opacity="0.12" />
         <path
-          d="M60 63 Q 61 66 60 68"
-          stroke="#0b1252"
-          strokeWidth="0.9"
+          d="M60 62 Q61 65 60 67"
           fill="none"
+          stroke="#0b1252"
           strokeLinecap="round"
-          opacity="0.35"
+          strokeWidth="0.8"
+          opacity="0.32"
         />
         <path
-          d="M53 72 Q 60 77 67 72"
+          d="M53 71 Q60 76 67 71"
+          fill="none"
           stroke="#0b1252"
+          strokeLinecap="round"
           strokeWidth="1.4"
-          fill="none"
-          strokeLinecap="round"
         />
       </g>
 
-      {/* 7. wear-front — gola discreta, cordão curvo, crachá pequeno */}
       <g data-layer="wear-front">
-        {/* gola em V mais discreta */}
-        <path d="M60 108 L 50 132 L 60 138 L 70 132 Z" fill="#ffffff" opacity="0.9" />
-        {/* gravata (só quando definida), estreita, curta */}
-        {tie && <rect x="57" y="120" width="6" height="14" fill={tie} rx="1" />}
-        {/* cordão nasce atrás do pescoço e forma curva natural */}
+        <path d="M39 109 L60 122 L50 132 L34 115 Z" fill="#ffffff" opacity="0.96" />
+        <path d="M81 109 L60 122 L70 132 L86 115 Z" fill="#ffffff" opacity="0.96" />
+
+        {tieColor ? (
+          <>
+            <path d="M56 117 L64 117 L62 124 L58 124 Z" fill={tieColor} />
+            <path d="M58 124 L62 124 L63 143 L60 147 L57 143 Z" fill={tieColor} />
+          </>
+        ) : null}
+
         <path
-          d="M48 100 C 52 118 68 118 72 100"
-          stroke="#f1ff0a"
-          strokeWidth="1.6"
+          d="M47 100 C50 116 54 128 60 138 C66 128 70 116 73 100"
           fill="none"
+          stroke="#f1ff0a"
+          strokeLinecap="round"
+          strokeWidth="1.8"
         />
-        {/* crachá pequeno, centralizado */}
-        <rect x="54" y="140" width="12" height="14" rx="1.5" fill="#ffffff" />
-        <rect x="56.5" y="143" width="7" height="1.6" fill="#0b1252" />
-        <rect x="56.5" y="146" width="6" height="1.2" fill="#0b1252" opacity="0.6" />
-        <rect x="56.5" y="148.5" width="6.5" height="1.2" fill="#0b1252" opacity="0.5" />
+        <rect x="53" y="137" width="14" height="17" rx="2" fill="#ffffff" />
+        <rect x="56" y="141" width="8" height="1.7" rx="0.8" fill="#0b1252" />
+        <rect x="56" y="145" width="7" height="1.2" rx="0.6" fill="#0b1252" opacity="0.55" />
+        <rect x="56" y="148" width="7" height="1.2" rx="0.6" fill="#0b1252" opacity="0.4" />
       </g>
     </g>
   );
 }
 
+function ProfileCard({
+  avatarTone,
+  initials,
+  title,
+  badge,
+  badgeClassName,
+  description,
+  category,
+}: {
+  avatarTone: string;
+  initials: string;
+  title: string;
+  badge: string;
+  badgeClassName: string;
+  description: string;
+  category: string;
+}) {
+  return (
+    <div className="pointer-events-auto rounded-2xl border border-black/5 bg-white p-3 shadow-lg">
+      <div className="flex items-center gap-2">
+        <Avatar tone={avatarTone} initials={initials} />
+        <div className="min-w-0">
+          <div className="text-[13px] font-bold leading-tight text-[#0b1252]">{title}</div>
+          <span className={`mt-0.5 inline-block rounded px-1.5 text-[10px] font-bold ${badgeClassName}`}>
+            {badge}
+          </span>
+        </div>
+      </div>
+      <p className="mt-2 min-h-8 text-xs leading-4 text-slate-600">{description}</p>
+      <div className="mt-2 flex items-center justify-between gap-2">
+        <span className="rounded-md bg-[#129cdf]/15 px-2 py-0.5 text-[10px] font-bold text-[#0b1252]">
+          {category}
+        </span>
+        <span
+          aria-hidden
+          className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0b1252] text-white"
+        >
+          <Plus className="h-3.5 w-3.5" />
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function HeroVisual() {
   const uid = useId().replace(/:/g, "");
-  const idBg = `hv-fair-bg-${uid}`;
-  const idBoothA = `hv-booth-a-${uid}`;
-  const idBoothB = `hv-booth-b-${uid}`;
-  const idSoft = `hv-soft-${uid}`;
-  const idClip = `hv-clip-${uid}`;
+  const backgroundId = `hv-fair-bg-${uid}`;
+  const boothBlueId = `hero-booth-blue-${uid}`;
+  const boothCyanId = `hero-booth-cyan-${uid}`;
+  const blurId = `hero-booth-blur-${uid}`;
 
   return (
     <div
-      className="relative isolate mx-auto w-full max-w-[620px] overflow-x-clip"
+      className="relative isolate mx-auto w-full max-w-[640px] overflow-visible pb-[132px]"
       data-testid="hero-visual-desktop-root"
-      style={{ paddingBottom: "clamp(48px, 5vw, 72px)" }}
     >
-      {/* Recorte de papel — envolve a cena, sem grande área morta abaixo */}
       <div
         aria-hidden
-        className="absolute inset-x-0 top-2 mx-auto h-[300px] w-[96%] bg-white/95 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)]"
+        className="absolute inset-x-2 top-2 h-[310px] bg-white/95 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)]"
         style={{
           clipPath:
-            "polygon(3% 6%, 97% 2%, 100% 24%, 98% 60%, 100% 88%, 88% 100%, 58% 96%, 30% 100%, 8% 97%, 0% 74%, 2% 40%, 0 16%)",
+            "polygon(3% 5%, 97% 2%, 100% 20%, 98% 57%, 100% 88%, 88% 100%, 58% 96%, 30% 100%, 8% 97%, 0% 74%, 2% 40%, 0 15%)",
         }}
       />
 
-      {/* Cena SVG — viewBox mais compacto */}
       <svg
-        viewBox="0 0 620 320"
-        className="relative z-[1] w-full"
-        aria-label="Três profissionais conversando numa feira, com estandes desfocados ao fundo"
+        viewBox="0 0 620 330"
+        className="relative z-[1] block w-full"
+        aria-label="Três profissionais alinhados em uma feira, conectados por oportunidades de negócio"
         role="img"
       >
         <defs>
-          <linearGradient id={idBg} x1="0" x2="0" y1="0" y2="1">
+          <linearGradient id={backgroundId} x1="0" x2="0" y1="0" y2="1">
             <stop offset="0" stopColor="#dbeafe" />
-            <stop offset="1" stopColor="#93c5fd" />
+            <stop offset="1" stopColor="#8ec5f4" />
           </linearGradient>
-          <linearGradient id={idBoothA} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#1b26ae" stopOpacity="0.32" />
-            <stop offset="1" stopColor="#1b26ae" stopOpacity="0.08" />
+          <linearGradient id={boothBlueId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="#1b26ae" stopOpacity="0.3" />
+            <stop offset="1" stopColor="#1b26ae" stopOpacity="0.06" />
           </linearGradient>
-          <linearGradient id={idBoothB} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#129cdf" stopOpacity="0.32" />
-            <stop offset="1" stopColor="#129cdf" stopOpacity="0.08" />
+          <linearGradient id={boothCyanId} x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0" stopColor="#129cdf" stopOpacity="0.3" />
+            <stop offset="1" stopColor="#129cdf" stopOpacity="0.06" />
           </linearGradient>
-          <filter id={idSoft} x="-10%" y="-10%" width="120%" height="120%">
+          <filter id={blurId} x="-10%" y="-10%" width="120%" height="120%">
             <feGaussianBlur stdDeviation="3" />
           </filter>
-          {/* clip para recortar os torsos (efeito busto) */}
-          <clipPath id={idClip}>
-            <rect x="0" y="0" width="620" height="300" />
-          </clipPath>
         </defs>
 
-        {/* Faixa de fundo (feira) — ocupa toda a largura */}
-        <g aria-hidden="true">
-          <rect x="10" y="30" width="600" height="230" rx="14" fill={`url(#${idBg})`} />
-          <g filter={`url(#${idSoft})`} opacity="0.9">
-            <rect x="30" y="70" width="100" height="150" fill={`url(#${idBoothA})`} rx="6" />
-            <rect x="140" y="60" width="120" height="160" fill={`url(#${idBoothB})`} rx="6" />
-            <rect x="270" y="72" width="100" height="148" fill={`url(#${idBoothA})`} rx="6" />
-            <rect x="380" y="58" width="130" height="162" fill={`url(#${idBoothB})`} rx="6" />
-            <rect x="520" y="74" width="90" height="146" fill={`url(#${idBoothA})`} rx="6" />
-            <rect x="40" y="82" width="80" height="10" fill="#1b26ae" opacity="0.5" rx="2" />
-            <rect x="150" y="72" width="100" height="10" fill="#129cdf" opacity="0.55" rx="2" />
-            <rect x="390" y="70" width="110" height="10" fill="#129cdf" opacity="0.55" rx="2" />
-          </g>
+        <rect x="10" y="32" width="600" height="238" rx="16" fill={`url(#${backgroundId})`} />
+
+        <g filter={`url(#${blurId})`} opacity="0.9" aria-hidden="true">
+          <rect x="28" y="72" width="103" height="156" rx="7" fill={`url(#${boothBlueId})`} />
+          <rect x="141" y="61" width="121" height="167" rx="7" fill={`url(#${boothCyanId})`} />
+          <rect x="272" y="73" width="96" height="155" rx="7" fill={`url(#${boothBlueId})`} />
+          <rect x="378" y="59" width="132" height="169" rx="7" fill={`url(#${boothCyanId})`} />
+          <rect x="520" y="75" width="88" height="153" rx="7" fill={`url(#${boothBlueId})`} />
+          <rect x="41" y="84" width="77" height="10" rx="2" fill="#1b26ae" opacity="0.5" />
+          <rect x="154" y="74" width="94" height="10" rx="2" fill="#129cdf" opacity="0.52" />
+          <rect x="392" y="72" width="104" height="10" rx="2" fill="#129cdf" opacity="0.52" />
         </g>
 
-        {/* Linha superior sutil ligando os 3 personagens */}
-        <g fill="none" strokeWidth="1.6" opacity="0.75" aria-hidden="true">
-          <path
-            d="M150 90 C 260 62, 360 62, 470 90"
-            stroke="var(--warning)"
-            strokeDasharray="3 6"
-          />
-        </g>
-        <g aria-hidden="true">
-          <circle cx="150" cy="90" r="3.2" fill="var(--warning)" />
-          <circle cx="310" cy="66" r="3.2" fill="var(--warning)" />
-          <circle cx="470" cy="90" r="3.2" fill="var(--warning)" />
-        </g>
+        <path
+          d="M147 101 C 246 69, 374 69, 473 101"
+          fill="none"
+          stroke="var(--warning)"
+          strokeDasharray="3 6"
+          strokeLinecap="round"
+          strokeWidth="1.7"
+        />
+        <circle cx="147" cy="101" r="3.2" fill="var(--warning)" />
+        <circle cx="310" cy="74" r="3.2" fill="var(--warning)" />
+        <circle cx="473" cy="101" r="3.2" fill="var(--warning)" />
 
-        {/* Bustos — clip evita torso descendo até a base */}
-        <g clipPath={`url(#${idClip})`}>
-          {/* esquerda — levemente menor e voltada para o centro */}
-          <Person
-            x={90}
-            y={70}
-            scale={0.92}
-            rotate={6}
-            hair="#3b2a1a"
-            skin="#f2c9a3"
-            shirt="#1b26ae"
-            hairStyle="long"
-            pose="left"
-          />
-          {/* central — maior, frontal */}
-          <Person
-            x={250}
-            y={56}
-            scale={1.05}
-            hair="#1f1a12"
-            skin="#c88a5a"
-            shirt="#0b1252"
-            tie="#ff7d3b"
-            hairStyle="short"
-            pose="center"
-          />
-          {/* direita — levemente menor e voltada para o centro */}
-          <Person
-            x={410}
-            y={70}
-            scale={0.92}
-            rotate={-6}
-            hair="#5a2f10"
-            skin="#eab68a"
-            shirt="#129cdf"
-            hairStyle="bob"
-            pose="right"
-          />
-        </g>
+        <ProfessionalBust
+          x={87}
+          y={72}
+          scale={0.92}
+          hairStyle="long"
+          hairColor="#3b2a1a"
+          skinColor="#f2c9a3"
+          shirtColor="#1b26ae"
+          label="profissional-esquerda"
+        />
+        <ProfessionalBust
+          x={250}
+          y={55}
+          scale={1}
+          hairStyle="short"
+          hairColor="#1f1a12"
+          skinColor="#c88a5a"
+          shirtColor="#0b1252"
+          tieColor="#ff7d3b"
+          label="profissional-central"
+        />
+        <ProfessionalBust
+          x={413}
+          y={72}
+          scale={0.92}
+          hairStyle="bob"
+          hairColor="#5a2f10"
+          skinColor="#eab68a"
+          shirtColor="#129cdf"
+          label="profissional-direita"
+        />
+
+        <path
+          d="M189 268 C 245 303, 375 303, 431 268"
+          fill="none"
+          stroke="var(--success)"
+          strokeDasharray="3 6"
+          strokeLinecap="round"
+          strokeWidth="1.6"
+          opacity="0.9"
+        />
+        <circle cx="189" cy="268" r="3.2" fill="var(--success)" />
+        <circle cx="431" cy="268" r="3.2" fill="var(--success)" />
       </svg>
 
-      {/* Pilha lateral de chips — apenas em xl, compacta */}
       <div
-        className="pointer-events-none absolute z-[4] hidden flex-col gap-1 xl:flex"
+        className="pointer-events-none absolute right-[-8px] top-[88px] z-[4] hidden w-[108px] flex-col gap-1.5 2xl:flex"
         data-testid="hero-visual-chips"
-        style={{
-          right: "clamp(-14px, -1.4vw, -2px)",
-          top: "10%",
-          width: "clamp(96px, 10vw, 118px)",
-        }}
       >
         <ChipVertical label="Clientes" color="var(--success)" />
-        <ChipVertical label="Fornecedores" color="var(--secondary)" text="#0b1252" />
-        <ChipVertical label="Parceiros" color="var(--accent)" text="#0b1252" />
-        <ChipVertical label="Distribuidores" color="#6b57e0" text="#ffffff" />
-        <ChipVertical label="Serviços" color="#129cdf" text="#0b1252" />
+        <ChipVertical label="Fornecedores" color="var(--secondary)" />
+        <ChipVertical label="Parceiros" color="var(--accent)" />
+        <ChipVertical label="Distribuidores" color="#6b57e0" textColor="#ffffff" />
+        <ChipVertical label="Serviços" color="#129cdf" />
       </div>
 
-      {/* Linhas curtas ligando cada card ao selo (SVG absoluto sobreposto) */}
-      <svg
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 z-[2] hidden md:block"
-        style={{ bottom: "clamp(96px, 12vw, 132px)", height: 40, width: "100%" }}
-        viewBox="0 0 620 40"
-        preserveAspectRatio="none"
-      >
-        <path
-          d="M200 4 C 240 30, 280 30, 310 30"
-          stroke="var(--success)"
-          strokeWidth="1.6"
-          strokeDasharray="3 5"
-          fill="none"
-          opacity="0.8"
-        />
-        <path
-          d="M420 4 C 380 30, 340 30, 310 30"
-          stroke="var(--success)"
-          strokeWidth="1.6"
-          strokeDasharray="3 5"
-          fill="none"
-          opacity="0.8"
-        />
-      </svg>
-
-      {/* Zona inferior: cards integrados + selo central generoso */}
       <div
-        className="pointer-events-none absolute inset-x-0 z-[3] hidden md:block"
+        className="pointer-events-none absolute inset-x-0 bottom-0 z-[3] hidden md:block"
         data-testid="hero-visual-cards"
-        style={{ bottom: "clamp(4px, 0.8vw, 16px)" }}
       >
         <div
-          className="mx-auto grid items-end gap-3 px-2"
+          className="mx-auto grid max-w-[594px] items-end gap-3 px-2"
           style={{
-            gridTemplateColumns: "minmax(0,1fr) minmax(140px, 170px) minmax(0,1fr)",
-            maxWidth: "min(580px, 94%)",
+            gridTemplateColumns:
+              "minmax(0,1fr) minmax(140px, 170px) minmax(0,1fr)",
           }}
         >
-          {/* TechSolutions */}
-          <div
-            className="pointer-events-auto rounded-2xl border border-black/5 bg-white p-3 shadow-lg"
-            style={{ minHeight: 118 }}
-          >
-            <div className="flex items-center gap-2">
-              <Avatar tone="linear-gradient(135deg,#129cdf,#1b26ae)" initials="TS" />
-              <div className="min-w-0">
-                <div className="truncate text-sm font-bold text-[#0b1252]">TechSolutions</div>
-                <span className="inline-block rounded bg-success/25 px-1.5 text-[10px] font-bold text-[#215800]">
-                  OFERECE
-                </span>
-              </div>
-            </div>
-            <p
-              className="mt-2 text-xs text-slate-600"
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                minHeight: 32,
-              }}
-            >
-              Automação e integração de sistemas
-            </p>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="rounded-md bg-[#129cdf]/15 px-2 py-0.5 text-[10px] font-bold text-[#0b1252]">
-                SERVIÇOS
-              </span>
-              <span
-                aria-hidden
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#0b1252] text-white"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </span>
-            </div>
-          </div>
+          <ProfileCard
+            avatarTone="linear-gradient(135deg,#129cdf,#1b26ae)"
+            initials="TS"
+            title="TechSolutions"
+            badge="OFERECE"
+            badgeClassName="bg-success/25 text-[#215800]"
+            description="Automação e integração de sistemas"
+            category="SERVIÇOS"
+          />
 
-          {/* Selo central — generoso, com subtítulo */}
-          <div className="relative flex justify-center" aria-hidden>
+          <div className="flex justify-center pb-2" aria-hidden>
             <div
-              className="pointer-events-auto w-full rounded-2xl border border-success/50 bg-white px-3 py-2.5 text-center shadow-[0_18px_40px_-20px_rgba(0,0,0,0.35)]"
+              className="w-full rounded-2xl border border-success/50 bg-white px-3 py-3 text-center shadow-[0_18px_40px_-20px_rgba(0,0,0,0.35)]"
               data-testid="hero-visual-match-badge"
-              style={{ transform: "translateY(-14px)" }}
             >
-              <div className="mx-auto inline-flex h-6 w-6 items-center justify-center rounded-full bg-success text-[#0b1252]">
-                <Check className="h-3.5 w-3.5" />
+              <div className="mx-auto inline-flex h-7 w-7 items-center justify-center rounded-full bg-success text-[#0b1252]">
+                <Check className="h-4 w-4" />
               </div>
               <div className="mt-1 font-display text-[12px] font-bold leading-tight text-[#0b1252]">
                 Match encontrado!
               </div>
-              <div className="mt-0.5 text-[10px] font-medium text-slate-600">
-                Interesse mútuo
-              </div>
+              <div className="mt-1 text-[10px] font-medium text-slate-600">Interesse mútuo</div>
             </div>
           </div>
 
-          {/* Indústria Alfa */}
-          <div
-            className="pointer-events-auto rounded-2xl border border-black/5 bg-white p-3 shadow-lg"
-            style={{ minHeight: 118 }}
-          >
-            <div className="flex items-center gap-2">
-              <Avatar tone="linear-gradient(135deg,#ff7d3b,#f04)" initials="IA" />
-              <div className="min-w-0">
-                <div className="truncate text-sm font-bold text-[#0b1252]">Indústria Alfa</div>
-                <span className="inline-block rounded bg-accent/25 px-1.5 text-[10px] font-bold text-[#5c2b00]">
-                  PROCURA
-                </span>
-              </div>
-            </div>
-            <p
-              className="mt-2 text-xs text-slate-600"
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                overflow: "hidden",
-                minHeight: 32,
-              }}
-            >
-              Fornecedores de tecnologia e parceiros
-            </p>
-            <div className="mt-2 flex items-center justify-between">
-              <span className="rounded-md bg-secondary/20 px-2 py-0.5 text-[10px] font-bold text-[#0b1252]">
-                FORNECEDORES
-              </span>
-              <span
-                aria-hidden
-                className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-[#0b1252] text-white"
-              >
-                <Plus className="h-3.5 w-3.5" />
-              </span>
-            </div>
-          </div>
+          <ProfileCard
+            avatarTone="linear-gradient(135deg,#ff7d3b,#f04)"
+            initials="IA"
+            title="Indústria Alfa"
+            badge="PROCURA"
+            badgeClassName="bg-accent/25 text-[#5c2b00]"
+            description="Fornecedores de tecnologia e parceiros"
+            category="FORNECEDORES"
+          />
         </div>
       </div>
 
-      {/* Ícone de grupo decorativo, canto */}
       <div
         aria-hidden
         className="absolute left-3 top-1 z-[2] rounded-full bg-white/90 p-1.5 shadow"
