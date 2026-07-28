@@ -3,7 +3,7 @@ import { Check, Plus, Users } from "lucide-react";
 
 type HairStyle = "long" | "short" | "bob";
 
-type ProfessionalBustProps = {
+type ProfessionalProps = {
   x: number;
   y: number;
   scale: number;
@@ -50,7 +50,7 @@ function HairBack({ style, color }: { style: HairStyle; color: string }) {
   if (style === "long") {
     return (
       <path
-        d="M31 54 C31 29 43 18 60 18 C77 18 89 29 89 54 L89 112 C89 119 85 124 78 126 L76 126 L76 70 C76 52 70 42 60 42 C50 42 44 52 44 70 L44 126 L42 126 C35 124 31 119 31 112 Z"
+        d="M34 52 C34 28 45 18 60 18 C75 18 86 28 86 52 L86 106 C86 114 82 119 75 121 L72 121 L72 63 C72 50 68 42 60 42 C52 42 48 50 48 63 L48 121 L45 121 C38 119 34 114 34 106 Z"
         fill={color}
       />
     );
@@ -59,7 +59,7 @@ function HairBack({ style, color }: { style: HairStyle; color: string }) {
   if (style === "bob") {
     return (
       <path
-        d="M31 53 C31 29 43 18 60 18 C77 18 89 29 89 53 L89 91 C89 99 84 104 76 106 L73 106 L73 70 C73 53 68 43 60 43 C52 43 47 53 47 70 L47 106 L44 106 C36 104 31 99 31 91 Z"
+        d="M33 52 C33 29 44 19 60 19 C76 19 87 29 87 52 L87 88 C87 97 82 102 74 104 L71 104 L71 64 C71 51 67 43 60 43 C53 43 49 51 49 64 L49 104 L46 104 C38 102 33 97 33 88 Z"
         fill={color}
       />
     );
@@ -67,7 +67,7 @@ function HairBack({ style, color }: { style: HairStyle; color: string }) {
 
   return (
     <path
-      d="M35 50 C35 31 45 21 60 21 C75 21 85 31 85 50 C85 57 83 63 80 68 L40 68 C37 63 35 57 35 50 Z"
+      d="M36 50 C36 31 45 22 60 22 C75 22 84 31 84 50 C84 57 82 62 79 67 L41 67 C38 62 36 57 36 50 Z"
       fill={color}
     />
   );
@@ -78,11 +78,11 @@ function HairFront({ style, color }: { style: HairStyle; color: string }) {
     return (
       <>
         <path
-          d="M35 51 C37 30 47 23 60 23 C73 23 83 30 85 51 C80 44 72 40 60 40 C48 40 40 44 35 51 Z"
+          d="M35 50 C38 30 47 23 60 23 C73 23 82 30 85 50 C79 43 71 40 60 40 C49 40 41 43 35 50 Z"
           fill={color}
         />
-        <path d="M35 51 C34 68 35 83 39 96 L44 94 L44 62 Z" fill={color} />
-        <path d="M85 51 C86 68 85 83 81 96 L76 94 L76 62 Z" fill={color} />
+        <path d="M35 49 C34 56 35 63 38 69 L43 67 L43 54 Z" fill={color} />
+        <path d="M85 49 C86 56 85 63 82 69 L77 67 L77 54 Z" fill={color} />
       </>
     );
   }
@@ -91,11 +91,11 @@ function HairFront({ style, color }: { style: HairStyle; color: string }) {
     return (
       <>
         <path
-          d="M34 50 C36 29 47 22 60 22 C73 22 84 29 86 50 C80 43 72 40 60 40 C48 40 40 43 34 50 Z"
+          d="M34 50 C37 30 47 23 60 23 C73 23 83 30 86 50 C80 43 72 40 60 40 C48 40 40 43 34 50 Z"
           fill={color}
         />
-        <path d="M34 50 C33 65 34 77 38 87 L45 84 L45 60 Z" fill={color} />
-        <path d="M86 50 C87 65 86 77 82 87 L75 84 L75 60 Z" fill={color} />
+        <path d="M34 49 C33 57 34 64 38 70 L44 67 L44 54 Z" fill={color} />
+        <path d="M86 49 C87 57 86 64 82 70 L76 67 L76 54 Z" fill={color} />
       </>
     );
   }
@@ -108,7 +108,7 @@ function HairFront({ style, color }: { style: HairStyle; color: string }) {
   );
 }
 
-function ProfessionalBust({
+function Professional({
   x,
   y,
   scale,
@@ -118,7 +118,7 @@ function ProfessionalBust({
   shirtColor,
   tieColor,
   label,
-}: ProfessionalBustProps) {
+}: ProfessionalProps) {
   return (
     <g
       transform={`translate(${x} ${y}) scale(${scale})`}
@@ -129,18 +129,25 @@ function ProfessionalBust({
         <HairBack style={hairStyle} color={hairColor} />
       </g>
 
-      <path d="M52 80 L52 101 Q60 108 68 101 L68 80 Z" fill={skinColor} />
-      <path d="M53 82 Q60 87 67 82 L67 88 Q60 93 53 88 Z" fill="rgba(11,18,82,0.08)" />
+      <g data-layer="neck">
+        <path d="M52 80 L52 101 Q60 107 68 101 L68 80 Z" fill={skinColor} />
+        <path
+          d="M53 82 Q60 87 67 82 L67 88 Q60 93 53 88 Z"
+          fill="rgba(11,18,82,0.08)"
+        />
+      </g>
 
-      <path
-        d="M18 174 C18 132 35 105 60 105 C85 105 102 132 102 174 Z"
-        fill={shirtColor}
-      />
+      <g data-layer="torso">
+        <path
+          d="M19 174 C19 132 36 106 60 106 C84 106 101 132 101 174 Z"
+          fill={shirtColor}
+        />
+      </g>
 
       <g data-layer="face">
-        <ellipse cx="36" cy="58" rx="3.3" ry="5.4" fill={skinColor} />
-        <ellipse cx="84" cy="58" rx="3.3" ry="5.4" fill={skinColor} />
-        <ellipse cx="60" cy="57" rx="25" ry="29" fill={skinColor} />
+        <ellipse cx="36" cy="58" rx="3.1" ry="5" fill={skinColor} />
+        <ellipse cx="84" cy="58" rx="3.1" ry="5" fill={skinColor} />
+        <ellipse cx="60" cy="57" rx="24" ry="28" fill={skinColor} />
       </g>
 
       <g data-layer="hair-front">
@@ -205,8 +212,24 @@ function ProfessionalBust({
         />
         <rect x="53" y="137" width="14" height="17" rx="2" fill="#ffffff" />
         <rect x="56" y="141" width="8" height="1.7" rx="0.8" fill="#0b1252" />
-        <rect x="56" y="145" width="7" height="1.2" rx="0.6" fill="#0b1252" opacity="0.55" />
-        <rect x="56" y="148" width="7" height="1.2" rx="0.6" fill="#0b1252" opacity="0.4" />
+        <rect
+          x="56"
+          y="145"
+          width="7"
+          height="1.2"
+          rx="0.6"
+          fill="#0b1252"
+          opacity="0.55"
+        />
+        <rect
+          x="56"
+          y="148"
+          width="7"
+          height="1.2"
+          rx="0.6"
+          fill="#0b1252"
+          opacity="0.4"
+        />
       </g>
     </g>
   );
@@ -230,7 +253,7 @@ function ProfileCard({
   category: string;
 }) {
   return (
-    <div className="pointer-events-auto rounded-2xl border border-black/5 bg-white p-3 shadow-lg">
+    <div className="pointer-events-auto rounded-2xl border border-white/70 bg-white p-3 shadow-[0_18px_45px_-22px_rgba(0,0,0,0.45)]">
       <div className="flex items-center gap-2">
         <Avatar tone={avatarTone} initials={initials} />
         <div className="min-w-0">
@@ -258,85 +281,115 @@ function ProfileCard({
 
 export function HeroVisual() {
   const uid = useId().replace(/:/g, "");
-  const backgroundId = `hv-fair-bg-${uid}`;
-  const boothBlueId = `hero-booth-blue-${uid}`;
-  const boothCyanId = `hero-booth-cyan-${uid}`;
-  const blurId = `hero-booth-blur-${uid}`;
+  const connectionGlowId = `hv-fair-bg-${uid}`;
+  const lineGradientId = `hero-connection-line-${uid}`;
 
   return (
     <div
       className="relative isolate mx-auto w-full max-w-[640px] overflow-visible pb-[132px]"
       data-testid="hero-visual-desktop-root"
     >
-      <div
-        aria-hidden
-        className="absolute inset-x-2 top-2 h-[310px] bg-white/95 shadow-[0_30px_80px_-30px_rgba(0,0,0,0.55)]"
-        style={{
-          clipPath:
-            "polygon(3% 5%, 97% 2%, 100% 20%, 98% 57%, 100% 88%, 88% 100%, 58% 96%, 30% 100%, 8% 97%, 0% 74%, 2% 40%, 0 15%)",
-        }}
-      />
-
       <svg
         viewBox="0 0 620 330"
-        className="relative z-[1] block w-full"
-        aria-label="Três profissionais alinhados em uma feira, conectados por oportunidades de negócio"
+        className="relative z-[1] block w-full overflow-visible"
+        aria-label="Três profissionais conectados por uma rede de oportunidades de negócio"
         role="img"
       >
         <defs>
-          <linearGradient id={backgroundId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#dbeafe" />
-            <stop offset="1" stopColor="#8ec5f4" />
+          <radialGradient id={connectionGlowId} cx="50%" cy="48%" r="58%">
+            <stop offset="0" stopColor="#129cdf" stopOpacity="0.26" />
+            <stop offset="0.48" stopColor="#1b26ae" stopOpacity="0.12" />
+            <stop offset="1" stopColor="#1b26ae" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id={lineGradientId} x1="0" x2="1" y1="0" y2="0">
+            <stop offset="0" stopColor="#8bec01" />
+            <stop offset="0.5" stopColor="#f1ff0a" />
+            <stop offset="1" stopColor="#ff7d3b" />
           </linearGradient>
-          <linearGradient id={boothBlueId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#1b26ae" stopOpacity="0.3" />
-            <stop offset="1" stopColor="#1b26ae" stopOpacity="0.06" />
-          </linearGradient>
-          <linearGradient id={boothCyanId} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="#129cdf" stopOpacity="0.3" />
-            <stop offset="1" stopColor="#129cdf" stopOpacity="0.06" />
-          </linearGradient>
-          <filter id={blurId} x="-10%" y="-10%" width="120%" height="120%">
-            <feGaussianBlur stdDeviation="3" />
-          </filter>
         </defs>
 
-        <rect x="10" y="32" width="600" height="238" rx="16" fill={`url(#${backgroundId})`} />
-
-        <g filter={`url(#${blurId})`} opacity="0.9" aria-hidden="true">
-          <rect x="28" y="72" width="103" height="156" rx="7" fill={`url(#${boothBlueId})`} />
-          <rect x="141" y="61" width="121" height="167" rx="7" fill={`url(#${boothCyanId})`} />
-          <rect x="272" y="73" width="96" height="155" rx="7" fill={`url(#${boothBlueId})`} />
-          <rect x="378" y="59" width="132" height="169" rx="7" fill={`url(#${boothCyanId})`} />
-          <rect x="520" y="75" width="88" height="153" rx="7" fill={`url(#${boothBlueId})`} />
-          <rect x="41" y="84" width="77" height="10" rx="2" fill="#1b26ae" opacity="0.5" />
-          <rect x="154" y="74" width="94" height="10" rx="2" fill="#129cdf" opacity="0.52" />
-          <rect x="392" y="72" width="104" height="10" rx="2" fill="#129cdf" opacity="0.52" />
-        </g>
+        <circle cx="310" cy="156" r="154" fill={`url(#${connectionGlowId})`} />
+        <circle
+          cx="310"
+          cy="156"
+          r="119"
+          fill="none"
+          stroke="#ffffff"
+          strokeDasharray="2 10"
+          strokeLinecap="round"
+          strokeWidth="1.4"
+          opacity="0.2"
+        />
+        <circle
+          cx="310"
+          cy="156"
+          r="82"
+          fill="none"
+          stroke="#129cdf"
+          strokeDasharray="5 9"
+          strokeLinecap="round"
+          strokeWidth="1.2"
+          opacity="0.32"
+        />
 
         <path
-          d="M147 101 C 246 69, 374 69, 473 101"
+          d="M145 132 C205 69 259 72 310 104 C361 72 415 69 475 132"
           fill="none"
-          stroke="var(--warning)"
-          strokeDasharray="3 6"
+          stroke={`url(#${lineGradientId})`}
+          strokeDasharray="4 7"
+          strokeLinecap="round"
+          strokeWidth="2"
+        />
+        <path
+          d="M154 212 C222 259 398 259 466 212"
+          fill="none"
+          stroke="#8bec01"
+          strokeDasharray="3 7"
           strokeLinecap="round"
           strokeWidth="1.7"
+          opacity="0.85"
         />
-        <circle cx="147" cy="101" r="3.2" fill="var(--warning)" />
-        <circle cx="310" cy="74" r="3.2" fill="var(--warning)" />
-        <circle cx="473" cy="101" r="3.2" fill="var(--warning)" />
+        <path
+          d="M310 104 C310 141 310 176 310 223"
+          fill="none"
+          stroke="#ffffff"
+          strokeDasharray="2 8"
+          strokeLinecap="round"
+          strokeWidth="1.2"
+          opacity="0.28"
+        />
 
-        <ProfessionalBust
-          x={87}
-          y={72}
-          scale={0.92}
+        <g aria-hidden="true">
+          <circle cx="145" cy="132" r="5" fill="#8bec01" />
+          <circle cx="310" cy="104" r="6" fill="#f1ff0a" />
+          <circle cx="475" cy="132" r="5" fill="#ff7d3b" />
+          <circle cx="154" cy="212" r="4" fill="#8bec01" />
+          <circle cx="466" cy="212" r="4" fill="#8bec01" />
+          <circle cx="310" cy="223" r="4" fill="#129cdf" />
+
+          <circle cx="94" cy="157" r="3" fill="#ffffff" opacity="0.7" />
+          <circle cx="526" cy="157" r="3" fill="#ffffff" opacity="0.7" />
+          <circle cx="214" cy="54" r="3" fill="#129cdf" opacity="0.8" />
+          <circle cx="406" cy="54" r="3" fill="#ff7d3b" opacity="0.8" />
+        </g>
+
+        <g opacity="0.2" aria-hidden="true">
+          <circle cx="145" cy="160" r="76" fill="#ffffff" />
+          <circle cx="310" cy="145" r="86" fill="#ffffff" />
+          <circle cx="475" cy="160" r="76" fill="#ffffff" />
+        </g>
+
+        <Professional
+          x={86}
+          y={76}
+          scale={0.98}
           hairStyle="long"
           hairColor="#3b2a1a"
           skinColor="#f2c9a3"
           shirtColor="#1b26ae"
           label="profissional-esquerda"
         />
-        <ProfessionalBust
+        <Professional
           x={250}
           y={55}
           scale={1}
@@ -347,28 +400,16 @@ export function HeroVisual() {
           tieColor="#ff7d3b"
           label="profissional-central"
         />
-        <ProfessionalBust
-          x={413}
-          y={72}
-          scale={0.92}
+        <Professional
+          x={414}
+          y={76}
+          scale={0.98}
           hairStyle="bob"
           hairColor="#5a2f10"
           skinColor="#eab68a"
           shirtColor="#129cdf"
           label="profissional-direita"
         />
-
-        <path
-          d="M189 268 C 245 303, 375 303, 431 268"
-          fill="none"
-          stroke="var(--success)"
-          strokeDasharray="3 6"
-          strokeLinecap="round"
-          strokeWidth="1.6"
-          opacity="0.9"
-        />
-        <circle cx="189" cy="268" r="3.2" fill="var(--success)" />
-        <circle cx="431" cy="268" r="3.2" fill="var(--success)" />
       </svg>
 
       <div
