@@ -41,7 +41,7 @@ describe("HeroVisual desktop — refinamento estrutural", () => {
     expect(src).toContain('data-testid="hero-visual-cards"');
     expect(src).toContain('data-testid="hero-visual-match-badge"');
     expect(src).toMatch(
-      /gridTemplateColumns:\s*"minmax\(0,1fr\)\s+minmax\(80px,\s*110px\)\s+minmax\(0,1fr\)"/,
+      /gridTemplateColumns:\s*"minmax\(0,1fr\)\s+minmax\(140px,\s*170px\)\s+minmax\(0,1fr\)"/,
     );
   });
 
