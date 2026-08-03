@@ -128,7 +128,7 @@ export function StepIdentity({
       <p className="mt-1 text-sm text-muted-foreground">
         {mode === "edit"
           ? "Atualize seus dados. Seu contato atual está protegido — preencha apenas para atualizar."
-          : "Suas informações de contato ficam privadas. Só liberamos com interesse mútuo."}
+          : "Suas informações de contato ficam privadas."}
       </p>
 
       <div className="mt-6 space-y-4">
