@@ -63,17 +63,17 @@ describe("match_reasons — colunas de rastreio (migration aditiva)", () => {
 
   it("usa ON DELETE SET NULL nas três FKs novas", () => {
     const fks = psql(`
-      SELECT string_agg(kcu.column_name || '->' || ccu.table_name || ':' || rc.delete_rule, ',' ORDER BY kcu.column_name)
-        FROM information_schema.table_constraints tc
-        JOIN information_schema.key_column_usage kcu ON kcu.constraint_name = tc.constraint_name
-        JOIN information_schema.referential_constraints rc ON rc.constraint_name = tc.constraint_name
-        JOIN information_schema.constraint_column_usage ccu ON ccu.constraint_name = tc.constraint_name
-       WHERE tc.table_schema='public' AND tc.table_name='match_reasons' AND tc.constraint_type='FOREIGN KEY'
-         AND kcu.column_name IN ('profile_need_id','profile_offer_id','taxonomy_relation_id')
+      SELECT string_agg(a.attname || '->' || rt.relname || ':' || c.confdeltype, ',' ORDER BY a.attname)
+        FROM pg_constraint c
+        JOIN pg_class t ON t.oid = c.conrelid
+        JOIN pg_class rt ON rt.oid = c.confrelid
+        JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = c.conkey[1]
+       WHERE t.relname='match_reasons' AND c.contype='f'
+         AND a.attname IN ('profile_need_id','profile_offer_id','taxonomy_relation_id')
     `);
-    expect(fks).toContain("profile_need_id->profile_needs:SET NULL");
-    expect(fks).toContain("profile_offer_id->profile_offers:SET NULL");
-    expect(fks).toContain("taxonomy_relation_id->taxonomy_relations:SET NULL");
+    expect(fks).toContain("profile_need_id->profile_needs:n");
+    expect(fks).toContain("profile_offer_id->profile_offers:n");
+    expect(fks).toContain("taxonomy_relation_id->taxonomy_relations:n");
   });
 
   it("restringe relation_weight a 1..100 quando não nulo", () => {
