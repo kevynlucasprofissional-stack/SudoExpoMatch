@@ -112,6 +112,9 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
     "Regras:",
     "- Até 5 ofertas e até 5 necessidades.",
     "- Cada item precisa de label (<=80 chars), confidence 0..1 e rationale curta.",
+    "- ADERÊNCIA: sugira apenas o que decorre do resumo acima. `confidence` mede o quanto a sugestão está ancorada no resumo (1 = explícito no texto; 0 = chute). Não liste itens do catálogo só porque existem.",
+    "- A rationale deve citar o trecho/necessidade do resumo que justifica a sugestão. Sem justificativa no resumo, não sugira o item.",
+
     "- taxonomyItemId deve ser um id EXATO da lista acima (de qualquer segmento) ou null. IDs fora da lista são rejeitados pelo servidor.",
     "- OBRIGATÓRIO: cada NECESSIDADE precisa de `needKind`, classificado pelo SIGNIFICADO da própria sugestão — nunca pelo segmento da empresa nem por qualquer estado de tela.",
     `- Valores permitidos de needKind: ${NEED_KIND_VALUES.join(", ")}. Em dúvida real, use "outro".`,

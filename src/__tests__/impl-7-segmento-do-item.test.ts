@@ -305,7 +305,8 @@ describe("aceitar sugestão na UI preserva o segmento da taxonomia", () => {
 
 describe("cache/prompt version", () => {
   it("versão nova invalida cache sem segmentId", () => {
-    expect(PROMPT_VERSION).toBe("a1a2-v5-itemsegment");
+    // A versão evolui a cada mudança de contrato (IMPL 8 = a1a2-v6-adherence).
     expect(PROMPT_VERSION).not.toBe("a1a2-v4-needkind");
+    expect(PROMPT_VERSION.startsWith("a1a2-v")).toBe(true);
   });
 });

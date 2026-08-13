@@ -6,8 +6,19 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
  * IMPL 6: a saída de necessidade passou a carregar `needKind`.
  * IMPL 7: o item normalizado passou a carregar `segmentId` derivado do
  * próprio taxonomy item. Versão nova invalida cache sem esses campos.
+ * IMPL 8: o prompt passou a definir `confidence` como ADERÊNCIA ao resumo e
+ * a normalização descarta itens abaixo de `MIN_SUGGESTION_CONFIDENCE`.
  */
-export const PROMPT_VERSION = "a1a2-v5-itemsegment";
+export const PROMPT_VERSION = "a1a2-v6-adherence";
+
+/**
+ * IMPL 8 — única defesa determinística contra sugestão semanticamente
+ * desconectada: o piso de autodeclaração do modelo. Deliberadamente BAIXO
+ * (0.25) para nunca bloquear uma boa sugestão cross-segment; só remove o que
+ * o próprio modelo marcou como quase-chute. Confiança ausente/inválida NÃO é
+ * descartada (default 0.5) — o contrato tolera resposta incompleta.
+ */
+export const MIN_SUGGESTION_CONFIDENCE = 0.25;
 
 /** Fonte única de verdade dos tipos de necessidade (espelha o banco). */
 export { needKindSchema };
@@ -183,6 +194,11 @@ export function normalizeAgainstCatalog(
     for (const r of list) {
       const label = clamp(r.label ?? "", 80);
       if (!label) continue;
+      // IMPL 8: confiança ausente/não numérica é tolerada (0.5); apenas um
+      // número explícito abaixo do piso descarta a sugestão.
+      const rawConf = Number(r.confidence);
+      const confidence = Number.isFinite(rawConf) ? Math.max(0, Math.min(1, rawConf)) : 0.5;
+      if (Number.isFinite(rawConf) && confidence < MIN_SUGGESTION_CONFIDENCE) continue;
       const key = label.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -193,11 +209,12 @@ export function normalizeAgainstCatalog(
         kind,
         // IMPL 6: o tipo vem da própria sugestão; inválido/ausente → `outro`.
         ...(kind === "need" ? { needKind: coerceNeedKind(r.needKind) } : {}),
-        confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0.5)),
+        confidence,
         rationale: r.rationale ? clamp(r.rationale, 200) : undefined,
       });
       if (out.length >= 5) break;
     }
+
     return out;
   }
 
