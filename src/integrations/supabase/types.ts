@@ -1209,6 +1209,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _admin_match_reasons: {
+        Args: { _match_id: string; _perspective: string }
+        Returns: Json
+      }
       _recompute_matches_for_profile: {
         Args: { p_event_id: string; p_profile_id: string }
         Returns: number
@@ -1229,6 +1233,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
         Args: { _profile_id: string }
         Returns: Json
@@ -1241,6 +1246,27 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }[]
+      }
+      admin_list_matches: {
+        Args: {
+          _algorithm_versions?: string[]
+          _connection?: string
+          _connection_statuses?: string[]
+          _decisions?: string[]
+          _event_id: string
+          _kinds?: string[]
+          _labels?: string[]
+          _limit?: number
+          _max_score?: number
+          _min_score?: number
+          _mutual_only?: boolean
+          _offset?: number
+          _score_side?: string
+          _search?: string
+          _segment_ids?: string[]
+          _sort?: string
+        }
+        Returns: Json
       }
       admin_list_participants: {
         Args: {
