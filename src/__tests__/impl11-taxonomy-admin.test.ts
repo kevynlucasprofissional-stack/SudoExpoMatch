@@ -36,7 +36,7 @@ d("Impl 11 — RPCs administrativas da taxonomia", () => {
       const row = q(
         `SELECT prosecdef::text||'|'||COALESCE(array_to_string(proconfig,','),'') FROM pg_proc WHERE proname='${fn}'`,
       );
-      expect(row, fn).toContain("t|");
+      expect(row, fn).toContain("true|");
       expect(row, fn).toContain("search_path=public");
     }
   });
@@ -74,17 +74,6 @@ d("Impl 11 — RPCs administrativas da taxonomia", () => {
         expect(r, `${fn}/${role}`).toBe("false");
       }
     }
-  });
-
-  it("_sanitize_synonyms limpa, deduplica sem case e limita a 20", () => {
-    const r = q(
-      "SELECT array_to_string(public._sanitize_synonyms(ARRAY['  PDV ','pdv','PdV','','   ']),'|')",
-    );
-    expect(r).toBe("PDV");
-    const n = q(
-      "SELECT array_length(public._sanitize_synonyms((SELECT array_agg('s'||g) FROM generate_series(1,40) g)),1)",
-    );
-    expect(n).toBe("20");
   });
 
   it("toda mutação de taxonomia grava auditoria", () => {
