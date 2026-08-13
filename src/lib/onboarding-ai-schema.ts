@@ -1,7 +1,23 @@
 import { z } from "zod";
+import { needKindSchema } from "@/features/participant/schemas";
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
-export const PROMPT_VERSION = "a1a2-v3-crossseg";
+/**
+ * IMPL 6: a saída de necessidade passou a carregar `needKind`.
+ * Versão nova invalida o cache anterior (respostas sem needKind).
+ */
+export const PROMPT_VERSION = "a1a2-v4-needkind";
+
+/** Fonte única de verdade dos tipos de necessidade (espelha o banco). */
+export { needKindSchema };
+export const NEED_KIND_VALUES = needKindSchema.options;
+export const DEFAULT_NEED_KIND = "outro" as const;
+
+/** Coerção determinística: valor válido do domínio, ou `outro`. */
+export function coerceNeedKind(raw: unknown): z.infer<typeof needKindSchema> {
+  const parsed = needKindSchema.safeParse(typeof raw === "string" ? raw.trim().toLowerCase() : raw);
+  return parsed.success ? parsed.data : DEFAULT_NEED_KIND;
+}
 
 /**
  * ID EXATO do modelo no catálogo do Lovable AI Gateway (Cloud AI Models).
@@ -19,13 +35,26 @@ export const suggestOnboardingInputSchema = z.object({
 });
 export type SuggestOnboardingInput = z.infer<typeof suggestOnboardingInputSchema>;
 
-export const aiSuggestionItemSchema = z.object({
-  taxonomyItemId: z.string().nullable(),
-  label: z.string().trim().min(1).max(80),
-  kind: z.enum(["offer", "need"]),
-  confidence: z.number().min(0).max(1),
-  rationale: z.string().max(200).optional(),
-});
+export const aiSuggestionItemSchema = z
+  .object({
+    taxonomyItemId: z.string().nullable(),
+    label: z.string().trim().min(1).max(80),
+    kind: z.enum(["offer", "need"]),
+    /**
+     * IMPL 6 — tipo próprio da necessidade sugerida, independente do
+     * seletor da UI. Semanticamente obrigatório: toda sugestão com
+     * `kind: "need"` sai da normalização com um valor válido (default `outro`).
+     * Ofertas não têm needKind.
+     */
+    needKind: needKindSchema.optional(),
+    confidence: z.number().min(0).max(1),
+    rationale: z.string().max(200).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.kind === "need" && !v.needKind) {
+      ctx.addIssue({ code: "custom", path: ["needKind"], message: "needKind obrigatório" });
+    }
+  });
 export type AiSuggestionItem = z.infer<typeof aiSuggestionItemSchema>;
 
 export const aiUnderstandingSchema = z.object({
@@ -68,6 +97,12 @@ export const modelOutputSchema = z.object({
     z.object({
       taxonomyItemId: z.string().nullable(),
       label: z.string(),
+      /**
+       * IMPL 6 — exigido no prompt, mas tolerante no schema de fio: uma
+       * resposta sem needKind (ou com valor fora do domínio) NÃO derruba a
+       * chamada inteira para fallback; a normalização coage para `outro`.
+       */
+      needKind: z.string().nullish(),
       confidence: z.number(),
       rationale: z.string(),
     }),
@@ -107,7 +142,16 @@ export function normalizeAgainstCatalog(
     return s.length > max ? s.slice(0, max) : s;
   }
 
-  function normList(list: ModelOutput["offers"], kind: "offer" | "need"): AiSuggestionItem[] {
+  function normList(
+    list: Array<{
+      taxonomyItemId: string | null;
+      label: string;
+      confidence: number;
+      rationale: string;
+      needKind?: string | null;
+    }>,
+    kind: "offer" | "need",
+  ): AiSuggestionItem[] {
     const out: AiSuggestionItem[] = [];
     const seen = new Set<string>();
     for (const r of list) {
@@ -120,6 +164,8 @@ export function normalizeAgainstCatalog(
         taxonomyItemId: pickTaxId(r.taxonomyItemId, kind),
         label,
         kind,
+        // IMPL 6: o tipo vem da própria sugestão; inválido/ausente → `outro`.
+        ...(kind === "need" ? { needKind: coerceNeedKind(r.needKind) } : {}),
         confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0.5)),
         rationale: r.rationale ? clamp(r.rationale, 200) : undefined,
       });

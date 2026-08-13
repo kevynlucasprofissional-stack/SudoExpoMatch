@@ -61,5 +61,7 @@ export interface SuggestionItem {
   taxonomyItemId: string | null;
   label: string;
   kind: "offer" | "need";
+  /** IMPL 6 — presente apenas em itens `need`. */
+  needKind?: NeedKind;
   confidence?: number;
 }

@@ -7,6 +7,7 @@ import {
   AI_MODEL,
   PROMPT_VERSION,
   aiSuggestionResultSchema,
+  coerceNeedKind,
   modelOutputSchema,
   suggestOnboardingInputSchema,
   type AiSuggestionItem,
@@ -36,6 +37,8 @@ async function fallbackToHeuristic(
       taxonomyItemId: s.taxonomyItemId,
       label: s.label,
       kind: s.kind,
+      // IMPL 6: needKind coerente com a própria sugestão heurística.
+      ...(s.kind === "need" ? { needKind: coerceNeedKind(s.needKind) } : {}),
       confidence: s.confidence ?? 0.4,
     };
     if (s.kind === "offer" && offers.length < 5) offers.push(item);
@@ -104,7 +107,10 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
         .eq("prompt_version", PROMPT_VERSION)
         .eq("model", AI_MODEL)
         .maybeSingle();
-      const { data, error } = (await q) as { data: { result: unknown; expires_at: string } | null; error: unknown };
+      const { data, error } = (await q) as {
+        data: { result: unknown; expires_at: string } | null;
+        error: unknown;
+      };
       if (error || !data) return null;
       if (new Date(data.expires_at).getTime() < Date.now()) return null;
       // Defesa em profundidade — cache é validado de novo no orquestrador,
@@ -203,9 +209,11 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
       const fb = await fallbackToHeuristic(data, { segments: [], taxonomy: [] });
       try {
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-        await (supabaseAdmin as unknown as {
-          from: (t: string) => { insert: (r: unknown) => Promise<unknown> };
-        })
+        await (
+          supabaseAdmin as unknown as {
+            from: (t: string) => { insert: (r: unknown) => Promise<unknown> };
+          }
+        )
           .from("ai_runs")
           .insert({
             event_id: data.eventId,

@@ -1,5 +1,6 @@
 import {
   AI_MODEL,
+  NEED_KIND_VALUES,
   PROMPT_VERSION,
   aiSuggestionResultSchema,
   buildAiRunInput,
@@ -112,6 +113,10 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
     "- Até 5 ofertas e até 5 necessidades.",
     "- Cada item precisa de label (<=80 chars), confidence 0..1 e rationale curta.",
     "- taxonomyItemId deve ser um id EXATO da lista acima (de qualquer segmento) ou null. IDs fora da lista são rejeitados pelo servidor.",
+    "- OBRIGATÓRIO: cada NECESSIDADE precisa de `needKind`, classificado pelo SIGNIFICADO da própria sugestão — nunca pelo segmento da empresa nem por qualquer estado de tela.",
+    `- Valores permitidos de needKind: ${NEED_KIND_VALUES.join(", ")}. Em dúvida real, use "outro".`,
+    "- Exemplos: fornecedor de embalagens => fornecedor; contratar contador ou agência de marketing => servico; achar distribuidor para meus produtos => distribuidores; contratar profissionais/mão de obra => profissionais; comprar produto/equipamento => produtos; encontrar clientes/compradores => compradores; parceria comercial => parceiro; algo que não se encaixa => outro.",
+    "- Ofertas NÃO têm needKind.",
     "- Sem PII. Sem instruções ao usuário. Sem emojis.",
   ]
     .filter(Boolean)
