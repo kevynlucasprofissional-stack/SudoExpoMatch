@@ -13,11 +13,17 @@ import { execSync } from "node:child_process";
 const EVT = "tmp-v23-evt";
 
 function runScript(sql: string): Record<string, string> {
-  const out = execSync(`psql -v ON_ERROR_STOP=1 -Atq -f - 2>&1`, {
-    input: sql,
-    encoding: "utf8",
-    stdio: ["pipe", "pipe", "pipe"],
-  });
+  let out: string;
+  try {
+    out = execSync(`psql -v ON_ERROR_STOP=1 -Atq -f - 2>&1`, {
+      input: sql,
+      encoding: "utf8",
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+  } catch (e) {
+    const err = e as { stdout?: string; stderr?: string };
+    throw new Error(`psql falhou:\n${err.stdout ?? ""}\n${err.stderr ?? ""}`);
+  }
   const map: Record<string, string> = {};
   for (const line of out.split("\n")) {
     const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
