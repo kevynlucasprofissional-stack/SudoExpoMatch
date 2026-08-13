@@ -12,11 +12,17 @@ import { z } from "zod";
 
 const nonNegInt = z.coerce.number().int().nonnegative();
 
+/** Texto que o banco pode devolver nulo — a UI sempre recebe string. */
+const nullableText = z
+  .string()
+  .nullish()
+  .transform((v) => v ?? "");
+
 export const participantRowSchema = z.object({
   id: z.string().uuid(),
   name: z.string(),
-  company: z.string().nullable().default(""),
-  city: z.string().nullable().default(""),
+  company: nullableText,
+  city: nullableText,
   segment_id: z.string().nullable(),
   segment_label: z.string().nullable(),
   segment_emoji: z.string().nullable(),
@@ -58,7 +64,7 @@ export const participantMatchSchema = z.object({
   id: z.string().uuid(),
   other_profile_id: z.string().uuid(),
   other_name: z.string(),
-  other_company: z.string().nullable().default(""),
+  other_company: nullableText,
   other_segment_id: z.string().nullable(),
   kind: z.string(),
   label: z.string(),
@@ -77,7 +83,7 @@ export const participantConnectionSchema = z.object({
   status: z.string(),
   other_profile_id: z.string().uuid(),
   other_name: z.string(),
-  other_company: z.string().nullable().default(""),
+  other_company: nullableText,
   assigned_to: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string(),
@@ -98,12 +104,12 @@ export const participantDetailSchema = z.object({
     id: z.string().uuid(),
     event_id: z.string(),
     name: z.string(),
-    company: z.string().nullable().default(""),
-    city: z.string().nullable().default(""),
+    company: nullableText,
+    city: nullableText,
     neighborhood: z.string().nullable(),
     segment_id: z.string().nullable(),
     segment_label: z.string().nullable(),
-    summary: z.string().nullable().default(""),
+    summary: nullableText,
     is_demo: z.boolean(),
     created_at: z.string(),
     updated_at: z.string(),
