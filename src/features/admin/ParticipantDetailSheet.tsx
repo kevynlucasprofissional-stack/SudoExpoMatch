@@ -61,7 +61,7 @@ export function ParticipantDetailSheet({
           </p>
         ) : d ? (
           <Tabs defaultValue="perfil" className="mt-6">
-            <TabsList className="flex w-full flex-wrap justify-start">
+            <TabsList className="mb-2 flex h-auto w-full flex-wrap justify-start gap-1">
               <TabsTrigger value="perfil">Perfil</TabsTrigger>
               <TabsTrigger value="ofertas">Ofertas ({d.offers.length})</TabsTrigger>
               <TabsTrigger value="necessidades">
