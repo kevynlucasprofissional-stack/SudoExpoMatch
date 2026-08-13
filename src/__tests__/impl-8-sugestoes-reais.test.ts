@@ -17,7 +17,10 @@ import {
 import type { EventCatalog } from "@/features/participant/types";
 import { heuristicSuggestionProvider, inferNeedKind } from "@/features/onboarding/suggestions";
 import { mergeCapped } from "@/features/onboarding/mergeItems";
-import { mapWizardToSaveProfileInput, mapProfileToWizardDraft } from "@/features/onboarding/mappers";
+import {
+  mapWizardToSaveProfileInput,
+  mapProfileToWizardDraft,
+} from "@/features/onboarding/mappers";
 import { createEmptyDraft, cryptoUid } from "@/features/onboarding/draft";
 import type { WizardDraft, WizardNeed, WizardOffer } from "@/features/onboarding/types";
 
@@ -210,12 +213,7 @@ describe("cenário A — restaurante com delivery (cross-segment real)", () => {
   });
 
   it("(3) needKind reflete o significado do item (marketing/software/contábil = servico)", () => {
-    expect(norm.needs.map((n) => n.needKind)).toEqual([
-      "servico",
-      "servico",
-      "servico",
-      "servico",
-    ]);
+    expect(norm.needs.map((n) => n.needKind)).toEqual(["servico", "servico", "servico", "servico"]);
   });
 
   it("(9) ofertas do próprio segmento continuam válidas", () => {
@@ -532,7 +530,9 @@ describe("(12) versão de prompt e cache", () => {
     const stale = {
       understanding: { summary: "", mainActivity: "", keywords: [], clarifyingQuestion: null },
       offers: [],
-      needs: [{ taxonomyItemId: "tx-mkt", label: "Marketing digital", kind: "need", confidence: 0.8 }],
+      needs: [
+        { taxonomyItemId: "tx-mkt", label: "Marketing digital", kind: "need", confidence: 0.8 },
+      ],
       source: "ai",
       promptVersion: "a1a2-v4-needkind",
     };

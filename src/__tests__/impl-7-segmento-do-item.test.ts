@@ -309,5 +309,4 @@ describe("cache/prompt version", () => {
     expect(PROMPT_VERSION).not.toBe("a1a2-v4-needkind");
     expect(PROMPT_VERSION.startsWith("a1a2-v")).toBe(true);
   });
-
 });

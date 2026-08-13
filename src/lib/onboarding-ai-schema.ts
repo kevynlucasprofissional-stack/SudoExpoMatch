@@ -25,7 +25,6 @@ export { needKindSchema };
 export const NEED_KIND_VALUES = needKindSchema.options;
 export const DEFAULT_NEED_KIND = "outro" as const;
 
-
 /** Coerção determinística: valor válido do domínio, ou `outro`. */
 export function coerceNeedKind(raw: unknown): z.infer<typeof needKindSchema> {
   const parsed = needKindSchema.safeParse(typeof raw === "string" ? raw.trim().toLowerCase() : raw);
