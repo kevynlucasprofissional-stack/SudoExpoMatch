@@ -29,8 +29,7 @@ export interface NormalizedParticipantesSearch {
   selected: string | null;
 }
 
-const UUID_RE =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function normalizeParticipantesSearch(
   s: Partial<ParticipantesSearch>,
@@ -44,10 +43,7 @@ export function normalizeParticipantesSearch(
     .filter((x) => x.length > 0)
     .slice(0, 25);
   const rawPage = Number(s.page);
-  const page = Math.max(
-    1,
-    Math.min(9999, Number.isFinite(rawPage) ? Math.trunc(rawPage) : 1),
-  );
+  const page = Math.max(1, Math.min(9999, Number.isFinite(rawPage) ? Math.trunc(rawPage) : 1));
   const raw = (s.p ?? "").toString();
   const selected = UUID_RE.test(raw) ? raw : null;
   return { q, segments, city, page, selected };

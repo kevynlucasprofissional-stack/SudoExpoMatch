@@ -45,10 +45,7 @@ export async function fetchParticipants(
   eventId: string,
   f: ParticipantsFilters,
 ): Promise<ParticipantsPage> {
-  const limit = Math.min(
-    Math.max(f.limit ?? PARTICIPANTS_PAGE_SIZE, 1),
-    PARTICIPANTS_MAX_LIMIT,
-  );
+  const limit = Math.min(Math.max(f.limit ?? PARTICIPANTS_PAGE_SIZE, 1), PARTICIPANTS_MAX_LIMIT);
   const { data, error } = await supabase.rpc("admin_list_participants", {
     _event_id: eventId,
     _search: f.q ? f.q : undefined,
@@ -75,9 +72,7 @@ export function useAdminParticipants(
   });
 }
 
-export async function fetchParticipantDetail(
-  profileId: string,
-): Promise<ParticipantDetail> {
+export async function fetchParticipantDetail(profileId: string): Promise<ParticipantDetail> {
   const { data, error } = await supabase.rpc("admin_get_participant_detail", {
     _profile_id: profileId,
   });
@@ -85,10 +80,7 @@ export async function fetchParticipantDetail(
   return participantDetailSchema.parse(data);
 }
 
-export function useAdminParticipantDetail(
-  profileId: string | null,
-  enabled: boolean,
-) {
+export function useAdminParticipantDetail(profileId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: participantDetailKey(profileId ?? "none"),
     enabled: enabled && !!profileId,
