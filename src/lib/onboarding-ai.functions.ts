@@ -35,6 +35,8 @@ async function fallbackToHeuristic(
   for (const s of items.items) {
     const item: AiSuggestionItem = {
       taxonomyItemId: s.taxonomyItemId,
+      // IMPL 7: segmento vem do taxonomy item, nunca do perfil.
+      segmentId: s.segmentId ?? null,
       label: s.label,
       kind: s.kind,
       // IMPL 6: needKind coerente com a própria sugestão heurística.

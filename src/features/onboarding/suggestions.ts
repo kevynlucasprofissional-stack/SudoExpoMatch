@@ -100,11 +100,17 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
     const validIds = new Set(catalog.taxonomy.map((t) => t.id));
     const summaryNorm = norm(summary);
 
+    /** IMPL 7 — só é autoritativo o item com segmento próprio. */
+    const authoritative = (t: { id: string; segment_id: string | null }) =>
+      validIds.has(t.id) && !!t.segment_id?.trim()
+        ? { taxonomyItemId: t.id, segmentId: t.segment_id!.trim() }
+        : { taxonomyItemId: null, segmentId: null };
+
     const segTax = catalog.taxonomy.filter((t) => t.segment_id === segmentId);
     const segOffers = segTax.filter((t) => t.kind === "offer" || t.kind === "both");
     for (const t of segOffers.slice(0, 5)) {
       items.push({
-        taxonomyItemId: validIds.has(t.id) ? t.id : null,
+        ...authoritative(t),
         label: t.label,
         kind: "offer",
         confidence: 0.6,
@@ -122,7 +128,7 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
         Array.from(words).some((w) => w.length > 3 && nLabel.includes(w));
       if (hits) {
         items.push({
-          taxonomyItemId: validIds.has(t.id) ? t.id : null,
+          ...authoritative(t),
           label: t.label,
           kind: "need",
           confidence: 0.5,
