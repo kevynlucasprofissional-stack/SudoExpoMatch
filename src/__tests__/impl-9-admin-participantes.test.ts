@@ -234,15 +234,18 @@ describe("IMPL 9 — privacidade (nenhum contato nesta área)", () => {
     expect(hasPrivateKey(parsed)).toBe(false);
   });
 
-  it("nem a rota nem o detalhe referenciam campos de contato", () => {
-    for (const key of FORBIDDEN_PRIVATE_KEYS) {
-      if (key === "email") continue; // "email" não aparece; checado abaixo sem falso positivo
-      expect(ROUTE.toLowerCase()).not.toContain(key);
-      expect(SHEET.toLowerCase()).not.toContain(key);
-    }
+  it("nem a rota nem o detalhe leem campos de contato do payload", () => {
+    // Prosa explicando a política é permitida; leitura de campo, não.
+    const fieldUse = new RegExp(
+      `(\\.|["'\`])(${FORBIDDEN_PRIVATE_KEYS.join("|")})\\b`,
+      "i",
+    );
+    expect(ROUTE).not.toMatch(fieldUse);
+    expect(SHEET).not.toMatch(fieldUse);
     expect(SHEET).not.toMatch(/reveal_contact|staff_reveal/i);
     expect(ROUTE).not.toMatch(/reveal_contact|staff_reveal/i);
   });
+
 });
 
 describe("IMPL 9 — query keys e wrapper de API", () => {
