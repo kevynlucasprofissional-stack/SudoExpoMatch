@@ -8,7 +8,10 @@ import {
   type ModelOutput,
 } from "@/lib/onboarding-ai-schema";
 import { heuristicSuggestionProvider } from "@/features/onboarding/suggestions";
-import { mapWizardToSaveProfileInput, mapProfileToWizardDraft } from "@/features/onboarding/mappers";
+import {
+  mapWizardToSaveProfileInput,
+  mapProfileToWizardDraft,
+} from "@/features/onboarding/mappers";
 import { wizardDraftSchema, persistedDraftSchema } from "@/features/onboarding/schemas";
 import { catalogTaxonomyItemSchema } from "@/features/taxonomy/schemas";
 import type { EventCatalog } from "@/features/participant/types";
@@ -112,7 +115,9 @@ describe("normalização deriva o segmento do próprio taxonomy item", () => {
   it("schema exige segmentId quando há taxonomy item", () => {
     const base = { taxonomyItemId: TX_MKT, label: "X", kind: "offer" as const, confidence: 0.5 };
     expect(aiSuggestionItemSchema.safeParse({ ...base, segmentId: null }).success).toBe(false);
-    expect(aiSuggestionItemSchema.safeParse({ ...base, segmentId: "marketing" }).success).toBe(true);
+    expect(aiSuggestionItemSchema.safeParse({ ...base, segmentId: "marketing" }).success).toBe(
+      true,
+    );
     expect(
       aiSuggestionItemSchema.safeParse({ ...base, taxonomyItemId: null, segmentId: null }).success,
     ).toBe(true);

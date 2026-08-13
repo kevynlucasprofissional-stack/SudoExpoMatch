@@ -1,10 +1,4 @@
-import type {
-  NeedKind,
-  MatchKind,
-  MatchLabel,
-  Decision,
-  ConnectionStatus,
-} from "@/lib/types";
+import type { NeedKind, MatchKind, MatchLabel, Decision, ConnectionStatus } from "@/lib/types";
 
 // ---------- Perfil próprio ----------
 export interface OwnProfileOffer {
