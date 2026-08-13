@@ -57,7 +57,7 @@ const catalog: EventCatalog = {
       id: "tx-contabil",
       segment_id: "financas",
       label: "Contabilidade empresarial",
-      kind: "offer",
+      kind: "both",
       synonyms: [],
     },
     { id: "tx-entrega", segment_id: "logistica", label: "Entregas", kind: "offer", synonyms: [] },
