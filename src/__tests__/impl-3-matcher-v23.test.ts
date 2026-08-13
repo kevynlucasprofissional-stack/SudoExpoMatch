@@ -59,7 +59,7 @@ $$;
 
 CREATE FUNCTION pg_temp.addneed(_p uuid, _slug text) RETURNS void LANGUAGE sql AS $$
   INSERT INTO public.profile_needs (profile_id, event_id, taxonomy_item_id, label, text, need_kind)
-  SELECT _p, '${EVT}', ti.id, ti.label, ti.label, 'produto'
+  SELECT _p, '${EVT}', ti.id, ti.label, ti.label, 'produtos'
     FROM public.taxonomy_items ti WHERE ti.slug = _slug;
 $$;
 
