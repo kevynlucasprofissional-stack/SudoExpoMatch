@@ -32,6 +32,8 @@ export function MatchCard({ match, eventId }: Props) {
   const mutual = isMatchMutual(match);
   const other = match.other;
   const segmentLabel = formatSegmentLabel(other.segment_id);
+  const myLabel = participantMatchLabel(match);
+
 
   function submit(d: "interesse" | "agora_nao") {
     decide.mutate(
