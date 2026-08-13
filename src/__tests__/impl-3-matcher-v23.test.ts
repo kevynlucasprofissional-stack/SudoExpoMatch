@@ -95,7 +95,6 @@ describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
     );
   });
 
-
   it("complementaridade sozinha é sinal suficiente nas duas perspectivas", () => {
     expect(def).toContain("IF v_comp_pts_me > 0 THEN");
     expect(def).toContain("IF v_comp_pts_other > 0 THEN\n      v_signal := true;");
