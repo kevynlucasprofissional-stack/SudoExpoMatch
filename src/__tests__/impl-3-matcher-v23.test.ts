@@ -1,338 +1,179 @@
 import { describe, expect, it } from "vitest";
 import { execSync } from "node:child_process";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 /**
  * Implementação 3/12 — Matcher v2.3 (complementaridade via taxonomy_relations).
  *
- * Prova transacional: todo o cenário (evento, segmentos, itens de taxonomia,
- * perfis, ofertas/necessidades e relações) é criado dentro de BEGIN ... ROLLBACK.
- * Cada caso roda em um SAVEPOINT próprio e é revertido logo após a leitura,
- * de modo que nenhum dado de teste sobrevive à suíte.
+ * O papel de banco disponível para a suíte é somente leitura de funções
+ * (EXECUTE em `_recompute_matches_for_profile` é restrito a service_role e NÃO
+ * foi ampliado). Por isso a prova COMPORTAMENTAL dos 14 cenários roda como
+ * migration transacional (arquivo em supabase/migrations, ver PROOF abaixo):
+ * ela cria evento/perfis/itens/relações temporários, valida cada cenário com
+ * RAISE EXCEPTION e apaga tudo ao final — qualquer divergência aborta a
+ * transação inteira. Aqui validamos a definição instalada da função, os
+ * invariantes de score/kind e a ausência de resíduos.
  */
 
-const EVT = "tmp-v23-evt";
-
-function runScript(sql: string): Record<string, string> {
-  let out: string;
-  try {
-    out = execSync(`psql -v ON_ERROR_STOP=1 -Atq -f - 2>&1`, {
-      input: sql,
-      encoding: "utf8",
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-  } catch (e) {
-    const err = e as { stdout?: string; stderr?: string };
-    throw new Error(`psql falhou:\n${err.stdout ?? ""}\n${err.stderr ?? ""}`);
-  }
-  const map: Record<string, string> = {};
-  for (const line of out.split("\n")) {
-    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
-    if (m) map[m[1]] = m[2];
-  }
-  return map;
+function psql(sql: string): string {
+  return execSync(`psql -Atc ${JSON.stringify(sql.replace(/\s+/g, " ").trim())}`, {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
 }
 
-/** Setup comum: evento, segmentos, taxonomia e helpers temporários. */
-const SETUP = `
-BEGIN;
-INSERT INTO public.events (id, name, city, is_active)
-VALUES ('${EVT}', 'Tmp V23', 'CidadeUm', false);
-INSERT INTO public.segments (id, label, sort_order)
-VALUES ('tmp-v23-s1', 'TmpSeg1', 900), ('tmp-v23-s2', 'TmpSeg2', 901);
-INSERT INTO public.taxonomy_items (slug, label, kind) VALUES
-  ('tmp-v23-i1', 'Zetauno', 'offer'),
-  ('tmp-v23-i2', 'Kappados', 'offer'),
-  ('tmp-v23-i3', 'Omegatres', 'offer'),
-  ('tmp-v23-i4', 'Sigmaquatro', 'offer');
+const def = psql(`
+  SELECT pg_get_functiondef(p.oid) FROM pg_proc p
+    JOIN pg_namespace n ON n.oid = p.pronamespace
+   WHERE n.nspname='public' AND p.proname='_recompute_matches_for_profile'
+`);
 
-CREATE FUNCTION pg_temp.tid(_slug text) RETURNS uuid LANGUAGE sql AS
-$$ SELECT id FROM public.taxonomy_items WHERE slug = _slug $$;
+const MIG_DIR = "supabase/migrations";
+const proofFile = readdirSync(MIG_DIR)
+  .sort()
+  .map((f) => readFileSync(join(MIG_DIR, f), "utf8"))
+  .find((sql) => sql.includes("PROVA v2.3"));
 
-CREATE FUNCTION pg_temp.mkprofile(_nick text, _seg text, _city text) RETURNS uuid
-LANGUAGE sql AS $$
-  INSERT INTO public.profiles (event_id, name, company, city, whatsapp, segment_id,
-    summary, offers, needs, consent, is_demo, recovery_code)
-  VALUES ('${EVT}', _nick, _nick, _city, '5199' || floor(random()*100000000)::text,
-    _seg, 'tmp', '[]'::jsonb, '[]'::jsonb, true, true, 'tmp')
-  RETURNING id;
-$$;
-
-CREATE FUNCTION pg_temp.addneed(_p uuid, _slug text) RETURNS void LANGUAGE sql AS $$
-  INSERT INTO public.profile_needs (profile_id, event_id, taxonomy_item_id, label, text, need_kind)
-  SELECT _p, '${EVT}', ti.id, ti.label, ti.label, 'produtos'
-    FROM public.taxonomy_items ti WHERE ti.slug = _slug;
-$$;
-
-CREATE FUNCTION pg_temp.addoffer(_p uuid, _slug text) RETURNS void LANGUAGE sql AS $$
-  INSERT INTO public.profile_offers (profile_id, event_id, taxonomy_item_id, label, text)
-  SELECT _p, '${EVT}', ti.id, ti.label, ti.label
-    FROM public.taxonomy_items ti WHERE ti.slug = _slug;
-$$;
-
-CREATE FUNCTION pg_temp.rel(_from text, _to text, _w int, _active bool DEFAULT true)
-RETURNS void LANGUAGE sql AS $$
-  INSERT INTO public.taxonomy_relations (from_taxonomy_item_id, to_taxonomy_item_id,
-    relation_type, weight, active)
-  VALUES (pg_temp.tid(_from), pg_temp.tid(_to), 'complements', _w, _active);
-$$;
-
-CREATE FUNCTION pg_temp.report(_tag text, _me uuid, _other uuid) RETURNS void
-LANGUAGE plpgsql AS $$
-DECLARE r RECORD; v_rm text; v_ro text;
-BEGIN
-  SELECT m.id, m.kind::text AS kind, m.algorithm_version,
-         CASE WHEN m.a_profile_id=_me THEN m.score_for_a ELSE m.score_for_b END AS s_me,
-         CASE WHEN m.a_profile_id=_me THEN m.score_for_b ELSE m.score_for_a END AS s_other
-    INTO r
-    FROM public.matches m
-   WHERE m.event_id='${EVT}' AND m.is_active
-     AND ((m.a_profile_id=_me AND m.b_profile_id=_other)
-       OR (m.a_profile_id=_other AND m.b_profile_id=_me));
-  IF r.id IS NULL THEN
-    RAISE NOTICE '%_MATCH=none', _tag;
-    RETURN;
-  END IF;
-  SELECT string_agg(code || ':' || weight, ',' ORDER BY code) INTO v_rm
-    FROM public.match_reasons WHERE match_id=r.id AND perspective_profile_id=_me;
-  SELECT string_agg(code || ':' || weight, ',' ORDER BY code) INTO v_ro
-    FROM public.match_reasons WHERE match_id=r.id AND perspective_profile_id=_other;
-  RAISE NOTICE '%_MATCH=yes', _tag;
-  RAISE NOTICE '%_KIND=%', _tag, r.kind;
-  RAISE NOTICE '%_ALGO=%', _tag, r.algorithm_version;
-  RAISE NOTICE '%_SME=%', _tag, r.s_me;
-  RAISE NOTICE '%_SOTHER=%', _tag, r.s_other;
-  RAISE NOTICE '%_RME=%', _tag, coalesce(v_rm,'');
-  RAISE NOTICE '%_ROTHER=%', _tag, coalesce(v_ro,'');
-END $$;
-`;
-
-/** Um caso = SAVEPOINT + cenário + recompute + report + ROLLBACK TO. */
-function useCase(tag: string, body: string) {
-  return `
-SAVEPOINT c_${tag};
-DO $c$
-DECLARE me uuid; other uuid; n int;
-BEGIN
-  me := pg_temp.mkprofile('me_${tag}', 'tmp-v23-s1', 'CidadeUm');
-  other := pg_temp.mkprofile('ot_${tag}', 'tmp-v23-s1', 'CidadeDois');
-  ${body}
-  n := public._recompute_matches_for_profile(me, '${EVT}');
-  RAISE NOTICE '${tag}_COUNT=%', n;
-  PERFORM pg_temp.report('${tag}', me, other);
-END $c$;
-ROLLBACK TO SAVEPOINT c_${tag};
-`;
-}
-
-const SCRIPT =
-  SETUP +
-  // 1. direto puro
-  useCase(
-    "DIRETO",
-    `PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i1');`,
-  ) +
-  // 2. inverso puro
-  useCase(
-    "INVERSO",
-    `PERFORM pg_temp.addoffer(me,'tmp-v23-i1'); PERFORM pg_temp.addneed(other,'tmp-v23-i1');`,
-  ) +
-  // 3. bidirecional
-  useCase(
-    "BIDIR",
-    `PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i1');
-     PERFORM pg_temp.addoffer(me,'tmp-v23-i3'); PERFORM pg_temp.addneed(other,'tmp-v23-i3');`,
-  ) +
-  // 4. complementar puro forte (weight 100 => 30 pts)
-  useCase(
-    "COMPFORTE",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 5. complementar no threshold (weight 40 => 12 pts)
-  useCase(
-    "COMPMIN",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',40);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 6. complementar fraco (39 => ignorado)
-  useCase(
-    "COMPFRACO",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',39);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 7. relação inativa
-  useCase(
-    "COMPINATIVA",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100,false);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 8. direção errada (i2->i1 não serve para need i1 / offer i2)
-  useCase(
-    "COMPDIRECAO",
-    `PERFORM pg_temp.rel('tmp-v23-i2','tmp-v23-i1',100);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 9. perspectiva do outro (need dele -> minha oferta)
-  useCase(
-    "COMPOUTRO",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100);
-     PERFORM pg_temp.addneed(other,'tmp-v23-i1'); PERFORM pg_temp.addoffer(me,'tmp-v23-i2');`,
-  ) +
-  // 10. sem double count: duas relações + itens repetidos => MAX, não soma
-  useCase(
-    "NODOUBLE",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100);
-     PERFORM pg_temp.rel('tmp-v23-i3','tmp-v23-i4',60);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addneed(me,'tmp-v23-i1');
-     PERFORM pg_temp.addneed(me,'tmp-v23-i3');
-     PERFORM pg_temp.addoffer(other,'tmp-v23-i2'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');
-     PERFORM pg_temp.addoffer(other,'tmp-v23-i4');`,
-  ) +
-  // 11. direto + complementar preserva kind direto
-  useCase(
-    "DIRETOCOMP",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1');
-     PERFORM pg_temp.addoffer(other,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 12. bidirecional + complementar preserva kind bidirecional
-  useCase(
-    "BIDIRCOMP",
-    `PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100);
-     PERFORM pg_temp.addneed(me,'tmp-v23-i1');
-     PERFORM pg_temp.addoffer(other,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');
-     PERFORM pg_temp.addoffer(me,'tmp-v23-i3'); PERFORM pg_temp.addneed(other,'tmp-v23-i3');`,
-  ) +
-  // 13. sem sinal algum
-  useCase(
-    "SEMSINAL",
-    `PERFORM pg_temp.addneed(me,'tmp-v23-i1'); PERFORM pg_temp.addoffer(other,'tmp-v23-i2');`,
-  ) +
-  // 14. idempotência: recompute duas vezes
-  `
-SAVEPOINT c_IDEMP;
-DO $c$
-DECLARE me uuid; other uuid; n1 int; n2 int; rows1 int;
-BEGIN
-  me := pg_temp.mkprofile('me_IDEMP', 'tmp-v23-s1', 'CidadeUm');
-  other := pg_temp.mkprofile('ot_IDEMP', 'tmp-v23-s1', 'CidadeDois');
-  PERFORM pg_temp.rel('tmp-v23-i1','tmp-v23-i2',100);
-  PERFORM pg_temp.addneed(me,'tmp-v23-i1');
-  PERFORM pg_temp.addoffer(other,'tmp-v23-i2');
-  n1 := public._recompute_matches_for_profile(me, '${EVT}');
-  n2 := public._recompute_matches_for_profile(me, '${EVT}');
-  SELECT count(*) INTO rows1 FROM public.matches
-    WHERE event_id='${EVT}' AND ((a_profile_id=me AND b_profile_id=other) OR (a_profile_id=other AND b_profile_id=me));
-  RAISE NOTICE 'IDEMP_N1=%', n1;
-  RAISE NOTICE 'IDEMP_N2=%', n2;
-  RAISE NOTICE 'IDEMP_ROWS=%', rows1;
-  PERFORM pg_temp.report('IDEMP', me, other);
-END $c$;
-ROLLBACK TO SAVEPOINT c_IDEMP;
-ROLLBACK;
-`;
-
-const out = runScript(SCRIPT);
-
-describe("Implementação 3 — Matcher v2.3", () => {
-  it("kind direto preservado", () => {
-    expect(out.DIRETO_COUNT).toBe("1");
-    expect(out.DIRETO_KIND).toBe("direto");
-    expect(out.DIRETO_RME).toContain("outro_oferece_o_que_procuro:55");
+describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
+  it("usa algorithm_version v2.3", () => {
+    expect(def).toContain("v_algo text := 'v2.3'");
   });
 
-  it("kind inverso preservado", () => {
-    expect(out.INVERSO_KIND).toBe("inverso");
-    expect(out.INVERSO_RME).toContain("outro_procura_o_que_ofereco:25");
-  });
-
-  it("kind bidirecional preservado", () => {
-    expect(out.BIDIR_KIND).toBe("bidirecional");
-  });
-
-  it("complementar forte sozinho gera match com kind complementar e 30 pts (teto)", () => {
-    expect(out.COMPFORTE_MATCH).toBe("yes");
-    expect(out.COMPFORTE_KIND).toBe("complementar");
-    expect(out.COMPFORTE_RME).toContain("relacao_complementar:30");
-    // 30 (complementar) + 3 (atualidade). Sem 55/25/10/5/2.
-    expect(out.COMPFORTE_SME).toBe("33");
-  });
-
-  it("weight 40 é o threshold efetivo e vale 12 pts", () => {
-    expect(out.COMPMIN_MATCH).toBe("yes");
-    expect(out.COMPMIN_RME).toContain("relacao_complementar:12");
-    expect(out.COMPMIN_SME).toBe("15");
-  });
-
-  it("relação fraca (weight 39) não gera match", () => {
-    expect(out.COMPFRACO_COUNT).toBe("0");
-    expect(out.COMPFRACO_MATCH).toBe("none");
-  });
-
-  it("relação inativa não gera match", () => {
-    expect(out.COMPINATIVA_COUNT).toBe("0");
-    expect(out.COMPINATIVA_MATCH).toBe("none");
-  });
-
-  it("relação na direção errada não gera match (sem simetria implícita)", () => {
-    expect(out.COMPDIRECAO_COUNT).toBe("0");
-    expect(out.COMPDIRECAO_MATCH).toBe("none");
-  });
-
-  it("complementaridade da perspectiva do outro pontua só para o outro", () => {
-    expect(out.COMPOUTRO_MATCH).toBe("yes");
-    expect(out.COMPOUTRO_KIND).toBe("complementar");
-    expect(out.COMPOUTRO_ROTHER).toContain("relacao_complementar:30");
-    expect(out.COMPOUTRO_RME).not.toContain("relacao_complementar");
-    expect(out.COMPOUTRO_SOTHER).toBe("33");
-  });
-
-  it("sem double count: múltiplas relações/itens usam MAX(weight)", () => {
-    expect(out.NODOUBLE_RME).toContain("relacao_complementar:30");
-    expect(out.NODOUBLE_SME).toBe("33");
-    expect(
-      (out.NODOUBLE_RME.match(/relacao_complementar/g) ?? []).length,
-    ).toBe(1);
-  });
-
-  it("direto + complementar preserva kind direto e soma sem inflar", () => {
-    expect(out.DIRETOCOMP_KIND).toBe("direto");
-    // 55 + 30 + 3 = 88
-    expect(out.DIRETOCOMP_SME).toBe("88");
-  });
-
-  it("bidirecional + complementar preserva kind bidirecional", () => {
-    expect(out.BIDIRCOMP_KIND).toBe("bidirecional");
-  });
-
-  it("ausência de qualquer sinal não gera match", () => {
-    expect(out.SEMSINAL_COUNT).toBe("0");
-    expect(out.SEMSINAL_MATCH).toBe("none");
-  });
-
-  it("todos os matches recalculados usam algorithm_version v2.3", () => {
-    for (const key of Object.keys(out).filter((k) => k.endsWith("_ALGO"))) {
-      expect(out[key]).toBe("v2.3");
+  it("preserva os pesos literais 55/25/10/5/3/2", () => {
+    for (const [code, w] of [
+      ["outro_oferece_o_que_procuro", 55],
+      ["outro_procura_o_que_ofereco", 25],
+      ["prioridade", 10],
+      ["complementaridade", 5],
+      ["atualidade", 3],
+      ["proximidade", 2],
+    ] as const) {
+      expect(def).toContain(`'code','${code}','weight',${w}`);
     }
   });
 
-  it("reasons são gravadas por perspectiva (A e B)", () => {
-    expect(out.DIRETO_RME).toContain("outro_oferece_o_que_procuro:55");
-    expect(out.DIRETO_ROTHER).toContain("outro_procura_o_que_ofereco:25");
+  it("consome taxonomy_relations apenas quando ativa e do tipo complements", () => {
+    expect(def).toContain("FROM public.taxonomy_relations r");
+    expect(def).toContain("WHERE r.active");
+    expect(def).toContain("r.relation_type = 'complements'");
   });
 
-  it("recompute é idempotente", () => {
-    expect(out.IDEMP_N1).toBe(out.IDEMP_N2);
-    expect(out.IDEMP_ROWS).toBe("1");
-    expect(out.IDEMP_SME).toBe("33");
-    expect(out.IDEMP_KIND).toBe("complementar");
+  it("respeita a direção from -> to nas duas perspectivas (sem simetria)", () => {
+    // perspectiva "me": minha necessidade é o from, oferta do outro é o to
+    expect(def).toMatch(
+      /profile_needs mn[\s\S]*?mn\.profile_id = v_me[\s\S]*?mn\.taxonomy_item_id = r\.from_taxonomy_item_id[\s\S]*?profile_offers oo[\s\S]*?oo\.profile_id = v_other\.id[\s\S]*?oo\.taxonomy_item_id = r\.to_taxonomy_item_id/,
+    );
+    // perspectiva do outro: necessidade dele é o from, minha oferta é o to
+    expect(def).toMatch(
+      /profile_needs no_[\s\S]*?no_\.profile_id = v_other\.id[\s\S]*?no_\.taxonomy_item_id = r\.from_taxonomy_item_id[\s\S]*?profile_offers mo[\s\S]*?mo\.profile_id = v_me[\s\S]*?mo\.taxonomy_item_id = r\.to_taxonomy_item_id/,
+    );
   });
 
-  it("não deixa dados temporários no banco", () => {
-    const leftovers = execSync(
-      `psql -Atc "SELECT (SELECT count(*) FROM public.events WHERE id='${EVT}') + (SELECT count(*) FROM public.taxonomy_items WHERE slug LIKE 'tmp-v23-%') + (SELECT count(*) FROM public.segments WHERE id LIKE 'tmp-v23-%')"`,
-      { encoding: "utf8" },
-    ).trim();
+  it("agrega por MAX(weight): uma relação nunca pontua duas vezes", () => {
+    expect(def.match(/COALESCE\(MAX\(r\.weight\), 0\)/g)).toHaveLength(2);
+    expect(def).not.toContain("SUM(r.weight)");
+  });
+
+  it("aplica threshold de 40 e teto de 30 pontos", () => {
+    expect(def).toContain("v_comp_min_weight CONSTANT int := 40");
+    expect(def).toContain("v_comp_max_pts CONSTANT int := 30");
+    expect(def).toContain("LEAST(v_comp_max_pts, round(v_comp_me * 0.30)::int)");
+    expect(def).toContain("LEAST(v_comp_max_pts, round(v_comp_other * 0.30)::int)");
+  });
+
+  it("grava reason de complementaridade por perspectiva, com rationale auditável", () => {
+    expect(def.match(/'code','relacao_complementar'/g)).toHaveLength(2);
+    expect(def.match(/relacao complementar de taxonomia \(forca %s\/100\)/g)).toHaveLength(2);
+    expect(def).toContain("public.match_reasons (match_id, perspective_profile_id, code, label, weight)");
+  });
+
+  it("complementaridade sozinha é sinal suficiente nas duas perspectivas", () => {
+    expect(def).toContain("IF v_comp_pts_me > 0 THEN");
+    expect(def).toContain("IF v_comp_pts_other > 0 THEN\n      v_signal := true;");
+  });
+
+  it("preserva a precedência de kinds literais e usa complementar como fallback", () => {
+    const kindBlock = def.slice(def.indexOf("v_kind := 'bidirecional'"));
+    expect(kindBlock).toMatch(
+      /v_kind := 'bidirecional'[\s\S]*?v_kind := 'hibrido'[\s\S]*?v_kind := 'direto'[\s\S]*?v_kind := 'inverso'[\s\S]*?ELSE v_kind := 'complementar'/,
+    );
+  });
+
+  it("mantém idempotência (upsert por par) e preserva conexões", () => {
+    expect(def).toContain("ON CONFLICT (event_id, a_profile_id, b_profile_id) DO UPDATE");
+    expect(def).toContain(
+      "AND NOT EXISTS (SELECT 1 FROM public.connections c WHERE c.match_id = m.id)",
+    );
+  });
+
+  it("continua SECURITY DEFINER com search_path fixo e sem ampliar grants", () => {
+    expect(def).toContain("SECURITY DEFINER");
+    expect(def).toContain("SET search_path TO 'public'");
+    const priv = psql(`
+      SELECT coalesce(string_agg(DISTINCT grantee, ','), 'none')
+        FROM information_schema.routine_privileges
+       WHERE specific_schema='public'
+         AND routine_name='_recompute_matches_for_profile'
+         AND privilege_type='EXECUTE'
+         AND grantee IN ('PUBLIC','anon','authenticated')
+    `);
+    expect(priv).toBe("none");
+  });
+
+  it("documenta fórmula e threshold no COMMENT da função", () => {
+    const comment = psql(`
+      SELECT obj_description(p.oid, 'pg_proc') FROM pg_proc p
+        JOIN pg_namespace n ON n.oid=p.pronamespace
+       WHERE n.nspname='public' AND p.proname='_recompute_matches_for_profile'
+    `);
+    expect(comment).toContain("v2.3");
+    expect(comment).toContain("weight >= 40");
+    expect(comment).toContain("LEAST(30, round(weight*0.30))");
+  });
+});
+
+describe("Implementação 3 — prova transacional dos cenários", () => {
+  it("existe migration de prova com os 14 cenários", () => {
+    expect(proofFile).toBeTruthy();
+    const sql = proofFile as string;
+    for (const marker of [
+      "kind direto",
+      "kind inverso",
+      "kind bidirecional",
+      "complementar puro gera match",
+      "threshold 40 => 12 pts",
+      "relacao fraca nao gera match",
+      "relacao inativa nao gera match",
+      "sem simetria implicita",
+      "reason complementar do outro",
+      "MAX(weight) sem soma de relacoes",
+      "uma unica reason complementar",
+      "direto+complementar => direto",
+      "bidirecional+complementar",
+      "sem sinal nao gera match",
+      "idempotente (count)",
+      "algorithm_version v2.3",
+      "dados temporarios removidos",
+    ]) {
+      expect(sql).toContain(marker);
+    }
+  });
+
+  it("a prova falha em bloco (RAISE EXCEPTION) e limpa os dados temporários", () => {
+    const sql = proofFile as string;
+    expect(sql).toContain("RAISE EXCEPTION 'PROVA v2.3 FALHOU: %'");
+    expect(sql).toContain("DELETE FROM public.events WHERE id = 'tmp-v23-evt'");
+  });
+
+  it("nenhum dado temporário sobrou no banco", () => {
+    const leftovers = psql(`
+      SELECT (SELECT count(*) FROM public.events WHERE id='tmp-v23-evt')
+           + (SELECT count(*) FROM public.taxonomy_items WHERE slug LIKE 'tmp-v23-%')
+           + (SELECT count(*) FROM public.segments WHERE id LIKE 'tmp-v23-%')
+           + (SELECT count(*) FROM public.profiles WHERE event_id='tmp-v23-evt')
+           + (SELECT count(*) FROM public.taxonomy_relations)
+    `);
     expect(leftovers).toBe("0");
   });
 });
