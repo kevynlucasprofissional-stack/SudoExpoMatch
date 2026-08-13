@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -128,7 +128,12 @@ describe("IMPL 9 — schemas de resposta", () => {
 
   it("rejeita shape inválido (id não-uuid, counts negativos, total ausente)", () => {
     expect(() =>
-      participantsPageSchema.parse({ items: [row({ id: "nope" })], total: 1, limit: 20, offset: 0 }),
+      participantsPageSchema.parse({
+        items: [row({ id: "nope" })],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      }),
     ).toThrow();
     expect(() =>
       participantsPageSchema.parse({
@@ -209,7 +214,13 @@ describe("IMPL 9 — schemas de resposta", () => {
           },
         ],
         history: [
-          { kind: "connection", action: "assume", previous_status: null, new_status: "em_atendimento", created_at: "2026-01-01T00:00:00Z" },
+          {
+            kind: "connection",
+            action: "assume",
+            previous_status: null,
+            new_status: "em_atendimento",
+            created_at: "2026-01-01T00:00:00Z",
+          },
         ],
       }),
     );
@@ -236,16 +247,12 @@ describe("IMPL 9 — privacidade (nenhum contato nesta área)", () => {
 
   it("nem a rota nem o detalhe leem campos de contato do payload", () => {
     // Prosa explicando a política é permitida; leitura de campo, não.
-    const fieldUse = new RegExp(
-      `(\\.|["'\`])(${FORBIDDEN_PRIVATE_KEYS.join("|")})\\b`,
-      "i",
-    );
+    const fieldUse = new RegExp(`(\\.|["'\`])(${FORBIDDEN_PRIVATE_KEYS.join("|")})\\b`, "i");
     expect(ROUTE).not.toMatch(fieldUse);
     expect(SHEET).not.toMatch(fieldUse);
     expect(SHEET).not.toMatch(/reveal_contact|staff_reveal/i);
     expect(ROUTE).not.toMatch(/reveal_contact|staff_reveal/i);
   });
-
 });
 
 describe("IMPL 9 — query keys e wrapper de API", () => {
@@ -257,9 +264,7 @@ describe("IMPL 9 — query keys e wrapper de API", () => {
     expect(participantsKey("ev", base)).not.toEqual(
       participantsKey("ev", { ...base, city: "Outra" }),
     );
-    expect(participantsKey("ev", base)).not.toEqual(
-      participantsKey("ev", { ...base, offset: 0 }),
-    );
+    expect(participantsKey("ev", base)).not.toEqual(participantsKey("ev", { ...base, offset: 0 }));
     expect(participantsKey("ev", base)).not.toEqual(participantsKey("ev2", base));
     expect(participantDetailKey(UUID_A)).not.toEqual(participantDetailKey(UUID_B));
   });
@@ -326,5 +331,94 @@ describe("IMPL 9 — rota e UI", () => {
   it("admin existente ganha navegação sem perder os links atuais", () => {
     expect(ADMIN).toContain('to="/admin/participantes"');
     expect(ADMIN).toContain('to="/equipe"');
+  });
+});
+
+describe("IMPL 9 — hardening: label por perspectiva e decisões autoritativas", () => {
+  const dir = resolve(process.cwd(), "supabase/migrations");
+  const latestDetailFn = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .reverse()
+    .find((f) => {
+      const sql = readFileSync(resolve(dir, f), "utf8");
+      return (
+        sql.includes("CREATE OR REPLACE FUNCTION public.admin_get_participant_detail") &&
+        sql.includes("label_for_participant")
+      );
+    });
+  const SQL = readFileSync(resolve(dir, latestDetailFn!), "utf8");
+
+  it("a RPC calcula label por perspectiva com match_label_for_score", () => {
+    expect(SQL).toContain(
+      "'label_for_participant', public.match_label_for_score(x.score_for_participant)",
+    );
+    expect(SQL).toContain("'label_for_other', public.match_label_for_score(x.score_for_other)");
+  });
+
+  it("a RPC lê decisões de match_decisions com COALESCE, não das colunas legadas", () => {
+    expect(SQL).toContain("FROM public.match_decisions d");
+    expect(SQL).toContain("'sem_decisao'");
+    expect(SQL).not.toMatch(/'decision_participant',\s*CASE WHEN m\.a_profile_id/);
+    expect(SQL).not.toContain("m.decision_a");
+    expect(SQL).not.toContain("m.decision_b");
+  });
+
+  it("a RPC ordena pela perspectiva do participante selecionado", () => {
+    expect(SQL).toContain("ORDER BY x.score_for_participant DESC");
+    expect(SQL).not.toContain("GREATEST(m.score_for_a, m.score_for_b)");
+  });
+
+  it("schema aceita labels por perspectiva e tolera ausência (dados antigos)", () => {
+    const parsed = participantDetailSchema.parse(
+      detail({
+        matches: [
+          {
+            id: UUID_B,
+            other_profile_id: UUID_A,
+            other_name: "Bruno",
+            other_company: "Beta",
+            other_segment_id: "marketing",
+            kind: "bidirecional",
+            label: "conexao_possivel",
+            score_for_participant: 85,
+            score_for_other: 35,
+            label_for_participant: "alta_compatibilidade",
+            label_for_other: "conexao_possivel",
+            decision_participant: "interesse",
+            decision_other: "agora_nao",
+            algorithm_version: "v2.3",
+            generated_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+      }),
+    );
+    const m = parsed.matches[0];
+    expect(m.label_for_participant).toBe("alta_compatibilidade");
+    expect(m.label_for_other).toBe("conexao_possivel");
+    expect(m.label).toBe("conexao_possivel"); // legado preservado, não usado como label do participante
+    expect(() =>
+      participantDetailSchema.parse(
+        detail({
+          matches: [
+            {
+              ...m,
+              label_for_participant: undefined,
+              label_for_other: undefined,
+            },
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it("UI usa label por perspectiva e nunca a label global do match", () => {
+    expect(SHEET).toContain("label_for_participant");
+    expect(SHEET).toContain("label_for_other");
+    expect(SHEET).not.toMatch(/\{m\.label\}/);
+    expect(SHEET).toContain("matchLabelForScore");
+    expect(SHEET).toContain("decision_participant");
+    expect(SHEET).toContain("decision_other");
   });
 });

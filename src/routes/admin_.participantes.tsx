@@ -22,10 +22,7 @@ import { EVENT_ID } from "@/lib/mock-data";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
-import {
-  useAdminParticipants,
-  useDebouncedValue,
-} from "@/features/admin/useAdminParticipants";
+import { useAdminParticipants, useDebouncedValue } from "@/features/admin/useAdminParticipants";
 import {
   PARTICIPANTS_PAGE_SIZE,
   normalizeParticipantesSearch,
@@ -147,8 +144,7 @@ function ParticipantsBoard() {
     navigate({ search: (prev) => ({ ...prev, p: "" }), replace: true });
   }
 
-  const hasFilters =
-    search.q.length > 0 || search.segments.length > 0 || search.city.length > 0;
+  const hasFilters = search.q.length > 0 || search.segments.length > 0 || search.city.length > 0;
 
   return (
     <PageShell>
@@ -156,13 +152,10 @@ function ParticipantsBoard() {
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-primary">Administração</p>
-            <h1 className="font-display text-2xl font-bold md:text-3xl">
-              Participantes
-            </h1>
+            <h1 className="font-display text-2xl font-bold md:text-3xl">Participantes</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Governança somente leitura: quem está cadastrado, o que oferece e
-              procura, e como está a geração de matches e conexões. Contatos
-              privados não aparecem aqui.
+              Governança somente leitura: quem está cadastrado, o que oferece e procura, e como está
+              a geração de matches e conexões. Contatos privados não aparecem aqui.
             </p>
           </div>
           <Button asChild variant="outline" size="sm">
@@ -224,9 +217,7 @@ function ParticipantsBoard() {
           </div>
           {hasFilters && (
             <div className="mt-3 flex items-center gap-2">
-              <Badge variant="secondary">
-                {data?.total ?? 0} resultado(s)
-              </Badge>
+              <Badge variant="secondary">{data?.total ?? 0} resultado(s)</Badge>
               <Button
                 size="sm"
                 variant="ghost"
@@ -291,8 +282,7 @@ function ParticipantsBoard() {
                           {p.segment_label ?? p.segment_id ?? "sem segmento"}
                         </Badge>
                         <Badge variant="outline">
-                          cadastro{" "}
-                          {new Date(p.created_at).toLocaleDateString("pt-BR")}
+                          cadastro {new Date(p.created_at).toLocaleDateString("pt-BR")}
                         </Badge>
                       </div>
                     </div>
@@ -322,10 +312,7 @@ function ParticipantsBoard() {
         )}
 
         {(data?.total ?? 0) > PARTICIPANTS_PAGE_SIZE && (
-          <nav
-            aria-label="Paginação"
-            className="mt-4 flex items-center justify-between gap-2"
-          >
+          <nav aria-label="Paginação" className="mt-4 flex items-center justify-between gap-2">
             <Button
               variant="outline"
               size="sm"

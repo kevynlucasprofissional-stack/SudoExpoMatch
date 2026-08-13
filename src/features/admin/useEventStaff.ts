@@ -44,14 +44,11 @@ export function useAddStaffMember(eventId: string) {
   return useMutation({
     mutationFn: async (input: AddMemberInput) => {
       const parsed = addMemberSchema.parse(input);
-      const { data, error } = await supabase.rpc(
-        "admin_add_event_staff_by_email",
-        {
-          _event_id: eventId,
-          _email: parsed.email,
-          _role: parsed.role,
-        },
-      );
+      const { data, error } = await supabase.rpc("admin_add_event_staff_by_email", {
+        _event_id: eventId,
+        _email: parsed.email,
+        _role: parsed.role,
+      });
       if (error) throw error;
       return data as string;
     },
@@ -82,11 +79,7 @@ export function useChangeStaffRole(eventId: string) {
 export function useRemoveStaffMember(eventId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      userId: string;
-      reassignTo?: string;
-      confirmSelf?: boolean;
-    }) => {
+    mutationFn: async (input: { userId: string; reassignTo?: string; confirmSelf?: boolean }) => {
       const { error } = await supabase.rpc("admin_remove_event_staff", {
         _event_id: eventId,
         _user_id: input.userId,
@@ -130,12 +123,10 @@ export function translateStaffError(err: unknown): string {
       ? `Este membro tem ${count} conexão(ões) em andamento. Escolha outro membro para receber essas conexões antes de remover.`
       : "Este membro tem conexões em andamento. Reatribua antes de remover.";
   }
-  if (msg.includes("not_a_member"))
-    return "Essa pessoa não faz parte da equipe.";
+  if (msg.includes("not_a_member")) return "Essa pessoa não faz parte da equipe.";
   if (msg.includes("already_member_different_role"))
-    return "Essa pessoa já está na equipe com outro papel. Use \"alterar papel\" em vez de adicionar novamente.";
-  if (msg.includes("already_member"))
-    return "Essa pessoa já faz parte da equipe com este papel.";
+    return 'Essa pessoa já está na equipe com outro papel. Use "alterar papel" em vez de adicionar novamente.';
+  if (msg.includes("already_member")) return "Essa pessoa já faz parte da equipe com este papel.";
   if (msg.includes("same_role")) return "A pessoa já possui esse papel.";
   return msg || "Erro inesperado.";
 }

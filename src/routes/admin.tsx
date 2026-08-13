@@ -126,9 +126,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [toRemove, setToRemove] = useState<StaffMember | null>(null);
   const [reassignTo, setReassignTo] = useState<string>("");
-  const [pendingActiveCount, setPendingActiveCount] = useState<number | null>(
-    null,
-  );
+  const [pendingActiveCount, setPendingActiveCount] = useState<number | null>(null);
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
@@ -196,9 +194,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-primary">Administração</p>
-            <h1 className="font-display text-2xl font-bold md:text-3xl">
-              Equipe do evento
-            </h1>
+            <h1 className="font-display text-2xl font-bold md:text-3xl">Equipe do evento</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {email} · <Badge>admin</Badge>
             </p>
@@ -214,15 +210,11 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               <LogOut className="mr-1 h-4 w-4" /> Sair
             </Button>
           </div>
-
         </header>
 
         <section aria-labelledby="team-heading" className="space-y-6">
           <div className="flex items-end justify-between gap-4">
-            <h2
-              id="team-heading"
-              className="font-display text-xl font-semibold"
-            >
+            <h2 id="team-heading" className="font-display text-xl font-semibold">
               Equipe do evento
             </h2>
             <p className="text-xs text-muted-foreground">
@@ -236,7 +228,9 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             </h3>
             <form onSubmit={handleAdd} className="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
               <div>
-                <Label htmlFor="member-email" className="sr-only">E-mail</Label>
+                <Label htmlFor="member-email" className="sr-only">
+                  E-mail
+                </Label>
                 <Input
                   id="member-email"
                   type="email"
@@ -245,9 +239,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
                   onChange={(e) => setEmailInput(e.target.value)}
                   autoComplete="off"
                 />
-                {errors.email && (
-                  <p className="mt-1 text-xs text-destructive">{errors.email}</p>
-                )}
+                {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
               </div>
               <Select value={roleInput} onValueChange={(v) => setRoleInput(v as AppRole)}>
                 <SelectTrigger className="w-32">
@@ -263,8 +255,8 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               </Button>
             </form>
             <p className="mt-3 text-xs text-muted-foreground">
-              A pessoa precisa ter criado uma conta antes (via login). O convite por e-mail
-              será enviado em uma próxima fase.
+              A pessoa precisa ter criado uma conta antes (via login). O convite por e-mail será
+              enviado em uma próxima fase.
             </p>
           </Card>
 
@@ -277,9 +269,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
                 <Skeleton className="h-24 w-full" />
               </div>
             ) : listQuery.isError ? (
-              <p className="p-6 text-sm text-destructive">
-                Falha ao carregar equipe.
-              </p>
+              <p className="p-6 text-sm text-destructive">Falha ao carregar equipe.</p>
             ) : (listQuery.data ?? []).length === 0 ? (
               <p className="p-6 text-sm text-muted-foreground">Ainda sem membros.</p>
             ) : (
@@ -332,10 +322,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
         <section aria-labelledby="ops-heading" className="mt-10 space-y-4">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
-              <h2
-                id="ops-heading"
-                className="font-display text-xl font-semibold"
-              >
+              <h2 id="ops-heading" className="font-display text-xl font-semibold">
                 Operação
               </h2>
               <p className="text-xs text-muted-foreground">
@@ -363,21 +350,18 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              {toRemove?.userId === userId
-                ? "Remover você mesmo da equipe?"
-                : "Remover da equipe?"}
+              {toRemove?.userId === userId ? "Remover você mesmo da equipe?" : "Remover da equipe?"}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {toRemove?.email} perderá o acesso à fila de conexões e às ações
-              de equipe deste evento. Esta ação pode ser desfeita adicionando-
-              o(a) novamente.
+              {toRemove?.email} perderá o acesso à fila de conexões e às ações de equipe deste
+              evento. Esta ação pode ser desfeita adicionando- o(a) novamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {pendingActiveCount !== null && (
             <div className="space-y-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
               <p>
-                Este membro tem <strong>{pendingActiveCount}</strong> conexão
-                (ões) em andamento. Escolha quem receberá:
+                Este membro tem <strong>{pendingActiveCount}</strong> conexão (ões) em andamento.
+                Escolha quem receberá:
               </p>
               <Select value={reassignTo} onValueChange={setReassignTo}>
                 <SelectTrigger>
@@ -399,10 +383,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleRemove}
-              disabled={
-                remove.isPending ||
-                (pendingActiveCount !== null && !reassignTo)
-              }
+              disabled={remove.isPending || (pendingActiveCount !== null && !reassignTo)}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remover
