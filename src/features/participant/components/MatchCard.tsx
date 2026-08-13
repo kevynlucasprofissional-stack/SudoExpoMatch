@@ -63,16 +63,18 @@ export function MatchCard({ match, eventId }: Props) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge
+                data-testid="match-label"
                 className={
-                  match.label === "alta_compatibilidade"
+                  myLabel === "alta_compatibilidade"
                     ? "bg-success text-success-foreground"
-                    : match.label === "boa_oportunidade"
+                    : myLabel === "boa_oportunidade"
                       ? "bg-accent text-accent-foreground"
                       : "bg-secondary text-secondary-foreground"
                 }
               >
-                {LABEL_TEXT[match.label]}
+                {LABEL_TEXT[myLabel]}
               </Badge>
+
               <Badge variant="outline" className="capitalize">
                 {match.kind}
               </Badge>
