@@ -85,7 +85,9 @@ describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
   it("grava reason de complementaridade por perspectiva, com rationale auditável", () => {
     expect(def.match(/'code','relacao_complementar'/g)).toHaveLength(2);
     expect(def.match(/relacao complementar de taxonomia \(forca %s\/100\)/g)).toHaveLength(2);
-    expect(def).toContain("public.match_reasons (match_id, perspective_profile_id, code, label, weight)");
+    expect(def).toContain(
+      "public.match_reasons (match_id, perspective_profile_id, code, label, weight)",
+    );
   });
 
   it("complementaridade sozinha é sinal suficiente nas duas perspectivas", () => {
