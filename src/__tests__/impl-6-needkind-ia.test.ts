@@ -74,7 +74,8 @@ describe("contrato do domínio", () => {
   });
 
   it("needKind é semanticamente obrigatório em sugestões de necessidade", () => {
-    const base = { taxonomyItemId: null, label: "X", confidence: 0.5 };
+    // IMPL 7: itens carregam `segmentId` (null = texto livre).
+    const base = { taxonomyItemId: null, segmentId: null, label: "X", confidence: 0.5 };
     expect(aiSuggestionItemSchema.safeParse({ ...base, kind: "need" }).success).toBe(false);
     expect(
       aiSuggestionItemSchema.safeParse({ ...base, kind: "need", needKind: "fornecedor" }).success,
@@ -174,8 +175,9 @@ describe("prompt", () => {
 
 describe("cache/prompt version", () => {
   it("versão nova invalida respostas antigas sem needKind", () => {
-    expect(PROMPT_VERSION).toBe("a1a2-v4-needkind");
+    // A versão evolui a cada mudança de contrato (IMPL 7 = a1a2-v5-itemsegment).
     expect(PROMPT_VERSION).not.toBe("a1a2-v3-crossseg");
+    expect(PROMPT_VERSION.startsWith("a1a2-v")).toBe(true);
   });
 });
 

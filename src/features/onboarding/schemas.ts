@@ -83,6 +83,8 @@ export const suggestionItemSchema = z.object({
   taxonomyItemId: z.string().nullable(),
   label: z.string().trim().min(1).max(80),
   kind: z.enum(["offer", "need"]),
+  /** IMPL 7 — segmento autoritativo do taxonomy item (null = texto livre). */
+  segmentId: z.string().min(1).nullable().optional(),
   needKind: needKindSchema.optional(),
   confidence: z.number().min(0).max(1).optional(),
 });

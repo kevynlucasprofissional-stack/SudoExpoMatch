@@ -1,10 +1,4 @@
-import type {
-  NeedKind,
-  MatchKind,
-  MatchLabel,
-  Decision,
-  ConnectionStatus,
-} from "@/lib/types";
+import type { NeedKind, MatchKind, MatchLabel, Decision, ConnectionStatus } from "@/lib/types";
 
 // ---------- Perfil próprio ----------
 export interface OwnProfileOffer {
@@ -130,7 +124,8 @@ export interface CatalogSegment {
 }
 export interface CatalogTaxonomyItem {
   id: string;
-  segment_id: string;
+  /** IMPL 7: autoridade de segmento do item; pode ser nulo. */
+  segment_id: string | null;
   label: string;
   kind: "offer" | "need" | "both";
   synonyms: string[];

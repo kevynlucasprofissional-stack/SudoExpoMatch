@@ -214,11 +214,16 @@ export function StepSegment({
       const prev = draft.segmentId;
       update(
         "offers",
-        draft.offers.map((o) => (o.segmentId === prev ? { ...o, segmentId } : o)),
+        // IMPL 7: itens com taxonomy item mantêm o segmento da própria taxonomia.
+        draft.offers.map((o) =>
+          !o.taxonomyItemId && o.segmentId === prev ? { ...o, segmentId } : o,
+        ),
       );
       update(
         "needs",
-        draft.needs.map((n) => (n.segmentId === prev ? { ...n, segmentId } : n)),
+        draft.needs.map((n) =>
+          !n.taxonomyItemId && n.segmentId === prev ? { ...n, segmentId } : n,
+        ),
       );
     }
     update("segmentId", segmentId);
@@ -346,7 +351,8 @@ export function StepOffers({
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: s.label,
-      segmentId: draft.segmentId,
+      // IMPL 7: segmento do taxonomy item; perfil só como fallback (texto livre).
+      segmentId: s.segmentId ?? draft.segmentId,
       taxonomyItemId: s.taxonomyItemId,
       source,
     };
@@ -408,7 +414,8 @@ export function StepOffers({
             const additions: WizardOffer[] = picks.map((s) => ({
               localId: cryptoUid(),
               label: s.label,
-              segmentId: draft.segmentId,
+              // IMPL 7: segmento autoritativo da taxonomia (cross-segment ok).
+              segmentId: s.segmentId ?? draft.segmentId,
               taxonomyItemId: s.taxonomyItemId,
               source,
             }));
@@ -472,7 +479,9 @@ export function StepOffers({
                   type="button"
                   onClick={() =>
                     addFromSuggestion({
-                      taxonomyItemId: t.id,
+                      // IMPL 7: só é autoritativo o item com segmento próprio.
+                      taxonomyItemId: t.segment_id?.trim() ? t.id : null,
+                      segmentId: t.segment_id?.trim() || null,
                       label: t.label,
                       kind: "offer",
                     })
@@ -575,11 +584,13 @@ export function StepNeeds({
   function addFromCatalog(t: CatalogTaxonomyItem) {
     if (draft.needs.length >= 5) return;
     if (draft.needs.some((n) => n.label.toLowerCase() === t.label.toLowerCase())) return;
+    // IMPL 7: item sem segmento próprio não é autoritativo → vira texto livre.
+    const seg = t.segment_id?.trim() || null;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: t.label,
-      segmentId: draft.segmentId,
-      taxonomyItemId: t.id,
+      segmentId: seg ?? draft.segmentId,
+      taxonomyItemId: seg ? t.id : null,
       needKind: kind,
       isPriority: false,
     };
@@ -627,7 +638,8 @@ export function StepNeeds({
             const additions: WizardNeed[] = picks.map((s) => ({
               localId: cryptoUid(),
               label: s.label,
-              segmentId: draft.segmentId,
+              // IMPL 7: segmento autoritativo da taxonomia (cross-segment ok).
+              segmentId: s.segmentId ?? draft.segmentId,
               taxonomyItemId: s.taxonomyItemId,
               // IMPL 6: o tipo vem da sugestão, NUNCA do seletor visual.
               needKind: s.needKind ?? "outro",

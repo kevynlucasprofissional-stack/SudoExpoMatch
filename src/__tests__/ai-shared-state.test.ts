@@ -24,8 +24,8 @@ function fakeResult(): AiSuggestionResult {
   return {
     understanding: { summary: "x", mainActivity: "x", keywords: [], clarifyingQuestion: null },
     offers: [
-      { taxonomyItemId: null, label: "A", kind: "offer", confidence: 0.9 },
-      { taxonomyItemId: null, label: "B", kind: "offer", confidence: 0.9 },
+      { taxonomyItemId: null, segmentId: null, label: "A", kind: "offer", confidence: 0.9 },
+      { taxonomyItemId: null, segmentId: null, label: "B", kind: "offer", confidence: 0.9 },
     ],
     needs: [],
     source: "ai",

@@ -28,7 +28,7 @@ function defer<T>() {
 function mkResult(label: string): AiSuggestionResult {
   return {
     understanding: { summary: label, mainActivity: "", keywords: [], clarifyingQuestion: null },
-    offers: [{ taxonomyItemId: null, label, kind: "offer", confidence: 0.9 }],
+    offers: [{ taxonomyItemId: null, segmentId: null, label, kind: "offer", confidence: 0.9 }],
     needs: [],
     source: "ai",
     promptVersion: "a1a2-v2",

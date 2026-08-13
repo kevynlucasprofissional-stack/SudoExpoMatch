@@ -61,6 +61,8 @@ export interface SuggestionItem {
   taxonomyItemId: string | null;
   label: string;
   kind: "offer" | "need";
+  /** IMPL 7 — segmento do próprio taxonomy item; `null` para texto livre. */
+  segmentId?: string | null;
   /** IMPL 6 — presente apenas em itens `need`. */
   needKind?: NeedKind;
   confidence?: number;
