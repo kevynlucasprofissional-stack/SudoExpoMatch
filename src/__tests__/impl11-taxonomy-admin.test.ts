@@ -1,5 +1,5 @@
-import { describe as d, expect, it } from "vitest";
-import { execSync } from "node:child_process";
+import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
 
 import {
   hasActiveTaxonomyFilters,
@@ -12,8 +12,11 @@ import {
   translateTaxonomyError,
 } from "@/features/admin/taxonomySchemas";
 
+const hasDb = !!process.env.PGHOST;
+const d = hasDb ? describe : describe.skip;
+
 function q(sql: string): string {
-  return execSync(`psql "${process.env["DATABASE_URL"]}" -tAc "${sql.replace(/"/g, '\\"')}"`, {
+  return execFileSync("psql", ["-tAX", "-c", sql], {
     encoding: "utf8",
     env: process.env,
   }).trim();
@@ -104,7 +107,7 @@ d("Impl 11 — RPCs administrativas da taxonomia", () => {
   });
 });
 
-d("Impl 11 — contratos e estado de URL da taxonomia", () => {
+describe("Impl 11 — contratos e estado de URL da taxonomia", () => {
   it("sanitizeSynonyms espelha a regra do banco", () => {
     expect(sanitizeSynonyms(["  PDV ", "pdv", "PdV", "", "   "])).toEqual(["PDV"]);
     expect(sanitizeSynonyms([" a".repeat(1), "b".repeat(81)])).toEqual(["a"]);
