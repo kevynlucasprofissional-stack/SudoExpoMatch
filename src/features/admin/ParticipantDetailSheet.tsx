@@ -175,12 +175,23 @@ export function ParticipantDetailSheet({
                         · Para o outro: <strong>{m.score_for_other}</strong>
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1">
-                        <Badge variant="secondary">{m.label}</Badge>
+                        <Badge variant="secondary">
+                          Participante: {labelText(m.label_for_participant, m.score_for_participant)}
+                        </Badge>
+                        <Badge variant="outline">
+                          Outro lado: {labelText(m.label_for_other, m.score_for_other)}
+                        </Badge>
                         <Badge variant="outline">{m.kind}</Badge>
                         <Badge variant="outline">{m.algorithm_version}</Badge>
                       </div>
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        Decisões — participante:{" "}
+                        <strong>{decisionText(m.decision_participant)}</strong> · outro:{" "}
+                        <strong>{decisionText(m.decision_other)}</strong>
+                      </p>
                     </li>
                   ))}
+
                 </ul>
               )}
             </TabsContent>
