@@ -7,6 +7,7 @@ import {
   AI_MODEL,
   PROMPT_VERSION,
   aiSuggestionResultSchema,
+  coerceNeedKind,
   modelOutputSchema,
   suggestOnboardingInputSchema,
   type AiSuggestionItem,
@@ -36,6 +37,8 @@ async function fallbackToHeuristic(
       taxonomyItemId: s.taxonomyItemId,
       label: s.label,
       kind: s.kind,
+      // IMPL 6: needKind coerente com a própria sugestão heurística.
+      ...(s.kind === "need" ? { needKind: coerceNeedKind(s.needKind) } : {}),
       confidence: s.confidence ?? 0.4,
     };
     if (s.kind === "offer" && offers.length < 5) offers.push(item);

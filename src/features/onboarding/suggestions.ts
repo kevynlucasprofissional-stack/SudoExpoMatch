@@ -1,6 +1,7 @@
 import type { EventCatalog } from "@/features/participant/types";
 import { suggestionResultSchema } from "./schemas";
 import type { SuggestionItem } from "./types";
+import type { NeedKind } from "@/lib/types";
 
 export interface SuggestionProvider {
   suggest(input: {
@@ -25,6 +26,47 @@ const KEYWORDS: Record<string, string[]> = {
   logistica: ["transporte", "logistica", "entrega"],
   consultoria: ["consultoria", "consultor"],
 };
+
+/**
+ * IMPL 6 — classificação determinística do tipo de necessidade a partir do
+ * significado do label. Usada pelo fallback heurístico para NUNCA herdar o
+ * tipo selecionado na UI. Sem regra aplicável => "outro".
+ */
+const NEED_KIND_RULES: Array<{ kind: NeedKind; terms: string[] }> = [
+  { kind: "fornecedor", terms: ["fornecedor", "fornecimento", "insumo", "materia prima", "embalagem"] },
+  { kind: "distribuidores", terms: ["distribuidor", "distribuicao", "revendedor", "representante comercial"] },
+  { kind: "compradores", terms: ["comprador", "cliente", "clientes", "lead", "novos negocios"] },
+  { kind: "profissionais", terms: ["profissional", "profissionais", "mao de obra", "contratar equipe", "vaga", "talento"] },
+  { kind: "parceiro", terms: ["parceiro", "parceria", "coworking", "joint venture"] },
+  { kind: "produtos", terms: ["comprar produto", "equipamento", "maquina", "mercadoria", "produto"] },
+  {
+    kind: "servico",
+    terms: [
+      "servico",
+      "consultoria",
+      "contabil",
+      "contabilidade",
+      "marketing",
+      "assessoria",
+      "manutencao",
+      "suporte",
+      "software",
+      "sistema",
+      "logistica",
+      "transporte",
+      "juridico",
+      "design",
+    ],
+  },
+];
+
+export function inferNeedKind(label: string): NeedKind {
+  const n = norm(label);
+  for (const rule of NEED_KIND_RULES) {
+    if (rule.terms.some((t) => n.includes(t))) return rule.kind;
+  }
+  return "outro";
+}
 
 const norm = (s: string) =>
   s

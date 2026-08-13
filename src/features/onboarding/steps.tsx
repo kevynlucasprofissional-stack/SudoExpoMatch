@@ -675,7 +675,8 @@ export function StepNeeds({
               label: s.label,
               segmentId: draft.segmentId,
               taxonomyItemId: s.taxonomyItemId,
-              needKind: kind,
+              // IMPL 6: o tipo vem da sugestão, NUNCA do seletor visual.
+              needKind: s.needKind ?? "outro",
               isPriority: false,
               source,
             }));
