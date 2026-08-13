@@ -94,7 +94,7 @@ function ParticipantesPage() {
 }
 
 function ParticipantsBoard() {
-  const navigate = useNavigate({ from: "/admin_/participantes" });
+  const navigate = useNavigate({ from: "/admin/participantes" });
   const rawSearch = Route.useSearch();
   const search = normalizeParticipantesSearch(rawSearch);
 
