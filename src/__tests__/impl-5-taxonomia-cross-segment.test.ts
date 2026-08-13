@@ -45,7 +45,13 @@ const catalog: EventCatalog = {
       kind: "both",
       synonyms: [],
     },
-    { id: "tx-trafego", segment_id: "marketing", label: "Tráfego pago", kind: "offer", synonyms: [] },
+    {
+      id: "tx-trafego",
+      segment_id: "marketing",
+      label: "Tráfego pago",
+      kind: "offer",
+      synonyms: [],
+    },
     {
       id: "tx-erp",
       segment_id: "tecnologia",
@@ -219,10 +225,7 @@ describe("cache/prompt version", () => {
   it("chave de cache muda junto com a versão do prompt", async () => {
     const key = await buildCacheKey(input, catalog);
     expect(key).toMatch(/^k[0-9a-f]{32}$/);
-    const outro = await buildCacheKey(
-      { ...input, summary: `${input.summary} extra` },
-      catalog,
-    );
+    const outro = await buildCacheKey({ ...input, summary: `${input.summary} extra` }, catalog);
     expect(outro).not.toBe(key);
   });
 });

@@ -118,7 +118,6 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
     .join("\n");
 }
 
-
 /**
  * Gera a chave de cache SHA-256 estável: evento, segmento, resumo,
  * labels já adicionados (normalizados), versão do prompt, versão real do
@@ -129,7 +128,10 @@ export async function buildCacheKey(
   catalog: EventCatalog,
 ): Promise<string> {
   const catalogHash = await stableCatalogHash(catalog.taxonomy);
-  const labels = (input.existingLabels ?? []).map((l) => l.trim().toLowerCase()).sort().join(",");
+  const labels = (input.existingLabels ?? [])
+    .map((l) => l.trim().toLowerCase())
+    .sort()
+    .join(",");
   return hashCacheKey([
     input.eventId,
     input.segmentId,
@@ -158,9 +160,7 @@ export async function runOnboardingAi(args: {
 
   // 1. Cache persistente — valida shape antes de servir ao cliente.
   const cachedRaw = await deps.readCache(cacheKey);
-  const cachedParsed = cachedRaw
-    ? aiSuggestionResultSchema.safeParse(cachedRaw)
-    : null;
+  const cachedParsed = cachedRaw ? aiSuggestionResultSchema.safeParse(cachedRaw) : null;
   const cached = cachedParsed?.success ? cachedParsed.data : null;
   if (cached) {
     void deps.logRun({

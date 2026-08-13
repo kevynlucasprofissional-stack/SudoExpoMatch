@@ -102,16 +102,12 @@ export function normalizeAgainstCatalog(
     return item.id;
   }
 
-
   function clamp(str: string, max: number) {
     const s = str.trim();
     return s.length > max ? s.slice(0, max) : s;
   }
 
-  function normList(
-    list: ModelOutput["offers"],
-    kind: "offer" | "need",
-  ): AiSuggestionItem[] {
+  function normList(list: ModelOutput["offers"], kind: "offer" | "need"): AiSuggestionItem[] {
     const out: AiSuggestionItem[] = [];
     const seen = new Set<string>();
     for (const r of list) {
@@ -190,7 +186,8 @@ export async function stableCatalogHash(items: CatalogTaxonomyItem[]): Promise<s
 export function classifyGatewayError(err: unknown): "terminal_4xx" | "transient" | "unknown" {
   const msg = err instanceof Error ? err.message : String(err ?? "");
   const lower = msg.toLowerCase();
-  if (lower === "timeout" || /network|fetch|ecconn|econnreset|socket/i.test(lower)) return "transient";
+  if (lower === "timeout" || /network|fetch|ecconn|econnreset|socket/i.test(lower))
+    return "transient";
   const m = msg.match(/\b(4\d{2}|5\d{2})\b/);
   if (m) {
     const code = Number(m[1]);
