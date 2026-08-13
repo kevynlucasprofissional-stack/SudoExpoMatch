@@ -70,8 +70,10 @@ describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
     );
   });
 
-  it("agrega por MAX(weight): uma relação nunca pontua duas vezes", () => {
-    expect(def.match(/COALESCE\(MAX\(r\.weight\), 0\)/g)).toHaveLength(2);
+  it("seleciona a melhor relação (uma por perspectiva): nunca pontua duas vezes", () => {
+    expect(def.match(/LIMIT 1/g)).toHaveLength(2);
+    expect(def).toContain("ORDER BY r.weight DESC, r.id ASC, mn.id ASC, oo.id ASC");
+    expect(def).toContain("ORDER BY r.weight DESC, r.id ASC, no_.id ASC, mo.id ASC");
     expect(def).not.toContain("SUM(r.weight)");
   });
 
@@ -84,11 +86,15 @@ describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
 
   it("grava reason de complementaridade por perspectiva, com rationale auditável", () => {
     expect(def.match(/'code','relacao_complementar'/g)).toHaveLength(2);
-    expect(def.match(/relacao complementar de taxonomia \(forca %s\/100\)/g)).toHaveLength(2);
+    expect(def.match(/COALESCE\(v_rel_\w+\.rationale, v_comp_fallback\)/g)).toHaveLength(2);
     expect(def).toContain(
-      "public.match_reasons (match_id, perspective_profile_id, code, label, weight)",
+      "public.match_reasons (match_id, perspective_profile_id, code, label, weight,",
+    );
+    expect(def).toContain(
+      "profile_need_id, profile_offer_id, taxonomy_relation_id, relation_weight, rationale",
     );
   });
+
 
   it("complementaridade sozinha é sinal suficiente nas duas perspectivas", () => {
     expect(def).toContain("IF v_comp_pts_me > 0 THEN");
