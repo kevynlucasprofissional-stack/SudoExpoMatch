@@ -10,6 +10,13 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminParticipantDetail } from "@/features/admin/useAdminParticipants";
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
+import {
+  DECISION_TEXT,
+  LABEL_TEXT,
+  matchLabelForScore,
+} from "@/features/matching/presentation";
+import type { Decision, MatchLabel } from "@/lib/types";
+
 
 function fmt(d: string | null | undefined) {
   if (!d) return "—";
