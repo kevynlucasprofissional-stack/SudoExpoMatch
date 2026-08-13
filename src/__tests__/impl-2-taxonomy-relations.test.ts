@@ -40,7 +40,7 @@ VALUES ('tmp-rel-a-test', 'TmpA', 'offer'), ('tmp-rel-b-test', 'TmpB', 'need');
 ${body}
 ROLLBACK;`;
 
-  const out = execSync(`psql -v ON_ERROR_STOP=1 -Atq -f -`, {
+  const out = execSync(`psql -v ON_ERROR_STOP=1 -Atq -f - 2>&1`, {
     input: sql,
     encoding: "utf8",
     stdio: ["pipe", "pipe", "pipe"],
