@@ -328,3 +328,90 @@ describe("IMPL 9 — rota e UI", () => {
     expect(ADMIN).toContain('to="/equipe"');
   });
 });
+
+describe("IMPL 9 — hardening: label por perspectiva e decisões autoritativas", () => {
+  const SQL = read(
+    "supabase/migrations/" +
+      require("node:fs")
+        .readdirSync(resolve(process.cwd(), "supabase/migrations"))
+        .filter((f: string) => f.endsWith(".sql"))
+        .sort()
+        .reverse()
+        .find((f: string) =>
+          readFileSync(resolve(process.cwd(), "supabase/migrations", f), "utf8").includes(
+            "label_for_participant",
+          ),
+        )!,
+  );
+
+  it("a RPC calcula label por perspectiva com match_label_for_score", () => {
+    expect(SQL).toContain("'label_for_participant', public.match_label_for_score(x.score_for_participant)");
+    expect(SQL).toContain("'label_for_other', public.match_label_for_score(x.score_for_other)");
+  });
+
+  it("a RPC lê decisões de match_decisions com COALESCE, não das colunas legadas", () => {
+    expect(SQL).toContain("FROM public.match_decisions d");
+    expect(SQL).toContain("'sem_decisao'");
+    expect(SQL).not.toMatch(/'decision_participant',\s*CASE WHEN m\.a_profile_id/);
+    expect(SQL).not.toContain("m.decision_a");
+    expect(SQL).not.toContain("m.decision_b");
+  });
+
+  it("a RPC ordena pela perspectiva do participante selecionado", () => {
+    expect(SQL).toContain("ORDER BY x.score_for_participant DESC");
+    expect(SQL).not.toContain("GREATEST(m.score_for_a, m.score_for_b)");
+  });
+
+  it("schema aceita labels por perspectiva e tolera ausência (dados antigos)", () => {
+    const parsed = participantDetailSchema.parse(
+      detail({
+        matches: [
+          {
+            id: UUID_B,
+            other_profile_id: UUID_A,
+            other_name: "Bruno",
+            other_company: "Beta",
+            other_segment_id: "marketing",
+            kind: "bidirecional",
+            label: "conexao_possivel",
+            score_for_participant: 85,
+            score_for_other: 35,
+            label_for_participant: "alta_compatibilidade",
+            label_for_other: "conexao_possivel",
+            decision_participant: "interesse",
+            decision_other: "agora_nao",
+            algorithm_version: "v2.3",
+            generated_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z",
+          },
+        ],
+      }),
+    );
+    const m = parsed.matches[0];
+    expect(m.label_for_participant).toBe("alta_compatibilidade");
+    expect(m.label_for_other).toBe("conexao_possivel");
+    expect(m.label).toBe("conexao_possivel"); // legado preservado, não usado como label do participante
+    expect(() =>
+      participantDetailSchema.parse(
+        detail({
+          matches: [
+            {
+              ...m,
+              label_for_participant: undefined,
+              label_for_other: undefined,
+            },
+          ],
+        }),
+      ),
+    ).not.toThrow();
+  });
+
+  it("UI usa label por perspectiva e nunca a label global do match", () => {
+    expect(SHEET).toContain("label_for_participant");
+    expect(SHEET).toContain("label_for_other");
+    expect(SHEET).not.toMatch(/\{m\.label\}/);
+    expect(SHEET).toContain("matchLabelForScore");
+    expect(SHEET).toContain("decision_participant");
+    expect(SHEET).toContain("decision_other");
+  });
+});
