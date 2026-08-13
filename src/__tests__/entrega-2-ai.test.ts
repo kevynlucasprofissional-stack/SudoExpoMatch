@@ -51,9 +51,12 @@ describe("normalizeAgainstCatalog", () => {
     ],
   };
 
-  it("remove IDs inválidos e converte segmento/kind incompatível para null", () => {
+  it("remove IDs inválidos e kind incompatível; aceita cross-segment (IMPL 5)", () => {
     const r = normalizeAgainstCatalog(baseModelOutput, { segmentId: "tecnologia", catalog });
-    expect(r.offers.find((o) => o.label === "Contador")?.taxonomyItemId).toBeNull();
+    // IMPL 5: item de outro segmento é válido (cross-segment permitido).
+    expect(r.offers.find((o) => o.label === "Contador")?.taxonomyItemId).toBe(
+      "33333333-3333-3333-3333-333333333333",
+    );
     expect(r.offers.find((o) => o.label === "Fantasma")?.taxonomyItemId).toBeNull();
     expect(r.offers.find((o) => o.label === "Software de gestão")?.taxonomyItemId).toBe(
       "11111111-1111-1111-1111-111111111111",

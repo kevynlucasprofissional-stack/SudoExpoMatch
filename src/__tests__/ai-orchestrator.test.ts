@@ -169,12 +169,12 @@ describe("runOnboardingAi — cache hit e rate limit", () => {
 
 
 describe("runOnboardingAi — normalização", () => {
-  it("converte id inexistente, segmento errado e kind errado para null", async () => {
+  it("converte id inexistente e kind errado para null; cross-segment é aceito (IMPL 5)", async () => {
     const modelOutput = {
       understanding: { summary: "", mainActivity: "", keywords: [], clarifyingQuestion: null },
       offers: [
         { taxonomyItemId: "does-not-exist", label: "Fake", confidence: 0.5, rationale: "" },
-        { taxonomyItemId: "t-3", label: "Wrong segment", confidence: 0.5, rationale: "" },
+        { taxonomyItemId: "t-3", label: "Cross segment", confidence: 0.5, rationale: "" },
         { taxonomyItemId: "t-1", label: "Ok", confidence: 0.9, rationale: "" },
       ],
       needs: [
@@ -185,7 +185,7 @@ describe("runOnboardingAi — normalização", () => {
     const out = await runOnboardingAi({ input, catalog, actorUserId, deps });
     expect(out.source).toBe("ai");
     expect(out.offers.find((o) => o.label === "Fake")?.taxonomyItemId).toBeNull();
-    expect(out.offers.find((o) => o.label === "Wrong segment")?.taxonomyItemId).toBeNull();
+    expect(out.offers.find((o) => o.label === "Cross segment")?.taxonomyItemId).toBe("t-3");
     expect(out.offers.find((o) => o.label === "Ok")?.taxonomyItemId).toBe("t-1");
     expect(out.needs.find((n) => n.label === "Kind mismatch")?.taxonomyItemId).toBeNull();
   });
@@ -214,15 +214,15 @@ describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
     expect(promptSent).not.toMatch(/recovery|codigo|código de recuperação/i);
   });
 
-  it("buildPrompt direto: só inclui summary + catálogo do segmento", () => {
+  it("buildPrompt direto: inclui summary + catálogo completo cross-segment (IMPL 5)", () => {
     const p = buildPrompt(
       { eventId: "e1", segmentId: "tec", summary: "SaaS puro" },
       catalog,
     );
     expect(p).toContain("SaaS puro");
     expect(p).toContain("t-1");
-    // Não deve trazer o item do segmento "srv".
-    expect(p).not.toContain("Contador");
+    // IMPL 5: o catálogo enviado é completo, incluindo o segmento "srv".
+    expect(p).toContain("Contador");
   });
 });
 
