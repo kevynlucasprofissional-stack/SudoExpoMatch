@@ -479,7 +479,9 @@ export function StepOffers({
                   type="button"
                   onClick={() =>
                     addFromSuggestion({
-                      taxonomyItemId: t.id,
+                      // IMPL 7: só é autoritativo o item com segmento próprio.
+                      taxonomyItemId: t.segment_id?.trim() ? t.id : null,
+                      segmentId: t.segment_id?.trim() || null,
                       label: t.label,
                       kind: "offer",
                     })
