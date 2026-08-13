@@ -10,13 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAdminParticipantDetail } from "@/features/admin/useAdminParticipants";
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
-import {
-  DECISION_TEXT,
-  LABEL_TEXT,
-  matchLabelForScore,
-} from "@/features/matching/presentation";
+import { DECISION_TEXT, LABEL_TEXT, matchLabelForScore } from "@/features/matching/presentation";
 import type { Decision, MatchLabel } from "@/lib/types";
-
 
 function fmt(d: string | null | undefined) {
   if (!d) return "—";
@@ -37,7 +32,6 @@ function labelText(label: string | null | undefined, score: number) {
 function decisionText(decision: string) {
   return DECISION_TEXT[decision as Decision] ?? decision;
 }
-
 
 /**
  * IMPL 9 — detalhe read-only do participante. Sem contato privado:
@@ -62,9 +56,7 @@ export function ParticipantDetailSheet({
         aria-label="Detalhe do participante"
       >
         <SheetHeader>
-          <SheetTitle className="font-display">
-            {d?.profile.name ?? "Participante"}
-          </SheetTitle>
+          <SheetTitle className="font-display">{d?.profile.name ?? "Participante"}</SheetTitle>
           <SheetDescription>
             {d
               ? `${d.profile.company || "—"} · ${d.profile.city || "—"}`
@@ -86,13 +78,9 @@ export function ParticipantDetailSheet({
             <TabsList className="mb-2 flex h-auto w-full flex-wrap justify-start gap-1">
               <TabsTrigger value="perfil">Perfil</TabsTrigger>
               <TabsTrigger value="ofertas">Ofertas ({d.offers.length})</TabsTrigger>
-              <TabsTrigger value="necessidades">
-                Necessidades ({d.needs.length})
-              </TabsTrigger>
+              <TabsTrigger value="necessidades">Necessidades ({d.needs.length})</TabsTrigger>
               <TabsTrigger value="matches">Matches ({d.matches.length})</TabsTrigger>
-              <TabsTrigger value="conexoes">
-                Conexões ({d.connections.length})
-              </TabsTrigger>
+              <TabsTrigger value="conexoes">Conexões ({d.connections.length})</TabsTrigger>
               <TabsTrigger value="historico">Histórico</TabsTrigger>
             </TabsList>
 
@@ -123,8 +111,8 @@ export function ParticipantDetailSheet({
                 <p className="mt-1 whitespace-pre-wrap">{d.profile.summary || "—"}</p>
               </div>
               <p className="rounded-md border bg-muted/40 p-3 text-xs text-muted-foreground">
-                Dados de contato (WhatsApp e e-mail) não são exibidos nesta área.
-                A liberação continua acontecendo no fluxo de conexão da equipe.
+                Dados de contato (WhatsApp e e-mail) não são exibidos nesta área. A liberação
+                continua acontecendo no fluxo de conexão da equipe.
               </p>
             </TabsContent>
 
@@ -136,13 +124,9 @@ export function ParticipantDetailSheet({
                   {d.offers.map((o) => (
                     <li key={o.id} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">{o.label}</p>
-                      {o.detail && (
-                        <p className="text-muted-foreground">{o.detail}</p>
-                      )}
+                      {o.detail && <p className="text-muted-foreground">{o.detail}</p>}
                       <div className="mt-2 flex flex-wrap gap-1">
-                        {o.segment_id && (
-                          <Badge variant="secondary">{o.segment_id}</Badge>
-                        )}
+                        {o.segment_id && <Badge variant="secondary">{o.segment_id}</Badge>}
                         <Badge variant="outline">{o.source}</Badge>
                         {o.user_confirmed && <Badge variant="outline">confirmado</Badge>}
                       </div>
@@ -154,25 +138,18 @@ export function ParticipantDetailSheet({
 
             <TabsContent value="necessidades" className="mt-4">
               {d.needs.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Sem necessidades ativas.
-                </p>
+                <p className="text-sm text-muted-foreground">Sem necessidades ativas.</p>
               ) : (
                 <ul className="space-y-2">
                   {d.needs.map((n) => (
                     <li key={n.id} className="rounded-md border p-3 text-sm">
                       <p className="font-medium">
-                        {n.label}{" "}
-                        {n.is_priority && <Badge className="ml-1">prioridade</Badge>}
+                        {n.label} {n.is_priority && <Badge className="ml-1">prioridade</Badge>}
                       </p>
-                      {n.detail && (
-                        <p className="text-muted-foreground">{n.detail}</p>
-                      )}
+                      {n.detail && <p className="text-muted-foreground">{n.detail}</p>}
                       <div className="mt-2 flex flex-wrap gap-1">
                         <Badge variant="secondary">{n.need_kind}</Badge>
-                        {n.segment_id && (
-                          <Badge variant="secondary">{n.segment_id}</Badge>
-                        )}
+                        {n.segment_id && <Badge variant="secondary">{n.segment_id}</Badge>}
                         <Badge variant="outline">{n.source}</Badge>
                       </div>
                     </li>
@@ -193,12 +170,13 @@ export function ParticipantDetailSheet({
                         {m.other_company ? ` · ${m.other_company}` : ""}
                       </p>
                       <p className="text-muted-foreground">
-                        Para este participante: <strong>{m.score_for_participant}</strong>{" "}
-                        · Para o outro: <strong>{m.score_for_other}</strong>
+                        Para este participante: <strong>{m.score_for_participant}</strong> · Para o
+                        outro: <strong>{m.score_for_other}</strong>
                       </p>
                       <div className="mt-2 flex flex-wrap gap-1">
                         <Badge variant="secondary">
-                          Participante: {labelText(m.label_for_participant, m.score_for_participant)}
+                          Participante:{" "}
+                          {labelText(m.label_for_participant, m.score_for_participant)}
                         </Badge>
                         <Badge variant="outline">
                           Outro lado: {labelText(m.label_for_other, m.score_for_other)}
@@ -213,7 +191,6 @@ export function ParticipantDetailSheet({
                       </p>
                     </li>
                   ))}
-
                 </ul>
               )}
             </TabsContent>
@@ -244,10 +221,7 @@ export function ParticipantDetailSheet({
               ) : (
                 <ol className="space-y-2">
                   {d.history.map((h, i) => (
-                    <li
-                      key={`${h.created_at}-${i}`}
-                      className="rounded-md border p-3 text-sm"
-                    >
+                    <li key={`${h.created_at}-${i}`} className="rounded-md border p-3 text-sm">
                       <p>
                         <Badge variant="outline" className="mr-2">
                           {h.kind}

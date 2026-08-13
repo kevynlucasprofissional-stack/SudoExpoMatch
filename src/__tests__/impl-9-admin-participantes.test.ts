@@ -128,7 +128,12 @@ describe("IMPL 9 — schemas de resposta", () => {
 
   it("rejeita shape inválido (id não-uuid, counts negativos, total ausente)", () => {
     expect(() =>
-      participantsPageSchema.parse({ items: [row({ id: "nope" })], total: 1, limit: 20, offset: 0 }),
+      participantsPageSchema.parse({
+        items: [row({ id: "nope" })],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      }),
     ).toThrow();
     expect(() =>
       participantsPageSchema.parse({
@@ -209,7 +214,13 @@ describe("IMPL 9 — schemas de resposta", () => {
           },
         ],
         history: [
-          { kind: "connection", action: "assume", previous_status: null, new_status: "em_atendimento", created_at: "2026-01-01T00:00:00Z" },
+          {
+            kind: "connection",
+            action: "assume",
+            previous_status: null,
+            new_status: "em_atendimento",
+            created_at: "2026-01-01T00:00:00Z",
+          },
         ],
       }),
     );
@@ -236,16 +247,12 @@ describe("IMPL 9 — privacidade (nenhum contato nesta área)", () => {
 
   it("nem a rota nem o detalhe leem campos de contato do payload", () => {
     // Prosa explicando a política é permitida; leitura de campo, não.
-    const fieldUse = new RegExp(
-      `(\\.|["'\`])(${FORBIDDEN_PRIVATE_KEYS.join("|")})\\b`,
-      "i",
-    );
+    const fieldUse = new RegExp(`(\\.|["'\`])(${FORBIDDEN_PRIVATE_KEYS.join("|")})\\b`, "i");
     expect(ROUTE).not.toMatch(fieldUse);
     expect(SHEET).not.toMatch(fieldUse);
     expect(SHEET).not.toMatch(/reveal_contact|staff_reveal/i);
     expect(ROUTE).not.toMatch(/reveal_contact|staff_reveal/i);
   });
-
 });
 
 describe("IMPL 9 — query keys e wrapper de API", () => {
@@ -257,9 +264,7 @@ describe("IMPL 9 — query keys e wrapper de API", () => {
     expect(participantsKey("ev", base)).not.toEqual(
       participantsKey("ev", { ...base, city: "Outra" }),
     );
-    expect(participantsKey("ev", base)).not.toEqual(
-      participantsKey("ev", { ...base, offset: 0 }),
-    );
+    expect(participantsKey("ev", base)).not.toEqual(participantsKey("ev", { ...base, offset: 0 }));
     expect(participantsKey("ev", base)).not.toEqual(participantsKey("ev2", base));
     expect(participantDetailKey(UUID_A)).not.toEqual(participantDetailKey(UUID_B));
   });
@@ -345,7 +350,9 @@ describe("IMPL 9 — hardening: label por perspectiva e decisões autoritativas"
   const SQL = readFileSync(resolve(dir, latestDetailFn!), "utf8");
 
   it("a RPC calcula label por perspectiva com match_label_for_score", () => {
-    expect(SQL).toContain("'label_for_participant', public.match_label_for_score(x.score_for_participant)");
+    expect(SQL).toContain(
+      "'label_for_participant', public.match_label_for_score(x.score_for_participant)",
+    );
     expect(SQL).toContain("'label_for_other', public.match_label_for_score(x.score_for_other)");
   });
 

@@ -153,8 +153,7 @@ export function hasPrivateKey(value: unknown): boolean {
 export function translateAdminParticipantsError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err ?? "");
   if (msg.includes("not_authenticated")) return "Sessão expirada. Entre novamente.";
-  if (msg.includes("forbidden"))
-    return "Acesso negado. Apenas administradores deste evento.";
+  if (msg.includes("forbidden")) return "Acesso negado. Apenas administradores deste evento.";
   if (msg.includes("not_found")) return "Participante não encontrado.";
   return "Não foi possível carregar os participantes.";
 }
