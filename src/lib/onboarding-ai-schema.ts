@@ -195,6 +195,11 @@ export function normalizeAgainstCatalog(
     for (const r of list) {
       const label = clamp(r.label ?? "", 80);
       if (!label) continue;
+      // IMPL 8: confiança ausente/não numérica é tolerada (0.5); apenas um
+      // número explícito abaixo do piso descarta a sugestão.
+      const rawConf = Number(r.confidence);
+      const confidence = Number.isFinite(rawConf) ? Math.max(0, Math.min(1, rawConf)) : 0.5;
+      if (Number.isFinite(rawConf) && confidence < MIN_SUGGESTION_CONFIDENCE) continue;
       const key = label.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
@@ -205,11 +210,12 @@ export function normalizeAgainstCatalog(
         kind,
         // IMPL 6: o tipo vem da própria sugestão; inválido/ausente → `outro`.
         ...(kind === "need" ? { needKind: coerceNeedKind(r.needKind) } : {}),
-        confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0.5)),
+        confidence,
         rationale: r.rationale ? clamp(r.rationale, 200) : undefined,
       });
       if (out.length >= 5) break;
     }
+
     return out;
   }
 
