@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -330,19 +330,19 @@ describe("IMPL 9 — rota e UI", () => {
 });
 
 describe("IMPL 9 — hardening: label por perspectiva e decisões autoritativas", () => {
-  const SQL = read(
-    "supabase/migrations/" +
-      require("node:fs")
-        .readdirSync(resolve(process.cwd(), "supabase/migrations"))
-        .filter((f: string) => f.endsWith(".sql"))
-        .sort()
-        .reverse()
-        .find((f: string) =>
-          readFileSync(resolve(process.cwd(), "supabase/migrations", f), "utf8").includes(
-            "label_for_participant",
-          ),
-        )!,
-  );
+  const dir = resolve(process.cwd(), "supabase/migrations");
+  const latestDetailFn = readdirSync(dir)
+    .filter((f) => f.endsWith(".sql"))
+    .sort()
+    .reverse()
+    .find((f) => {
+      const sql = readFileSync(resolve(dir, f), "utf8");
+      return (
+        sql.includes("CREATE OR REPLACE FUNCTION public.admin_get_participant_detail") &&
+        sql.includes("label_for_participant")
+      );
+    });
+  const SQL = readFileSync(resolve(dir, latestDetailFn!), "utf8");
 
   it("a RPC calcula label por perspectiva com match_label_for_score", () => {
     expect(SQL).toContain("'label_for_participant', public.match_label_for_score(x.score_for_participant)");
