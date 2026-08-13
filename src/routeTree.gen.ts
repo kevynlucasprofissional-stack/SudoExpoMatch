@@ -16,6 +16,7 @@ import { Route as EquipeRouteImport } from './routes/equipe'
 import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminParticipantesRouteImport } from './routes/admin_.participantes'
 
 const PublicoRoute = PublicoRouteImport.update({
   id: '/publico',
@@ -52,6 +53,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminParticipantesRoute = AdminParticipantesRouteImport.update({
+  id: '/admin_/participantes',
+  path: '/admin/participantes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -61,6 +67,7 @@ export interface FileRoutesByFullPath {
   '/participante': typeof ParticipanteRoute
   '/participar': typeof ParticiparRoute
   '/publico': typeof PublicoRoute
+  '/admin/participantes': typeof AdminParticipantesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -70,6 +77,7 @@ export interface FileRoutesByTo {
   '/participante': typeof ParticipanteRoute
   '/participar': typeof ParticiparRoute
   '/publico': typeof PublicoRoute
+  '/admin/participantes': typeof AdminParticipantesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -80,6 +88,7 @@ export interface FileRoutesById {
   '/participante': typeof ParticipanteRoute
   '/participar': typeof ParticiparRoute
   '/publico': typeof PublicoRoute
+  '/admin_/participantes': typeof AdminParticipantesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -91,6 +100,7 @@ export interface FileRouteTypes {
     | '/participante'
     | '/participar'
     | '/publico'
+    | '/admin/participantes'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -100,6 +110,7 @@ export interface FileRouteTypes {
     | '/participante'
     | '/participar'
     | '/publico'
+    | '/admin/participantes'
   id:
     | '__root__'
     | '/'
@@ -109,6 +120,7 @@ export interface FileRouteTypes {
     | '/participante'
     | '/participar'
     | '/publico'
+    | '/admin_/participantes'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -119,6 +131,7 @@ export interface RootRouteChildren {
   ParticipanteRoute: typeof ParticipanteRoute
   ParticiparRoute: typeof ParticiparRoute
   PublicoRoute: typeof PublicoRoute
+  AdminParticipantesRoute: typeof AdminParticipantesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -172,6 +185,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/participantes': {
+      id: '/admin_/participantes'
+      path: '/admin/participantes'
+      fullPath: '/admin/participantes'
+      preLoaderRoute: typeof AdminParticipantesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -183,6 +203,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParticipanteRoute: ParticipanteRoute,
   ParticiparRoute: ParticiparRoute,
   PublicoRoute: PublicoRoute,
+  AdminParticipantesRoute: AdminParticipantesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
