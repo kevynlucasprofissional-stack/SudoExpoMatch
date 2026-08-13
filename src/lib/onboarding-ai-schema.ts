@@ -99,10 +99,17 @@ export const modelOutputSchema = z.object({
     z.object({
       taxonomyItemId: z.string().nullable(),
       label: z.string(),
+      /**
+       * IMPL 6 — exigido no prompt, mas tolerante no schema de fio: uma
+       * resposta sem needKind (ou com valor fora do domínio) NÃO derruba a
+       * chamada inteira para fallback; a normalização coage para `outro`.
+       */
+      needKind: z.string().nullish(),
       confidence: z.number(),
       rationale: z.string(),
     }),
   ),
+
 });
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 
