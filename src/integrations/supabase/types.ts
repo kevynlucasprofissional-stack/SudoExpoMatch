@@ -1213,9 +1213,28 @@ export type Database = {
         Args: { _match_id: string; _perspective: string }
         Returns: Json
       }
+      _admin_require_event_admin: {
+        Args: { _event_id: string }
+        Returns: string
+      }
       _recompute_matches_for_profile: {
         Args: { p_event_id: string; p_profile_id: string }
         Returns: number
+      }
+      _sanitize_synonyms: { Args: { _syn: string[] }; Returns: string[] }
+      _taxonomy_item_json: { Args: { _id: string }; Returns: Json }
+      _taxonomy_unique_slug: {
+        Args: { _kind: string; _label: string; _segment_id: string }
+        Returns: string
+      }
+      _validate_taxonomy_payload: {
+        Args: {
+          _description: string
+          _kind: string
+          _label: string
+          _segment_id: string
+        }
+        Returns: undefined
       }
       admin_add_event_staff_by_email: {
         Args: {
@@ -1233,9 +1252,24 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_create_taxonomy_item: {
+        Args: {
+          _description?: string
+          _event_id: string
+          _kind: string
+          _label: string
+          _segment_id: string
+          _synonyms?: string[]
+        }
+        Returns: string
+      }
       admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
         Args: { _profile_id: string }
+        Returns: Json
+      }
+      admin_get_taxonomy_item_detail: {
+        Args: { _event_id: string; _item_id: string }
         Returns: Json
       }
       admin_list_event_staff: {
@@ -1279,6 +1313,18 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_list_taxonomy_items: {
+        Args: {
+          _active?: boolean
+          _event_id: string
+          _kinds?: string[]
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _segment_ids?: string[]
+        }
+        Returns: Json
+      }
       admin_reassign_connection: {
         Args: { _connection_id: string; _new_user_id: string; _note?: string }
         Returns: undefined
@@ -1291,6 +1337,22 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      admin_set_taxonomy_item_active: {
+        Args: { _active: boolean; _event_id: string; _item_id: string }
+        Returns: Json
+      }
+      admin_update_taxonomy_item: {
+        Args: {
+          _description?: string
+          _event_id: string
+          _item_id: string
+          _kind: string
+          _label: string
+          _segment_id: string
+          _synonyms?: string[]
+        }
+        Returns: Json
       }
       event_operational_stats: { Args: { _event_id: string }; Returns: Json }
       event_stats: {

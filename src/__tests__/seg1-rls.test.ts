@@ -66,18 +66,15 @@ d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
     expect(del).toBe("f");
   });
 
-  it("taxonomy_items: policies separadas por comando; sem policy ALL", () => {
+  it("taxonomy_items: apenas policies de leitura; mutação só via RPC admin (Impl 11)", () => {
     const rows = q(
       "SELECT polname||':'||polcmd::text FROM pg_policy WHERE polrelid='public.taxonomy_items'::regclass ORDER BY 1",
     )
       .split("\n")
       .filter(Boolean);
     expect(rows).toEqual([
-      "taxonomy_items_delete_staff:d",
-      "taxonomy_items_insert_staff:a",
       "taxonomy_items_read_active:r",
       "taxonomy_items_read_staff_all:r",
-      "taxonomy_items_update_staff:w",
     ]);
   });
 
@@ -88,19 +85,15 @@ d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
     expect(using).toContain("active");
   });
 
-  it("taxonomy_items: escritas exigem is_staff e não-anônimo", () => {
-    for (const p of [
-      "taxonomy_items_insert_staff",
-      "taxonomy_items_update_staff",
-      "taxonomy_items_delete_staff",
-    ]) {
-      const check = q(
-        `SELECT COALESCE(pg_get_expr(polwithcheck, polrelid), pg_get_expr(polqual, polrelid)) FROM pg_policy WHERE polname='${p}'`,
+  it("taxonomy_items: authenticated não pode mutar direto (Impl 11)", () => {
+    for (const priv of ["INSERT", "UPDATE", "DELETE"]) {
+      const r = q(
+        `SELECT has_table_privilege('authenticated','public.taxonomy_items','${priv}')`,
       );
-      expect(check).toContain("is_staff");
-      expect(check).toContain("is_anonymous");
+      expect(r, `authenticated ${priv}`).toBe("f");
     }
   });
+
 
   it("taxonomy_items: anon não tem SELECT nem escrita", () => {
     for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
