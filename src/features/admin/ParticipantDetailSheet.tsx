@@ -18,6 +18,21 @@ function fmt(d: string | null | undefined) {
 }
 
 /**
+ * Classificação exibida sempre por perspectiva (Impl 1). Usa a label vinda do
+ * backend quando presente; senão recalcula pelo score daquele lado.
+ * Nunca usa `match.label` global.
+ */
+function labelText(label: string | null | undefined, score: number) {
+  const key = (label ?? matchLabelForScore(score)) as MatchLabel;
+  return LABEL_TEXT[key] ?? key;
+}
+
+function decisionText(decision: string) {
+  return DECISION_TEXT[decision as Decision] ?? decision;
+}
+
+
+/**
  * IMPL 9 — detalhe read-only do participante. Sem contato privado:
  * o payload da RPC não traz WhatsApp/e-mail/código de recuperação, e a UI
  * não tem nenhuma ação de revelação (isso segue no fluxo de match da equipe).
