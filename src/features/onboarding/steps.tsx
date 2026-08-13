@@ -15,27 +15,15 @@ import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 
-import type {
-  EventCatalog,
-  CatalogTaxonomyItem,
-} from "@/features/participant/types";
+import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 import type { NeedKind } from "@/lib/types";
-import type {
-  SubmitState,
-  WizardDraft,
-  WizardMode,
-  WizardNeed,
-  WizardOffer,
-} from "./types";
+import type { SubmitState, WizardDraft, WizardMode, WizardNeed, WizardOffer } from "./types";
 import { cryptoUid } from "./draft";
 import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
 import { phoneCreateSchema, phoneEditSchema } from "./schemas";
 import { isSubmitting, reviewIsActionable } from "./submitMachine";
-import {
-  currentPriorityId,
-  type WizardValidation,
-} from "./validate";
+import { currentPriorityId, type WizardValidation } from "./validate";
 
 const NEED_KIND_OPTIONS: { value: NeedKind; label: string }[] = [
   { value: "servico", label: "Um serviço" },
@@ -82,9 +70,7 @@ export function Field({
 function ReviewRow({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-xs uppercase tracking-wide text-muted-foreground">
-        {label}
-      </p>
+      <p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p>
       <p className="text-sm">{value || "—"}</p>
     </div>
   );
@@ -149,11 +135,7 @@ export function StepIdentity({
           />
         </Field>
         <Field
-          label={
-            mode === "edit"
-              ? "WhatsApp (opcional — apenas para atualizar)"
-              : "WhatsApp"
-          }
+          label={mode === "edit" ? "WhatsApp (opcional — apenas para atualizar)" : "WhatsApp"}
           error={errors.whatsapp}
         >
           <Input
@@ -194,9 +176,7 @@ export function StepIdentity({
           <span className="text-sm">
             Concordo com o uso das minhas informações para gerar conexões durante o evento.
             {errors.consent && (
-              <span className="mt-1 block text-xs text-destructive">
-                {errors.consent}
-              </span>
+              <span className="mt-1 block text-xs text-destructive">{errors.consent}</span>
             )}
           </span>
         </label>
@@ -234,15 +214,11 @@ export function StepSegment({
       const prev = draft.segmentId;
       update(
         "offers",
-        draft.offers.map((o) =>
-          o.segmentId === prev ? { ...o, segmentId } : o,
-        ),
+        draft.offers.map((o) => (o.segmentId === prev ? { ...o, segmentId } : o)),
       );
       update(
         "needs",
-        draft.needs.map((n) =>
-          n.segmentId === prev ? { ...n, segmentId } : n,
-        ),
+        draft.needs.map((n) => (n.segmentId === prev ? { ...n, segmentId } : n)),
       );
     }
     update("segmentId", segmentId);
@@ -265,9 +241,7 @@ export function StepSegment({
           <p className="text-xs uppercase tracking-wide text-muted-foreground">
             Segmento atual (bloqueado)
           </p>
-          <p className="mt-1 font-medium">
-            {manualSegmentLabel ?? draft.segmentId}
-          </p>
+          <p className="mt-1 font-medium">{manualSegmentLabel ?? draft.segmentId}</p>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -320,7 +294,6 @@ export function StepSegment({
   );
 }
 
-
 // ============================================================================
 // StepOffers
 // ============================================================================
@@ -369,12 +342,7 @@ export function StepOffers({
 
   function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
-    if (
-      draft.offers.some(
-        (o) => o.label.toLowerCase() === s.label.toLowerCase(),
-      )
-    )
-      return;
+    if (draft.offers.some((o) => o.label.toLowerCase() === s.label.toLowerCase())) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: s.label,
@@ -388,10 +356,7 @@ export function StepOffers({
   function addCustom(label: string) {
     const clean = label.trim();
     if (!clean || draft.offers.length >= 5) return;
-    if (
-      draft.offers.some((o) => o.label.toLowerCase() === clean.toLowerCase())
-    )
-      return;
+    if (draft.offers.some((o) => o.label.toLowerCase() === clean.toLowerCase())) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: clean,
@@ -413,9 +378,7 @@ export function StepOffers({
     () =>
       catalog.taxonomy
         .filter(
-          (t) =>
-            t.segment_id === draft.segmentId &&
-            (t.kind === "offer" || t.kind === "both"),
+          (t) => t.segment_id === draft.segmentId && (t.kind === "offer" || t.kind === "both"),
         )
         .slice(0, 8),
     [catalog, draft.segmentId],
@@ -547,9 +510,7 @@ export function StepOffers({
       </div>
 
       <div className="mt-6">
-        <p className="mb-2 text-sm font-medium">
-          Seus itens ({draft.offers.length}/5)
-        </p>
+        <p className="mb-2 text-sm font-medium">Seus itens ({draft.offers.length}/5)</p>
         {draft.offers.length === 0 ? (
           <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
             Nenhum item ainda. Escolha das sugestões acima.
@@ -606,21 +567,14 @@ export function StepNeeds({
   const segmentTax = useMemo(
     () =>
       catalog.taxonomy
-        .filter(
-          (t) =>
-            t.segment_id === draft.segmentId &&
-            (t.kind === "need" || t.kind === "both"),
-        )
+        .filter((t) => t.segment_id === draft.segmentId && (t.kind === "need" || t.kind === "both"))
         .slice(0, 10),
     [catalog, draft.segmentId],
   );
 
   function addFromCatalog(t: CatalogTaxonomyItem) {
     if (draft.needs.length >= 5) return;
-    if (
-      draft.needs.some((n) => n.label.toLowerCase() === t.label.toLowerCase())
-    )
-      return;
+    if (draft.needs.some((n) => n.label.toLowerCase() === t.label.toLowerCase())) return;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: t.label,
@@ -751,9 +705,7 @@ export function StepNeeds({
       </div>
 
       <div className="mt-6">
-        <p className="mb-2 text-sm font-medium">
-          Suas necessidades ({draft.needs.length}/5)
-        </p>
+        <p className="mb-2 text-sm font-medium">Suas necessidades ({draft.needs.length}/5)</p>
         {draft.needs.length === 0 ? (
           <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
             Adicione pelo menos uma necessidade.
@@ -837,9 +789,7 @@ export function StepPriority({ draft, update, onNext, onBack }: BaseProps) {
       </RadioGroup>
 
       {!hasPriority && (
-        <p className="mt-3 text-xs text-muted-foreground">
-          Escolha uma prioridade para continuar.
-        </p>
+        <p className="mt-3 text-xs text-muted-foreground">Escolha uma prioridade para continuar.</p>
       )}
 
       <div className="mt-6 flex justify-between">
@@ -925,9 +875,7 @@ export function StepReview({
         />
         <ReviewRow label="Resumo" value={draft.summary} />
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Ofereço
-          </p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Ofereço</p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {draft.offers.map((o) => (
               <Badge key={o.localId} variant="secondary">
@@ -937,15 +885,11 @@ export function StepReview({
           </div>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Procuro
-          </p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">Procuro</p>
           <ul className="mt-1 space-y-1 text-sm">
             {draft.needs.map((n) => (
               <li key={n.localId} className="flex items-center gap-2">
-                {n.isPriority && (
-                  <Star className="h-4 w-4 fill-warning text-warning" />
-                )}
+                {n.isPriority && <Star className="h-4 w-4 fill-warning text-warning" />}
                 <Badge variant="outline">{NEED_LABEL[n.needKind]}</Badge>
                 {n.label}
               </li>
@@ -955,8 +899,8 @@ export function StepReview({
 
         {catalogFallback && (
           <div className="rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
-            Catálogo indisponível. Você está no modo manual — o segmento atual
-            será mantido e novos itens serão salvos como "Outro".
+            Catálogo indisponível. Você está no modo manual — o segmento atual será mantido e novos
+            itens serão salvos como "Outro".
           </div>
         )}
 

@@ -218,7 +218,9 @@ describe("validação server-side dos IDs", () => {
 
 describe("cache/prompt version", () => {
   it("promptVersion mudou para não reaproveitar respostas restritas ao segmento", () => {
-    expect(PROMPT_VERSION).toBe("a1a2-v3-crossseg");
+    // A versão evolui a cada mudança de contrato (IMPL 6 = a1a2-v4-needkind);
+    // o que importa aqui é não voltar às versões pré-cross-segment.
+    expect(PROMPT_VERSION).not.toBe("a1a2-v1");
     expect(PROMPT_VERSION).not.toBe("a1a2-v2");
   });
 

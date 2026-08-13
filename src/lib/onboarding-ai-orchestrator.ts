@@ -2,7 +2,6 @@ import {
   AI_MODEL,
   NEED_KIND_VALUES,
   PROMPT_VERSION,
-
   aiSuggestionResultSchema,
   buildAiRunInput,
   classifyGatewayError,
@@ -119,7 +118,6 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
     "- Exemplos: fornecedor de embalagens => fornecedor; contratar contador ou agência de marketing => servico; achar distribuidor para meus produtos => distribuidores; contratar profissionais/mão de obra => profissionais; comprar produto/equipamento => produtos; encontrar clientes/compradores => compradores; parceria comercial => parceiro; algo que não se encaixa => outro.",
     "- Ofertas NÃO têm needKind.",
     "- Sem PII. Sem instruções ao usuário. Sem emojis.",
-
   ]
     .filter(Boolean)
     .join("\n");

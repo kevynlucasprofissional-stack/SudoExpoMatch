@@ -19,7 +19,6 @@ export function coerceNeedKind(raw: unknown): z.infer<typeof needKindSchema> {
   return parsed.success ? parsed.data : DEFAULT_NEED_KIND;
 }
 
-
 /**
  * ID EXATO do modelo no catálogo do Lovable AI Gateway (Cloud AI Models).
  * `google/gemini-2.5-flash-lite` é o mais barato/rápido da família Flash e
@@ -57,7 +56,6 @@ export const aiSuggestionItemSchema = z
     }
   });
 export type AiSuggestionItem = z.infer<typeof aiSuggestionItemSchema>;
-
 
 export const aiUnderstandingSchema = z.object({
   summary: z.string().max(400),
@@ -109,7 +107,6 @@ export const modelOutputSchema = z.object({
       rationale: z.string(),
     }),
   ),
-
 });
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 
@@ -176,7 +173,6 @@ export function normalizeAgainstCatalog(
     }
     return out;
   }
-
 
   return {
     understanding: {

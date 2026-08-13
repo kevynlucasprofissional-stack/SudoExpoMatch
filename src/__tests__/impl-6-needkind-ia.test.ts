@@ -29,7 +29,13 @@ const catalog: EventCatalog = {
       kind: "both",
       synonyms: [],
     },
-    { id: "tx-mkt", segment_id: "marketing", label: "Marketing digital", kind: "both", synonyms: [] },
+    {
+      id: "tx-mkt",
+      segment_id: "marketing",
+      label: "Marketing digital",
+      kind: "both",
+      synonyms: [],
+    },
   ],
 };
 
@@ -105,7 +111,13 @@ describe("normalização preserva o needKind da própria sugestão", () => {
 
   it("preserva taxonomyItemId junto com o needKind", () => {
     const r = normNeeds([
-      { taxonomyItemId: "tx-emb", label: "Embalagens", needKind: "fornecedor", confidence: 0.7, rationale: "r" },
+      {
+        taxonomyItemId: "tx-emb",
+        label: "Embalagens",
+        needKind: "fornecedor",
+        confidence: 0.7,
+        rationale: "r",
+      },
     ]);
     expect(r[0]).toMatchObject({ taxonomyItemId: "tx-emb", needKind: "fornecedor" });
   });

@@ -33,12 +33,24 @@ const KEYWORDS: Record<string, string[]> = {
  * tipo selecionado na UI. Sem regra aplicável => "outro".
  */
 const NEED_KIND_RULES: Array<{ kind: NeedKind; terms: string[] }> = [
-  { kind: "fornecedor", terms: ["fornecedor", "fornecimento", "insumo", "materia prima", "embalagem"] },
-  { kind: "distribuidores", terms: ["distribuidor", "distribuicao", "revendedor", "representante comercial"] },
+  {
+    kind: "fornecedor",
+    terms: ["fornecedor", "fornecimento", "insumo", "materia prima", "embalagem"],
+  },
+  {
+    kind: "distribuidores",
+    terms: ["distribuidor", "distribuicao", "revendedor", "representante comercial"],
+  },
   { kind: "compradores", terms: ["comprador", "cliente", "clientes", "lead", "novos negocios"] },
-  { kind: "profissionais", terms: ["profissional", "profissionais", "mao de obra", "contratar equipe", "vaga", "talento"] },
+  {
+    kind: "profissionais",
+    terms: ["profissional", "profissionais", "mao de obra", "contratar equipe", "vaga", "talento"],
+  },
   { kind: "parceiro", terms: ["parceiro", "parceria", "coworking", "joint venture"] },
-  { kind: "produtos", terms: ["comprar produto", "equipamento", "maquina", "mercadoria", "produto"] },
+  {
+    kind: "produtos",
+    terms: ["comprar produto", "equipamento", "maquina", "mercadoria", "produto"],
+  },
   {
     kind: "servico",
     terms: [
@@ -89,9 +101,7 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
     const summaryNorm = norm(summary);
 
     const segTax = catalog.taxonomy.filter((t) => t.segment_id === segmentId);
-    const segOffers = segTax.filter(
-      (t) => t.kind === "offer" || t.kind === "both",
-    );
+    const segOffers = segTax.filter((t) => t.kind === "offer" || t.kind === "both");
     for (const t of segOffers.slice(0, 5)) {
       items.push({
         taxonomyItemId: validIds.has(t.id) ? t.id : null,
@@ -102,9 +112,7 @@ export const heuristicSuggestionProvider: SuggestionProvider = {
     }
 
     const words = new Set(summaryNorm.split(/[^a-z0-9]+/).filter(Boolean));
-    const segNeeds = segTax.filter(
-      (t) => t.kind === "need" || t.kind === "both",
-    );
+    const segNeeds = segTax.filter((t) => t.kind === "need" || t.kind === "both");
     for (const t of segNeeds) {
       if (items.filter((i) => i.kind === "need").length >= 3) break;
       const nLabel = norm(t.label);
