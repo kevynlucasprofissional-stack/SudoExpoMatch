@@ -1,4 +1,3 @@
-import { classifyLabel } from "@/domains/matching/score";
 import type { Decision, MatchKind, MatchLabel } from "@/lib/types";
 import type { OwnMatchDTO } from "@/features/participant/types";
 
@@ -9,12 +8,24 @@ export const LABEL_TEXT: Record<MatchLabel, string> = {
   conexao_possivel: "Conexão possível",
 };
 
+/** Thresholds oficiais — espelham `public.match_label_for_score` e o matcher. */
+export const MATCH_LABEL_THRESHOLDS = {
+  alta_compatibilidade: 75,
+  boa_oportunidade: 40,
+} as const;
+
 /**
- * Única regra determinística de classificação por score no TS.
- * Espelha `public.match_label_for_score` no banco (thresholds 75 / 40).
+ * Única regra determinística de classificação por score no app.
+ * Equivalência com o matcher e com o SQL é coberta por testes.
  */
-export const matchLabelForScore = (score: number): MatchLabel =>
-  classifyLabel(Number.isFinite(score) ? score : 0);
+export function matchLabelForScore(score: number): MatchLabel {
+  const s = Number.isFinite(score) ? score : 0;
+  if (s >= MATCH_LABEL_THRESHOLDS.alta_compatibilidade)
+    return "alta_compatibilidade";
+  if (s >= MATCH_LABEL_THRESHOLDS.boa_oportunidade) return "boa_oportunidade";
+  return "conexao_possivel";
+}
+
 
 /**
  * Classificação exibida ao participante: sempre derivada do próprio score.
