@@ -49,10 +49,7 @@ export const matchDetailKey = (matchId: string) => ["admin", "match-detail", mat
 
 const arr = (v: string[]) => (v.length > 0 ? v : undefined);
 
-export async function fetchAdminMatches(
-  eventId: string,
-  f: MatchesFilters,
-): Promise<MatchesPage> {
+export async function fetchAdminMatches(eventId: string, f: MatchesFilters): Promise<MatchesPage> {
   const limit = Math.min(Math.max(f.limit ?? MATCHES_PAGE_SIZE, 1), MATCHES_MAX_LIMIT);
   const { data, error } = await supabase.rpc("admin_list_matches", {
     _event_id: eventId,

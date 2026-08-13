@@ -11,10 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowRight } from "lucide-react";
 
 import { useAdminMatchDetail } from "@/features/admin/useAdminMatches";
-import {
-  translateAdminMatchesError,
-  type MatchReason,
-} from "@/features/admin/matchesSchemas";
+import { translateAdminMatchesError, type MatchReason } from "@/features/admin/matchesSchemas";
 import {
   DECISION_TEXT,
   KIND_TEXT,
@@ -84,8 +81,7 @@ function ReasonItem({ r }: { r: MatchReason }) {
           {rel ? (
             <p className="text-xs text-muted-foreground" data-testid="relation-current">
               Relação hoje: {rel.from_item_label ?? "?"} → {rel.to_item_label ?? "?"} ·{" "}
-              {rel.relation_type} · peso {rel.weight} ·{" "}
-              {rel.active ? "ativa" : "inativa"}
+              {rel.relation_type} · peso {rel.weight} · {rel.active ? "ativa" : "inativa"}
               {rel.rationale_current ? ` · ${rel.rationale_current}` : ""}
             </p>
           ) : (
@@ -129,9 +125,7 @@ function PerspectivePanel({
         <Badge variant="secondary">{sideLabelText(label, score)}</Badge>
         <Badge variant="outline">{decisionText(decision)}</Badge>
       </div>
-      {profile.summary ? (
-        <p className="text-sm text-muted-foreground">{profile.summary}</p>
-      ) : null}
+      {profile.summary ? <p className="text-sm text-muted-foreground">{profile.summary}</p> : null}
       <ul className="space-y-2">
         {reasons.length === 0 ? (
           <li className="text-sm text-muted-foreground">Sem motivos registrados.</li>
@@ -251,9 +245,7 @@ export function MatchDetailSheet({
             <TabsContent value="connection" className="mt-3 space-y-2 text-sm">
               {d.connection ? (
                 <div className="rounded-md border p-3">
-                  <Badge variant="secondary">
-                    {connectionStatusText(d.connection.status)}
-                  </Badge>
+                  <Badge variant="secondary">{connectionStatusText(d.connection.status)}</Badge>
                   <p className="mt-2 text-xs text-muted-foreground">
                     Criada em {fmt(d.connection.created_at)} · atualizada em{" "}
                     {fmt(d.connection.updated_at)}
@@ -268,9 +260,7 @@ export function MatchDetailSheet({
                   </p>
                 </div>
               ) : (
-                <p className="text-muted-foreground">
-                  Ainda não existe conexão para este match.
-                </p>
+                <p className="text-muted-foreground">Ainda não existe conexão para este match.</p>
               )}
             </TabsContent>
           </Tabs>
