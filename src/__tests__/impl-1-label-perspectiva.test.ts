@@ -2,10 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
 import { classifyLabel } from "@/domains/matching/score";
-import {
-  matchLabelForScore,
-  participantMatchLabel,
-} from "@/features/matching/presentation";
+import { matchLabelForScore, participantMatchLabel } from "@/features/matching/presentation";
 import { ownMatchSchema } from "@/features/participant/schemas";
 import type { OwnMatchDTO } from "@/features/participant/types";
 
@@ -75,13 +72,11 @@ describe("classificação por perspectiva (score próprio)", () => {
   });
 
   it("usa label_me do backend quando presente e ignora label global", () => {
-    expect(
-      participantMatchLabel({ ...base, score_me: 35, label_me: "boa_oportunidade" }),
-    ).toBe("boa_oportunidade");
-    // label global 'alta_compatibilidade' nunca prevalece
-    expect(participantMatchLabel({ ...base, score_me: 35 })).toBe(
-      "conexao_possivel",
+    expect(participantMatchLabel({ ...base, score_me: 35, label_me: "boa_oportunidade" })).toBe(
+      "boa_oportunidade",
     );
+    // label global 'alta_compatibilidade' nunca prevalece
+    expect(participantMatchLabel({ ...base, score_me: 35 })).toBe("conexao_possivel");
   });
 
   it("schema aceita payload antigo (sem label_me) e novo (com label_me)", () => {
@@ -93,16 +88,11 @@ describe("classificação por perspectiva (score próprio)", () => {
     });
     expect(parsed.success).toBe(true);
     if (parsed.success) expect(parsed.data.label_me).toBe("conexao_possivel");
-    expect(
-      ownMatchSchema.safeParse({ ...base, label_me: "impossivel" }).success,
-    ).toBe(false);
+    expect(ownMatchSchema.safeParse({ ...base, label_me: "impossivel" }).success).toBe(false);
   });
 
   it("MatchCard não usa mais match.label na UI", () => {
-    const src = readFileSync(
-      "src/features/participant/components/MatchCard.tsx",
-      "utf8",
-    );
+    const src = readFileSync("src/features/participant/components/MatchCard.tsx", "utf8");
     expect(src).not.toMatch(/match\.label\b/);
     expect(src).toContain("participantMatchLabel(match)");
   });

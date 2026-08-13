@@ -20,12 +20,10 @@ export const MATCH_LABEL_THRESHOLDS = {
  */
 export function matchLabelForScore(score: number): MatchLabel {
   const s = Number.isFinite(score) ? score : 0;
-  if (s >= MATCH_LABEL_THRESHOLDS.alta_compatibilidade)
-    return "alta_compatibilidade";
+  if (s >= MATCH_LABEL_THRESHOLDS.alta_compatibilidade) return "alta_compatibilidade";
   if (s >= MATCH_LABEL_THRESHOLDS.boa_oportunidade) return "boa_oportunidade";
   return "conexao_possivel";
 }
-
 
 /**
  * Classificação exibida ao participante: sempre derivada do próprio score.
@@ -37,7 +35,6 @@ export function participantMatchLabel(
 ): MatchLabel {
   return match.label_me ?? matchLabelForScore(match.score_me);
 }
-
 
 export const KIND_TEXT: Record<MatchKind, string> = {
   direto: "Direto",
@@ -54,9 +51,6 @@ export const DECISION_TEXT: Record<Decision, string> = {
 };
 
 /** Verifica interesse mútuo com base em decisões reais (não em connection). */
-export function isMutualInterest(
-  my: Decision,
-  other: Decision,
-): boolean {
+export function isMutualInterest(my: Decision, other: Decision): boolean {
   return my === "interesse" && other === "interesse";
 }
