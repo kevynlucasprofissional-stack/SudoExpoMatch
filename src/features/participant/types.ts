@@ -130,7 +130,8 @@ export interface CatalogSegment {
 }
 export interface CatalogTaxonomyItem {
   id: string;
-  segment_id: string;
+  /** IMPL 7: autoridade de segmento do item; pode ser nulo. */
+  segment_id: string | null;
   label: string;
   kind: "offer" | "need" | "both";
   synonyms: string[];

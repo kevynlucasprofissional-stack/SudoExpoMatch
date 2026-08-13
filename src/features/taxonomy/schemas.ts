@@ -8,7 +8,8 @@ export const catalogSegmentSchema = z.object({
 
 export const catalogTaxonomyItemSchema = z.object({
   id: z.string(),
-  segment_id: z.string(),
+  /** IMPL 7: pode ser nulo no banco — item sem segmento não é autoritativo. */
+  segment_id: z.string().nullable(),
   label: z.string(),
   kind: z.enum(["offer", "need", "both"]),
   synonyms: z.array(z.string()).default([]),

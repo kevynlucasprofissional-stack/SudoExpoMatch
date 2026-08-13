@@ -4,9 +4,10 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
 
 /**
  * IMPL 6: a saída de necessidade passou a carregar `needKind`.
- * Versão nova invalida o cache anterior (respostas sem needKind).
+ * IMPL 7: o item normalizado passou a carregar `segmentId` derivado do
+ * próprio taxonomy item. Versão nova invalida cache sem esses campos.
  */
-export const PROMPT_VERSION = "a1a2-v4-needkind";
+export const PROMPT_VERSION = "a1a2-v5-itemsegment";
 
 /** Fonte única de verdade dos tipos de necessidade (espelha o banco). */
 export { needKindSchema };
@@ -47,12 +48,25 @@ export const aiSuggestionItemSchema = z
      * Ofertas não têm needKind.
      */
     needKind: needKindSchema.optional(),
+    /**
+     * IMPL 7 — segmento autoritativo do item, derivado do catálogo
+     * (`taxonomy_items.segment_id`), NUNCA do modelo nem do perfil.
+     * `null` apenas para texto livre (sem taxonomy item).
+     */
+    segmentId: z.string().min(1).nullable(),
     confidence: z.number().min(0).max(1),
     rationale: z.string().max(200).optional(),
   })
   .superRefine((v, ctx) => {
     if (v.kind === "need" && !v.needKind) {
       ctx.addIssue({ code: "custom", path: ["needKind"], message: "needKind obrigatório" });
+    }
+    if (v.taxonomyItemId && !v.segmentId) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["segmentId"],
+        message: "segmentId obrigatório quando há taxonomy item",
+      });
     }
   });
 export type AiSuggestionItem = z.infer<typeof aiSuggestionItemSchema>;
@@ -129,12 +143,24 @@ export function normalizeAgainstCatalog(
   void ctx.segmentId; // contexto do prompt, não filtro de validação (IMPL 5)
   const byId = new Map(ctx.catalog.taxonomy.map((t) => [t.id, t]));
 
-  function pickTaxId(id: string | null, kind: "offer" | "need"): string | null {
-    if (!id) return null;
+  /**
+   * IMPL 7 — resolve o item do catálogo e devolve o segmento AUTORITATIVO.
+   * Item inexistente/inativo/kind incompatível → texto livre.
+   * Item válido SEM `segment_id` → não é autoritativo: vira texto livre
+   * (senão `save_own_profile_v2` rejeitaria o payload).
+   */
+  function pickTax(
+    id: string | null,
+    kind: "offer" | "need",
+  ): { taxonomyItemId: string | null; segmentId: string | null } {
+    const none = { taxonomyItemId: null, segmentId: null };
+    if (!id) return none;
     const item = byId.get(id);
-    if (!item) return null;
-    if (item.kind !== kind && item.kind !== "both") return null;
-    return item.id;
+    if (!item) return none;
+    if (item.kind !== kind && item.kind !== "both") return none;
+    const seg = item.segment_id?.trim();
+    if (!seg) return none;
+    return { taxonomyItemId: item.id, segmentId: seg };
   }
 
   function clamp(str: string, max: number) {
@@ -160,8 +186,9 @@ export function normalizeAgainstCatalog(
       const key = label.toLowerCase();
       if (seen.has(key)) continue;
       seen.add(key);
+      const tax = pickTax(r.taxonomyItemId, kind);
       out.push({
-        taxonomyItemId: pickTaxId(r.taxonomyItemId, kind),
+        ...tax,
         label,
         kind,
         // IMPL 6: o tipo vem da própria sugestão; inválido/ausente → `outro`.
