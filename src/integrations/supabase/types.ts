@@ -1114,6 +1114,60 @@ export type Database = {
           },
         ]
       }
+      taxonomy_relations: {
+        Row: {
+          active: boolean
+          created_at: string
+          created_by: string | null
+          from_taxonomy_item_id: string
+          id: string
+          rationale: string | null
+          relation_type: string
+          to_taxonomy_item_id: string
+          updated_at: string
+          weight: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          from_taxonomy_item_id: string
+          id?: string
+          rationale?: string | null
+          relation_type?: string
+          to_taxonomy_item_id: string
+          updated_at?: string
+          weight?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          created_by?: string | null
+          from_taxonomy_item_id?: string
+          id?: string
+          rationale?: string | null
+          relation_type?: string
+          to_taxonomy_item_id?: string
+          updated_at?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taxonomy_relations_from_taxonomy_item_id_fkey"
+            columns: ["from_taxonomy_item_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "taxonomy_relations_to_taxonomy_item_id_fkey"
+            columns: ["to_taxonomy_item_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
