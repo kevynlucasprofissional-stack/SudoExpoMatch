@@ -37,6 +37,8 @@ export function MatchCard({ match, eventId }: Props) {
 
 
 
+
+
   function submit(d: "interesse" | "agora_nao") {
     decide.mutate(
       { matchId: match.match_id, decision: d },
