@@ -122,9 +122,7 @@ export function TaxonomyItemSheet({
             <Skeleton className="h-24 w-full" />
           </div>
         ) : detail.isError ? (
-          <p className="mt-6 text-sm text-destructive">
-            {translateTaxonomyError(detail.error)}
-          </p>
+          <p className="mt-6 text-sm text-destructive">{translateTaxonomyError(detail.error)}</p>
         ) : item ? (
           <Tabs defaultValue="geral" className="mt-6">
             <TabsList className="w-full">

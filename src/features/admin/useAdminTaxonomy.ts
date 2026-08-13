@@ -85,11 +85,7 @@ export async function fetchAdminTaxonomyDetail(
   return taxonomyDetailSchema.parse(data);
 }
 
-export function useAdminTaxonomyDetail(
-  eventId: string,
-  itemId: string | null,
-  enabled: boolean,
-) {
+export function useAdminTaxonomyDetail(eventId: string, itemId: string | null, enabled: boolean) {
   return useQuery({
     queryKey: taxonomyDetailKey(itemId ?? "none"),
     enabled: enabled && !!itemId,

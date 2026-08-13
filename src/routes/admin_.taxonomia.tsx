@@ -110,13 +110,7 @@ function TaxonomyPage() {
   return <TaxonomyBoard />;
 }
 
-function TaxonomyRowCard({
-  row,
-  onOpen,
-}: {
-  row: TaxonomyItemRow;
-  onOpen: (id: string) => void;
-}) {
+function TaxonomyRowCard({ row, onOpen }: { row: TaxonomyItemRow; onOpen: (id: string) => void }) {
   return (
     <li>
       <button
