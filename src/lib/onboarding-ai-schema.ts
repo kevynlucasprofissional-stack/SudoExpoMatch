@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
-export const PROMPT_VERSION = "a1a2-v2";
+export const PROMPT_VERSION = "a1a2-v3-crossseg";
 
 /**
  * ID EXATO do modelo no catálogo do Lovable AI Gateway (Cloud AI Models).
