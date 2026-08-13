@@ -63,7 +63,7 @@ describe("match_reasons — colunas de rastreio (migration aditiva)", () => {
 
   it("usa ON DELETE SET NULL nas três FKs novas", () => {
     const fks = psql(`
-      SELECT string_agg(a.attname || '->' || rt.relname || ':' || c.confdeltype, ',' ORDER BY a.attname)
+      SELECT string_agg(a.attname || '->' || rt.relname || ':' || c.confdeltype::text, ',' ORDER BY a.attname)
         FROM pg_constraint c
         JOIN pg_class t ON t.oid = c.conrelid
         JOIN pg_class rt ON rt.oid = c.confrelid
