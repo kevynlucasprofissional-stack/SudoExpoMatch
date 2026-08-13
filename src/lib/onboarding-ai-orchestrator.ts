@@ -1,6 +1,8 @@
 import {
   AI_MODEL,
+  NEED_KIND_VALUES,
   PROMPT_VERSION,
+
   aiSuggestionResultSchema,
   buildAiRunInput,
   classifyGatewayError,
