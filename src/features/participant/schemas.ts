@@ -109,6 +109,9 @@ export const ownMatchSchema = z.object({
   other_profile_id: z.string(),
   kind: matchKindSchema,
   label: matchLabelSchema,
+  label_me: matchLabelSchema.optional(),
+  label_other: matchLabelSchema.optional(),
+
   score_me: z.number().int(),
   score_other: z.number().int(),
   created_at: z.string(),
