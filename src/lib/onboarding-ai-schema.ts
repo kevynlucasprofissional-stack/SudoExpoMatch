@@ -1,7 +1,24 @@
 import { z } from "zod";
+import { needKindSchema } from "@/features/participant/schemas";
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
-export const PROMPT_VERSION = "a1a2-v3-crossseg";
+/**
+ * IMPL 6: a saída de necessidade passou a carregar `needKind`.
+ * Versão nova invalida o cache anterior (respostas sem needKind).
+ */
+export const PROMPT_VERSION = "a1a2-v4-needkind";
+
+/** Fonte única de verdade dos tipos de necessidade (espelha o banco). */
+export { needKindSchema };
+export const NEED_KIND_VALUES = needKindSchema.options;
+export const DEFAULT_NEED_KIND = "outro" as const;
+
+/** Coerção determinística: valor válido do domínio, ou `outro`. */
+export function coerceNeedKind(raw: unknown): z.infer<typeof needKindSchema> {
+  const parsed = needKindSchema.safeParse(typeof raw === "string" ? raw.trim().toLowerCase() : raw);
+  return parsed.success ? parsed.data : DEFAULT_NEED_KIND;
+}
+
 
 /**
  * ID EXATO do modelo no catálogo do Lovable AI Gateway (Cloud AI Models).
