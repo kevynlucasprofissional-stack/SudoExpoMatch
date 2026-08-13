@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { LABEL_TEXT } from "@/features/matching/presentation";
+import {
+  LABEL_TEXT,
+  participantMatchLabel,
+} from "@/features/matching/presentation";
+
 import { useDecideMatchMutation } from "@/features/matching/queries";
 import { ApiError } from "@/features/participant/api";
 import {
@@ -28,6 +32,7 @@ export function MatchCard({ match, eventId }: Props) {
   const mutual = isMatchMutual(match);
   const other = match.other;
   const segmentLabel = formatSegmentLabel(other.segment_id);
+  const myLabel = participantMatchLabel(match);
 
   function submit(d: "interesse" | "agora_nao") {
     decide.mutate(
@@ -57,16 +62,18 @@ export function MatchCard({ match, eventId }: Props) {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge
+                data-testid="match-label"
                 className={
-                  match.label === "alta_compatibilidade"
+                  myLabel === "alta_compatibilidade"
                     ? "bg-success text-success-foreground"
-                    : match.label === "boa_oportunidade"
+                    : myLabel === "boa_oportunidade"
                       ? "bg-accent text-accent-foreground"
                       : "bg-secondary text-secondary-foreground"
                 }
               >
-                {LABEL_TEXT[match.label]}
+                {LABEL_TEXT[myLabel]}
               </Badge>
+
               <Badge variant="outline" className="capitalize">
                 {match.kind}
               </Badge>

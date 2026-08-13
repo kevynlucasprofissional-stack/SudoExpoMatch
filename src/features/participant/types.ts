@@ -66,7 +66,13 @@ export interface OwnMatchDTO {
   my_profile_id: string;
   other_profile_id: string;
   kind: MatchKind;
+  /** Classificação global interna (compartilhada). Não exibir ao participante. */
   label: MatchLabel;
+  /** Classificação derivada do score do próprio participante. */
+  label_me?: MatchLabel;
+  /** Classificação derivada do score da outra parte. */
+  label_other?: MatchLabel;
+
   score_me: number;
   score_other: number;
   created_at: string;
