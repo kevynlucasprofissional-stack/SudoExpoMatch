@@ -5,7 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import { LABEL_TEXT } from "@/features/matching/presentation";
+import {
+  LABEL_TEXT,
+  participantMatchLabel,
+} from "@/features/matching/presentation";
+
 import { useDecideMatchMutation } from "@/features/matching/queries";
 import { ApiError } from "@/features/participant/api";
 import {
