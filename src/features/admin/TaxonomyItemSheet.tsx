@@ -1,0 +1,259 @@
+import { useState } from "react";
+import { toast } from "sonner";
+import { ArrowRight } from "lucide-react";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+
+import {
+  useAdminTaxonomyDetail,
+  useSetTaxonomyItemActive,
+  useUpdateTaxonomyItem,
+} from "@/features/admin/useAdminTaxonomy";
+import {
+  kindText,
+  translateTaxonomyError,
+  type TaxonomyRelation,
+} from "@/features/admin/taxonomySchemas";
+import { TaxonomyItemForm } from "@/features/admin/TaxonomyItemForm";
+import type { Segment } from "@/lib/types";
+
+function fmt(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("pt-BR");
+}
+
+function RelationItem({ r }: { r: TaxonomyRelation }) {
+  return (
+    <li className="rounded-md border p-3 text-sm" data-testid="relation-item">
+      <div className="flex flex-wrap items-center gap-2 text-xs">
+        {r.direction === "outgoing" ? (
+          <>
+            <Badge variant="outline">Este item</Badge>
+            <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
+            <Badge variant="outline">{r.other_label}</Badge>
+          </>
+        ) : (
+          <>
+            <Badge variant="outline">{r.other_label}</Badge>
+            <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
+            <Badge variant="outline">Este item</Badge>
+          </>
+        )}
+        <Badge variant="secondary">peso {r.weight}</Badge>
+        <Badge variant={r.active ? "default" : "outline"}>{r.active ? "ativa" : "inativa"}</Badge>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground">
+        Tipo: {r.relation_type} · Segmento do outro item: {r.other_segment_label ?? "—"}
+        {r.other_active ? "" : " (item inativo)"}
+      </p>
+      {r.rationale ? (
+        <p className="mt-1 text-xs text-muted-foreground">Justificativa: {r.rationale}</p>
+      ) : null}
+    </li>
+  );
+}
+
+/**
+ * IMPL 11 — detalhe do item: edição auditada, ativação/desativação e visão
+ * SOMENTE LEITURA das relações complementares (mutações ficam para a Impl 12).
+ */
+export function TaxonomyItemSheet({
+  eventId,
+  itemId,
+  segments,
+  onOpenChange,
+}: {
+  eventId: string;
+  itemId: string | null;
+  segments: Segment[];
+  onOpenChange: (open: boolean) => void;
+}) {
+  const open = !!itemId;
+  const detail = useAdminTaxonomyDetail(eventId, itemId, open);
+  const update = useUpdateTaxonomyItem(eventId);
+  const toggle = useSetTaxonomyItemActive(eventId);
+  const [editing, setEditing] = useState(false);
+
+  const item = detail.data?.item;
+  const relations = detail.data?.relations ?? [];
+
+  async function handleToggle(next: boolean) {
+    if (!itemId) return;
+    try {
+      await toggle.mutateAsync({ itemId, active: next });
+      toast.success(next ? "Item reativado." : "Item desativado (histórico preservado).");
+    } catch (err) {
+      toast.error(translateTaxonomyError(err));
+    }
+  }
+
+  return (
+    <Sheet
+      open={open}
+      onOpenChange={(v) => {
+        if (!v) setEditing(false);
+        onOpenChange(v);
+      }}
+    >
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>{item?.label ?? "Item da taxonomia"}</SheetTitle>
+          <SheetDescription>
+            {item ? `${item.slug} · ${kindText(item.kind)}` : "Carregando detalhe do item…"}
+          </SheetDescription>
+        </SheetHeader>
+
+        {detail.isLoading ? (
+          <div className="mt-6 space-y-3">
+            <Skeleton className="h-24 w-full" />
+            <Skeleton className="h-24 w-full" />
+          </div>
+        ) : detail.isError ? (
+          <p className="mt-6 text-sm text-destructive">
+            {translateTaxonomyError(detail.error)}
+          </p>
+        ) : item ? (
+          <Tabs defaultValue="geral" className="mt-6">
+            <TabsList className="w-full">
+              <TabsTrigger value="geral" className="flex-1">
+                Geral
+              </TabsTrigger>
+              <TabsTrigger value="uso" className="flex-1">
+                Uso
+              </TabsTrigger>
+              <TabsTrigger value="relacoes" className="flex-1">
+                Relações
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="geral" className="mt-4 space-y-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant={item.active ? "default" : "outline"}>
+                  {item.active ? "Ativo" : "Inativo"}
+                </Badge>
+                <Badge variant="secondary">{kindText(item.kind)}</Badge>
+                <Badge variant="outline">{item.segment_label ?? item.segment_id ?? "—"}</Badge>
+              </div>
+
+              {editing ? (
+                <TaxonomyItemForm
+                  segments={segments}
+                  submitLabel="Salvar alterações"
+                  pending={update.isPending}
+                  initial={{
+                    label: item.label,
+                    segmentId: item.segment_id ?? "",
+                    kind: item.kind as never,
+                    description: item.description ?? "",
+                    synonyms: item.synonyms,
+                  }}
+                  onCancel={() => setEditing(false)}
+                  onSubmit={async (values) => {
+                    try {
+                      await update.mutateAsync({ itemId: item.id, values });
+                      toast.success("Item atualizado.");
+                      setEditing(false);
+                    } catch (err) {
+                      toast.error(translateTaxonomyError(err));
+                    }
+                  }}
+                />
+              ) : (
+                <div className="space-y-3 text-sm">
+                  <p className="text-muted-foreground">
+                    {item.description || "Sem descrição cadastrada."}
+                  </p>
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                      Sinônimos
+                    </p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {item.synonyms.length > 0 ? (
+                        item.synonyms.map((s) => (
+                          <Badge key={s} variant="secondary">
+                            {s}
+                          </Badge>
+                        ))
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Nenhum</span>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Criado em {fmt(item.created_at)} · Atualizado em {fmt(item.updated_at)}
+                  </p>
+
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border p-3">
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        id="tax-active"
+                        checked={item.active}
+                        disabled={toggle.isPending}
+                        onCheckedChange={handleToggle}
+                      />
+                      <Label htmlFor="tax-active" className="text-sm">
+                        Item ativo no catálogo
+                      </Label>
+                    </div>
+                    <Button size="sm" variant="outline" onClick={() => setEditing(true)}>
+                      Editar
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Itens nunca são apagados: desativar remove do catálogo novo e preserva
+                    referências históricas em perfis e matches.
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="uso" className="mt-4 space-y-2 text-sm">
+              <p>
+                Ofertas: <strong>{item.usage_offers_active}</strong> ativas de{" "}
+                {item.usage_offers_total} no total
+              </p>
+              <p>
+                Necessidades: <strong>{item.usage_needs_active}</strong> ativas de{" "}
+                {item.usage_needs_total} no total
+              </p>
+              <p>
+                Motivos de match que citam relações deste item:{" "}
+                <strong>{item.usage_match_reasons}</strong>
+              </p>
+            </TabsContent>
+
+            <TabsContent value="relacoes" className="mt-4 space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Visão somente leitura das relações complementares usadas pelo matcher.
+              </p>
+              {relations.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Nenhuma relação complementar cadastrada para este item.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {relations.map((r) => (
+                    <RelationItem key={`${r.direction}-${r.id}`} r={r} />
+                  ))}
+                </ul>
+              )}
+            </TabsContent>
+          </Tabs>
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
