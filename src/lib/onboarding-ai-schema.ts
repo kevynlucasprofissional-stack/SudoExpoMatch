@@ -6,13 +6,25 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
  * IMPL 6: a saída de necessidade passou a carregar `needKind`.
  * IMPL 7: o item normalizado passou a carregar `segmentId` derivado do
  * próprio taxonomy item. Versão nova invalida cache sem esses campos.
+ * IMPL 8: o prompt passou a definir `confidence` como ADERÊNCIA ao resumo e
+ * a normalização descarta itens abaixo de `MIN_SUGGESTION_CONFIDENCE`.
  */
-export const PROMPT_VERSION = "a1a2-v5-itemsegment";
+export const PROMPT_VERSION = "a1a2-v6-adherence";
+
+/**
+ * IMPL 8 — única defesa determinística contra sugestão semanticamente
+ * desconectada: o piso de autodeclaração do modelo. Deliberadamente BAIXO
+ * (0.25) para nunca bloquear uma boa sugestão cross-segment; só remove o que
+ * o próprio modelo marcou como quase-chute. Confiança ausente/inválida NÃO é
+ * descartada (default 0.5) — o contrato tolera resposta incompleta.
+ */
+export const MIN_SUGGESTION_CONFIDENCE = 0.25;
 
 /** Fonte única de verdade dos tipos de necessidade (espelha o banco). */
 export { needKindSchema };
 export const NEED_KIND_VALUES = needKindSchema.options;
 export const DEFAULT_NEED_KIND = "outro" as const;
+
 
 /** Coerção determinística: valor válido do domínio, ou `outro`. */
 export function coerceNeedKind(raw: unknown): z.infer<typeof needKindSchema> {
