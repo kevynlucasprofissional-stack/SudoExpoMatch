@@ -203,7 +203,10 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               {email} · <Badge>admin</Badge>
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/participantes">Participantes</Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/equipe">Fila de conexões</Link>
             </Button>
@@ -211,6 +214,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               <LogOut className="mr-1 h-4 w-4" /> Sair
             </Button>
           </div>
+
         </header>
 
         <section aria-labelledby="team-heading" className="space-y-6">

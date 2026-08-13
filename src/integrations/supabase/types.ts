@@ -1229,6 +1229,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      admin_get_participant_detail: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
       admin_list_event_staff: {
         Args: { _event_id: string }
         Returns: {
@@ -1237,6 +1241,17 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }[]
+      }
+      admin_list_participants: {
+        Args: {
+          _city?: string
+          _event_id: string
+          _limit?: number
+          _offset?: number
+          _search?: string
+          _segment_ids?: string[]
+        }
+        Returns: Json
       }
       admin_reassign_connection: {
         Args: { _connection_id: string; _new_user_id: string; _note?: string }
