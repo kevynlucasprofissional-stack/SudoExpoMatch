@@ -582,6 +582,11 @@ export type Database = {
           label: string
           match_id: string
           perspective_profile_id: string
+          profile_need_id: string | null
+          profile_offer_id: string | null
+          rationale: string | null
+          relation_weight: number | null
+          taxonomy_relation_id: string | null
           weight: number
         }
         Insert: {
@@ -591,6 +596,11 @@ export type Database = {
           label: string
           match_id: string
           perspective_profile_id: string
+          profile_need_id?: string | null
+          profile_offer_id?: string | null
+          rationale?: string | null
+          relation_weight?: number | null
+          taxonomy_relation_id?: string | null
           weight?: number
         }
         Update: {
@@ -600,6 +610,11 @@ export type Database = {
           label?: string
           match_id?: string
           perspective_profile_id?: string
+          profile_need_id?: string | null
+          profile_offer_id?: string | null
+          rationale?: string | null
+          relation_weight?: number | null
+          taxonomy_relation_id?: string | null
           weight?: number
         }
         Relationships: [
@@ -615,6 +630,27 @@ export type Database = {
             columns: ["perspective_profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_reasons_profile_need_id_fkey"
+            columns: ["profile_need_id"]
+            isOneToOne: false
+            referencedRelation: "profile_needs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_reasons_profile_offer_id_fkey"
+            columns: ["profile_offer_id"]
+            isOneToOne: false
+            referencedRelation: "profile_offers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_reasons_taxonomy_relation_id_fkey"
+            columns: ["taxonomy_relation_id"]
+            isOneToOne: false
+            referencedRelation: "taxonomy_relations"
             referencedColumns: ["id"]
           },
         ]
