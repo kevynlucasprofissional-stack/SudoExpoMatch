@@ -145,7 +145,16 @@ export function normalizeAgainstCatalog(
     return s.length > max ? s.slice(0, max) : s;
   }
 
-  function normList(list: ModelOutput["offers"], kind: "offer" | "need"): AiSuggestionItem[] {
+  function normList(
+    list: Array<{
+      taxonomyItemId: string | null;
+      label: string;
+      confidence: number;
+      rationale: string;
+      needKind?: string | null;
+    }>,
+    kind: "offer" | "need",
+  ): AiSuggestionItem[] {
     const out: AiSuggestionItem[] = [];
     const seen = new Set<string>();
     for (const r of list) {
@@ -158,6 +167,8 @@ export function normalizeAgainstCatalog(
         taxonomyItemId: pickTaxId(r.taxonomyItemId, kind),
         label,
         kind,
+        // IMPL 6: o tipo vem da própria sugestão; inválido/ausente → `outro`.
+        ...(kind === "need" ? { needKind: coerceNeedKind(r.needKind) } : {}),
         confidence: Math.max(0, Math.min(1, Number(r.confidence) || 0.5)),
         rationale: r.rationale ? clamp(r.rationale, 200) : undefined,
       });
@@ -165,6 +176,7 @@ export function normalizeAgainstCatalog(
     }
     return out;
   }
+
 
   return {
     understanding: {
