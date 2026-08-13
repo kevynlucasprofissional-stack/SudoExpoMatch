@@ -12,7 +12,7 @@ import {
 import { buildPrompt } from "@/lib/onboarding-ai-orchestrator";
 import { inferNeedKind } from "@/features/onboarding/suggestions";
 import { needKindSchema } from "@/features/participant/schemas";
-import { draftToSavePayload } from "@/features/onboarding/mappers";
+import { mapWizardToSaveProfileInput } from "@/features/onboarding/mappers";
 import { mergeCapped } from "@/features/onboarding/mergeItems";
 import type { EventCatalog } from "@/features/participant/types";
 import type { WizardDraft, WizardNeed } from "@/features/onboarding/types";
@@ -237,7 +237,7 @@ describe("pipeline UI → payload de submit", () => {
       needs,
       consent: true,
     };
-    const payload = draftToSavePayload(draft, "sudoexpo-2026", "");
+    const payload = mapWizardToSaveProfileInput(draft, "sudoexpo-2026");
     expect(payload.needs[0]!.need_kind).toBe("fornecedor");
     expect(needKindSchema.safeParse(payload.needs[0]!.need_kind).success).toBe(true);
   });
