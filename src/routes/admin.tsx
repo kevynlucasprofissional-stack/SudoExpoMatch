@@ -207,6 +207,9 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               <Link to="/admin/matches">Matches</Link>
             </Button>
             <Button asChild variant="outline" size="sm">
+              <Link to="/admin/taxonomia">Taxonomia</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <Link to="/equipe">Fila de conexões</Link>
             </Button>
             <Button variant="ghost" size="sm" onClick={() => signOut()}>
