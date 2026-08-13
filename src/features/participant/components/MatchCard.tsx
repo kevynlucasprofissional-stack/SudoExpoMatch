@@ -35,6 +35,8 @@ export function MatchCard({ match, eventId }: Props) {
   const myLabel = participantMatchLabel(match);
 
 
+
+
   function submit(d: "interesse" | "agora_nao") {
     decide.mutate(
       { matchId: match.match_id, decision: d },
