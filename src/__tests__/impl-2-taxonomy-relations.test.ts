@@ -142,10 +142,7 @@ describe("taxonomy_relations — constraints (transacional, com ROLLBACK)", () =
       `'00000000-0000-0000-0000-000000000000'::uuid, ${A}`,
     ),
     // 8 — relation_type inválido
-    ins(
-      "from_taxonomy_item_id, to_taxonomy_item_id, relation_type",
-      `${A}, ${B}, 'substitutes'`,
-    ),
+    ins("from_taxonomy_item_id, to_taxonomy_item_id, relation_type", `${A}, ${B}, 'substitutes'`),
     // 9 — defaults: relation_type/weight/active
     `${ins("from_taxonomy_item_id, to_taxonomy_item_id", `${A}, ${B}`)};
      IF NOT EXISTS (SELECT 1 FROM public.taxonomy_relations
@@ -186,9 +183,7 @@ describe("taxonomy_relations — constraints (transacional, com ROLLBACK)", () =
   it("não deixou dados de teste no banco", () => {
     expect(psql(`SELECT count(*) FROM public.taxonomy_relations;`)).toBe("0");
     expect(
-      psql(
-        `SELECT count(*) FROM public.taxonomy_items WHERE slug LIKE 'tmp-rel-%-test';`,
-      ),
+      psql(`SELECT count(*) FROM public.taxonomy_items WHERE slug LIKE 'tmp-rel-%-test';`),
     ).toBe("0");
   });
 });
@@ -196,33 +191,25 @@ describe("taxonomy_relations — constraints (transacional, com ROLLBACK)", () =
 describe("taxonomy_relations — RLS e grants", () => {
   it("RLS habilitada", () => {
     expect(
-      psql(
-        `SELECT relrowsecurity FROM pg_class WHERE oid='public.taxonomy_relations'::regclass;`,
-      ),
+      psql(`SELECT relrowsecurity FROM pg_class WHERE oid='public.taxonomy_relations'::regclass;`),
     ).toBe("t");
   });
 
   it("anon não tem privilégio algum", () => {
     for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
       expect(
-        psql(
-          `SELECT has_table_privilege('anon','public.taxonomy_relations','${priv}');`,
-        ),
+        psql(`SELECT has_table_privilege('anon','public.taxonomy_relations','${priv}');`),
       ).toBe("f");
     }
   });
 
   it("authenticated só tem SELECT (mutação negada no nível de grant)", () => {
     expect(
-      psql(
-        `SELECT has_table_privilege('authenticated','public.taxonomy_relations','SELECT');`,
-      ),
+      psql(`SELECT has_table_privilege('authenticated','public.taxonomy_relations','SELECT');`),
     ).toBe("t");
     for (const priv of ["INSERT", "UPDATE", "DELETE"]) {
       expect(
-        psql(
-          `SELECT has_table_privilege('authenticated','public.taxonomy_relations','${priv}');`,
-        ),
+        psql(`SELECT has_table_privilege('authenticated','public.taxonomy_relations','${priv}');`),
       ).toBe("f");
     }
   });
@@ -230,9 +217,7 @@ describe("taxonomy_relations — RLS e grants", () => {
   it("service_role mantém acesso total (uso interno/servidor)", () => {
     for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
       expect(
-        psql(
-          `SELECT has_table_privilege('service_role','public.taxonomy_relations','${priv}');`,
-        ),
+        psql(`SELECT has_table_privilege('service_role','public.taxonomy_relations','${priv}');`),
       ).toBe("t");
     }
   });
