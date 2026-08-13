@@ -23,6 +23,7 @@ import { matchesKey, matchDetailKey } from "@/features/admin/useAdminMatches";
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 const ROUTE = read("src/routes/admin_.matches.tsx");
 const SHEET = read("src/features/admin/MatchDetailSheet.tsx");
+const PRESENT = read("src/features/admin/matchesPresentation.ts");
 const API = read("src/features/admin/useAdminMatches.ts");
 const ADMIN = read("src/routes/admin.tsx");
 
@@ -300,6 +301,7 @@ describe("Impl 10 — contratos de código", () => {
     expect(SHEET).toMatch(/label_a/);
     expect(ROUTE).not.toMatch(/m\.label[^_a-zA-Z]/);
     expect(SHEET).not.toMatch(/match\.label[^_a-zA-Z]/);
+    expect(PRESENT).toMatch(/sideLabelText/);
   });
 
   it("detalhe renderiza cadeia complementar auditável", () => {

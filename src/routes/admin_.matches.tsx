@@ -44,13 +44,13 @@ import {
   normalizeMatchesSearch,
 } from "@/features/admin/matchesUrlState";
 import { translateAdminMatchesError, type MatchRow } from "@/features/admin/matchesSchemas";
+import { MatchDetailSheet } from "@/features/admin/MatchDetailSheet";
 import {
-  MatchDetailSheet,
   connectionStatusText,
   decisionText,
   kindText,
   sideLabelText,
-} from "@/features/admin/MatchDetailSheet";
+} from "@/features/admin/matchesPresentation";
 import { LABEL_TEXT, KIND_TEXT, DECISION_TEXT } from "@/features/matching/presentation";
 import { CONNECTION_STATUS_LABEL } from "@/features/connections/domain";
 import type { ConnectionStatus, Decision, MatchKind, MatchLabel } from "@/lib/types";
