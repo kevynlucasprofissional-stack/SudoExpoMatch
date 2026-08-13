@@ -542,7 +542,7 @@ describe("(12) versão de prompt e cache", () => {
       catalog: activeCatalog,
       actorUserId: "u1",
       deps: deps({
-        readCache: async () => stale,
+        readCache: async () => stale as never,
         callGateway: async () => {
           called += 1;
           return { output: model({ needs: [need("tx-bpo", "BPO financeiro", "servico")] }) };
