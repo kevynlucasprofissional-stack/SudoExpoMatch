@@ -36,14 +36,28 @@ export const suggestOnboardingInputSchema = z.object({
 });
 export type SuggestOnboardingInput = z.infer<typeof suggestOnboardingInputSchema>;
 
-export const aiSuggestionItemSchema = z.object({
-  taxonomyItemId: z.string().nullable(),
-  label: z.string().trim().min(1).max(80),
-  kind: z.enum(["offer", "need"]),
-  confidence: z.number().min(0).max(1),
-  rationale: z.string().max(200).optional(),
-});
+export const aiSuggestionItemSchema = z
+  .object({
+    taxonomyItemId: z.string().nullable(),
+    label: z.string().trim().min(1).max(80),
+    kind: z.enum(["offer", "need"]),
+    /**
+     * IMPL 6 — tipo próprio da necessidade sugerida, independente do
+     * seletor da UI. Semanticamente obrigatório: toda sugestão com
+     * `kind: "need"` sai da normalização com um valor válido (default `outro`).
+     * Ofertas não têm needKind.
+     */
+    needKind: needKindSchema.optional(),
+    confidence: z.number().min(0).max(1),
+    rationale: z.string().max(200).optional(),
+  })
+  .superRefine((v, ctx) => {
+    if (v.kind === "need" && !v.needKind) {
+      ctx.addIssue({ code: "custom", path: ["needKind"], message: "needKind obrigatório" });
+    }
+  });
 export type AiSuggestionItem = z.infer<typeof aiSuggestionItemSchema>;
+
 
 export const aiUnderstandingSchema = z.object({
   summary: z.string().max(400),
