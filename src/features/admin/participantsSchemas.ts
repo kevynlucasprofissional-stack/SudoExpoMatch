@@ -67,9 +67,13 @@ export const participantMatchSchema = z.object({
   other_company: nullableText,
   other_segment_id: z.string().nullable(),
   kind: z.string(),
+  /** Classificação global legada do match — nunca usar como label do participante. */
   label: z.string(),
   score_for_participant: z.coerce.number().int(),
   score_for_other: z.coerce.number().int(),
+  /** Impl 1 — classificação por perspectiva; fallback recalculado se ausente. */
+  label_for_participant: z.string().nullish(),
+  label_for_other: z.string().nullish(),
   decision_participant: z.string(),
   decision_other: z.string(),
   algorithm_version: z.string(),
