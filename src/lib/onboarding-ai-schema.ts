@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
-export const PROMPT_VERSION = "a1a2-v2";
+export const PROMPT_VERSION = "a1a2-v3-crossseg";
 
 /**
  * ID EXATO do modelo no catálogo do Lovable AI Gateway (Cloud AI Models).
@@ -76,8 +76,13 @@ export const modelOutputSchema = z.object({
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
 
 /**
- * Normaliza a saída do modelo contra o catálogo do evento.
- * - IDs inexistentes/inativos/segmento errado/kind incompatível → `null`
+ * Normaliza a saída do modelo contra o catálogo ATIVO do evento.
+ * - IDs inexistentes/inativos (fora do catálogo recebido) → `null`
+ * - kind incompatível → `null`
+ * - IMPL 5: o `segment_id` do item NÃO é mais comparado ao segmento da
+ *   empresa. Sugestões cross-segment são legítimas (um restaurante pode
+ *   precisar de marketing, tecnologia ou contabilidade); o segmento continua
+ *   apenas como contexto do prompt.
  * - Limita a 5 ofertas e 5 necessidades
  * - Trunca labels/rationale
  * - Deduplica pelo label case-insensitive
@@ -86,13 +91,13 @@ export function normalizeAgainstCatalog(
   raw: ModelOutput,
   ctx: { segmentId: string; catalog: EventCatalog },
 ): { understanding: AiUnderstanding; offers: AiSuggestionItem[]; needs: AiSuggestionItem[] } {
+  void ctx.segmentId; // contexto do prompt, não filtro de validação (IMPL 5)
   const byId = new Map(ctx.catalog.taxonomy.map((t) => [t.id, t]));
 
   function pickTaxId(id: string | null, kind: "offer" | "need"): string | null {
     if (!id) return null;
     const item = byId.get(id);
     if (!item) return null;
-    if (item.segment_id !== ctx.segmentId) return null;
     if (item.kind !== kind && item.kind !== "both") return null;
     return item.id;
   }
@@ -102,10 +107,7 @@ export function normalizeAgainstCatalog(
     return s.length > max ? s.slice(0, max) : s;
   }
 
-  function normList(
-    list: ModelOutput["offers"],
-    kind: "offer" | "need",
-  ): AiSuggestionItem[] {
+  function normList(list: ModelOutput["offers"], kind: "offer" | "need"): AiSuggestionItem[] {
     const out: AiSuggestionItem[] = [];
     const seen = new Set<string>();
     for (const r of list) {
@@ -184,7 +186,8 @@ export async function stableCatalogHash(items: CatalogTaxonomyItem[]): Promise<s
 export function classifyGatewayError(err: unknown): "terminal_4xx" | "transient" | "unknown" {
   const msg = err instanceof Error ? err.message : String(err ?? "");
   const lower = msg.toLowerCase();
-  if (lower === "timeout" || /network|fetch|ecconn|econnreset|socket/i.test(lower)) return "transient";
+  if (lower === "timeout" || /network|fetch|ecconn|econnreset|socket/i.test(lower))
+    return "transient";
   const m = msg.match(/\b(4\d{2}|5\d{2})\b/);
   if (m) {
     const code = Number(m[1]);

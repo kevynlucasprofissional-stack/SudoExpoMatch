@@ -21,14 +21,17 @@ const catalog: EventCatalog = {
 };
 
 const goodModelOutput = {
-  understanding: { summary: "SaaS B2B", mainActivity: "Software", keywords: ["saas"], clarifyingQuestion: null },
+  understanding: {
+    summary: "SaaS B2B",
+    mainActivity: "Software",
+    keywords: ["saas"],
+    clarifyingQuestion: null,
+  },
   offers: [
     { taxonomyItemId: "t-1", label: "Software de gestão", confidence: 0.9, rationale: "match" },
     { taxonomyItemId: null, label: "Consultoria", confidence: 0.7, rationale: "extra" },
   ],
-  needs: [
-    { taxonomyItemId: "t-2", label: "Suporte técnico", confidence: 0.6, rationale: "" },
-  ],
+  needs: [{ taxonomyItemId: "t-2", label: "Suporte técnico", confidence: 0.6, rationale: "" }],
 };
 
 const fallbackResult: AiSuggestionResult = {
@@ -41,7 +44,11 @@ const fallbackResult: AiSuggestionResult = {
 
 function makeDeps(over: Partial<OrchestratorDeps> = {}): OrchestratorDeps {
   const base: OrchestratorDeps = {
-    callGateway: vi.fn(async () => ({ output: goodModelOutput, tokensInput: 10, tokensOutput: 20 })),
+    callGateway: vi.fn(async () => ({
+      output: goodModelOutput,
+      tokensInput: 10,
+      tokensOutput: 20,
+    })),
     readCache: vi.fn(async () => null),
     writeCache: vi.fn(async () => {}),
     consumeRateLimit: vi.fn(async () => true),
@@ -144,7 +151,7 @@ describe("runOnboardingAi — cache hit e rate limit", () => {
 
   it("cache inválido (shape errado): tratado como miss, chama Gateway", async () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const deps = makeDeps({ readCache: vi.fn(async () => ({ garbage: true } as any)) });
+    const deps = makeDeps({ readCache: vi.fn(async () => ({ garbage: true }) as any) });
     const out = await runOnboardingAi({ input, catalog, actorUserId, deps });
     expect(deps.callGateway).toHaveBeenCalledTimes(1);
     expect(out.source).toBe("ai");
@@ -162,30 +169,28 @@ describe("runOnboardingAi — cache hit e rate limit", () => {
     expect(deps.callGateway).not.toHaveBeenCalled();
     expect(deps.fallback).toHaveBeenCalledTimes(1);
     expect(out.source).toBe("heuristic");
-    const row = (logRun as unknown as { mock: { calls: Array<[{ error?: string }]> } }).mock.calls[0][0];
+    const row = (logRun as unknown as { mock: { calls: Array<[{ error?: string }]> } }).mock
+      .calls[0][0];
     expect(row.error).toBe("limiter_error");
   });
 });
 
-
 describe("runOnboardingAi — normalização", () => {
-  it("converte id inexistente, segmento errado e kind errado para null", async () => {
+  it("converte id inexistente e kind errado para null; cross-segment é aceito (IMPL 5)", async () => {
     const modelOutput = {
       understanding: { summary: "", mainActivity: "", keywords: [], clarifyingQuestion: null },
       offers: [
         { taxonomyItemId: "does-not-exist", label: "Fake", confidence: 0.5, rationale: "" },
-        { taxonomyItemId: "t-3", label: "Wrong segment", confidence: 0.5, rationale: "" },
+        { taxonomyItemId: "t-3", label: "Cross segment", confidence: 0.5, rationale: "" },
         { taxonomyItemId: "t-1", label: "Ok", confidence: 0.9, rationale: "" },
       ],
-      needs: [
-        { taxonomyItemId: "t-1", label: "Kind mismatch", confidence: 0.5, rationale: "" },
-      ],
+      needs: [{ taxonomyItemId: "t-1", label: "Kind mismatch", confidence: 0.5, rationale: "" }],
     };
     const deps = makeDeps({ callGateway: vi.fn(async () => ({ output: modelOutput })) });
     const out = await runOnboardingAi({ input, catalog, actorUserId, deps });
     expect(out.source).toBe("ai");
     expect(out.offers.find((o) => o.label === "Fake")?.taxonomyItemId).toBeNull();
-    expect(out.offers.find((o) => o.label === "Wrong segment")?.taxonomyItemId).toBeNull();
+    expect(out.offers.find((o) => o.label === "Cross segment")?.taxonomyItemId).toBe("t-3");
     expect(out.offers.find((o) => o.label === "Ok")?.taxonomyItemId).toBe("t-1");
     expect(out.needs.find((n) => n.label === "Kind mismatch")?.taxonomyItemId).toBeNull();
   });
@@ -203,7 +208,8 @@ describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
       actorUserId,
       deps,
     });
-    const mockCalls = (call as unknown as { mock: { calls: Array<[{ prompt: string }]> } }).mock.calls;
+    const mockCalls = (call as unknown as { mock: { calls: Array<[{ prompt: string }]> } }).mock
+      .calls;
     const promptSent: string = mockCalls[0]?.[0]?.prompt ?? "";
     expect(promptSent).toContain(summary);
     // Defesa em profundidade — o input schema já bloqueia PII fora do summary.
@@ -214,15 +220,12 @@ describe("runOnboardingAi — segurança do prompt (sem PII)", () => {
     expect(promptSent).not.toMatch(/recovery|codigo|código de recuperação/i);
   });
 
-  it("buildPrompt direto: só inclui summary + catálogo do segmento", () => {
-    const p = buildPrompt(
-      { eventId: "e1", segmentId: "tec", summary: "SaaS puro" },
-      catalog,
-    );
+  it("buildPrompt direto: inclui summary + catálogo completo cross-segment (IMPL 5)", () => {
+    const p = buildPrompt({ eventId: "e1", segmentId: "tec", summary: "SaaS puro" }, catalog);
     expect(p).toContain("SaaS puro");
     expect(p).toContain("t-1");
-    // Não deve trazer o item do segmento "srv".
-    expect(p).not.toContain("Contador");
+    // IMPL 5: o catálogo enviado é completo, incluindo o segmento "srv".
+    expect(p).toContain("Contador");
   });
 });
 
