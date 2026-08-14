@@ -144,7 +144,7 @@ BEGIN
 
   INSERT INTO public.taxonomy_relations (from_taxonomy_item_id, to_taxonomy_item_id,
                                          relation_type, weight, rationale, active)
-  VALUES (v_item, v_item2, 'complementa', 40, 'prova histórica', true)
+  VALUES (v_item, v_item2, 'complements', 40, 'prova histórica', true)
   RETURNING id INTO v_rel;
 
   INSERT INTO public.matches (id, event_id, a_profile_id, b_profile_id, kind,
