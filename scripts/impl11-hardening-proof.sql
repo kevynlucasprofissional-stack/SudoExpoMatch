@@ -23,6 +23,11 @@ DECLARE
   v_txt   text;
   v_syn   text[];
 BEGIN
+  -- `matches` exige a_profile_id < b_profile_id.
+  IF v_pa > v_pb THEN
+    v_txt := v_pa::text; v_pa := v_pb; v_pb := v_txt::uuid;
+  END IF;
+
   ---------------------------------------------------------------------------
   -- Fixtures
   ---------------------------------------------------------------------------
