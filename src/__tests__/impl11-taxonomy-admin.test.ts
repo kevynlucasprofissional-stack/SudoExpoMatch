@@ -10,6 +10,8 @@ import {
   taxonomyPageToOffset,
   taxonomyTotalPages,
   translateTaxonomyError,
+  validateSynonyms,
+
 } from "@/features/admin/taxonomySchemas";
 
 const hasDb = !!process.env.PGHOST;
