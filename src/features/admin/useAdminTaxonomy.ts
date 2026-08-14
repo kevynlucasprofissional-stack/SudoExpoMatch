@@ -35,7 +35,8 @@ export const taxonomyKey = (eventId: string, f: TaxonomyFilters) =>
     f.limit ?? TAXONOMY_PAGE_SIZE,
   ] as const;
 
-export const taxonomyDetailKey = (itemId: string) => ["admin", "taxonomy-detail", itemId] as const;
+export const taxonomyDetailKey = (eventId: string, itemId: string) =>
+  ["admin", "taxonomy-detail", eventId, itemId] as const;
 
 const arr = (v: string[]) => (v.length > 0 ? v : undefined);
 
@@ -87,7 +88,7 @@ export async function fetchAdminTaxonomyDetail(
 
 export function useAdminTaxonomyDetail(eventId: string, itemId: string | null, enabled: boolean) {
   return useQuery({
-    queryKey: taxonomyDetailKey(itemId ?? "none"),
+    queryKey: taxonomyDetailKey(eventId, itemId ?? "none"),
     enabled: enabled && !!itemId,
     staleTime: 15_000,
     queryFn: () => fetchAdminTaxonomyDetail(eventId, itemId!),
@@ -98,7 +99,7 @@ function useInvalidateTaxonomy(eventId: string) {
   const qc = useQueryClient();
   return async (itemId?: string) => {
     await qc.invalidateQueries({ queryKey: ["admin", "taxonomy", eventId] });
-    if (itemId) await qc.invalidateQueries({ queryKey: taxonomyDetailKey(itemId) });
+    if (itemId) await qc.invalidateQueries({ queryKey: taxonomyDetailKey(eventId, itemId) });
     // O catálogo do wizard também depende dos itens ativos.
     await qc.invalidateQueries({ queryKey: ["staff", "event-segments", eventId] });
   };

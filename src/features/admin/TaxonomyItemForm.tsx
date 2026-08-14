@@ -50,6 +50,7 @@ export function TaxonomyItemForm({
   const [synonymsText, setSynonymsText] = useState((initial?.synonyms ?? []).join(", "));
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const rawSynonyms = synonymsText.split(",");
   const preview = parseSynonymsInput(synonymsText);
 
   function handleSubmit(e: React.FormEvent) {
@@ -60,7 +61,7 @@ export function TaxonomyItemForm({
       segmentId,
       kind,
       description,
-      synonyms: preview,
+      synonyms: rawSynonyms,
     });
     if (!parsed.success) {
       const errs: Record<string, string> = {};
@@ -68,7 +69,7 @@ export function TaxonomyItemForm({
       setErrors(errs);
       return;
     }
-    onSubmit(parsed.data);
+    onSubmit({ ...parsed.data, synonyms: preview });
   }
 
   return (
@@ -144,6 +145,7 @@ export function TaxonomyItemForm({
           onChange={(e) => setSynonymsText(e.target.value)}
           placeholder="pdv, ponto de venda, caixa"
         />
+        {errors.synonyms ? <p className="text-xs text-destructive">{errors.synonyms}</p> : null}
         <p className="text-xs text-muted-foreground">
           Até {MAX_SYNONYMS} sinônimos. Repetições e espaços extras são removidos automaticamente.
         </p>

@@ -32,6 +32,8 @@ export const TAXONOMY_STATUS_TEXT: Record<TaxonomyStatus, string> = {
 
 export const MAX_SYNONYMS = 20;
 export const MAX_SYNONYM_LENGTH = 80;
+/** Limite defensivo de entradas brutas enviadas (antes de trim/dedupe). */
+export const MAX_RAW_SYNONYMS = 100;
 
 const int = z.coerce.number().int();
 const nonNegInt = z.coerce.number().int().nonnegative();
@@ -107,6 +109,39 @@ export const taxonomyDetailSchema = z.object({
 });
 export type TaxonomyDetail = z.infer<typeof taxonomyDetailSchema>;
 
+export const SYNONYM_ERRORS = {
+  raw: `Envie no máximo ${MAX_RAW_SYNONYMS} entradas de sinônimo.`,
+  long: `Cada sinônimo deve ter no máximo ${MAX_SYNONYM_LENGTH} caracteres.`,
+  many: `Máximo de ${MAX_SYNONYMS} sinônimos distintos.`,
+} as const;
+
+/**
+ * Limpeza determinística espelhando `_sanitize_synonyms` do banco:
+ * apenas trim + dedupe case-insensitive. NÃO trunca nem descarta por tamanho —
+ * entrada inválida vira erro explícito em `validateSynonyms`.
+ */
+export function sanitizeSynonyms(raw: string[]): string[] {
+  const out: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const s = item.trim();
+    if (!s) continue;
+    const key = s.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(s);
+  }
+  return out;
+}
+
+/** Mesmas regras de `_validate_synonyms` no servidor. Retorna null quando válido. */
+export function validateSynonyms(raw: string[]): string | null {
+  if (raw.length > MAX_RAW_SYNONYMS) return SYNONYM_ERRORS.raw;
+  if (raw.some((s) => s.trim().length > MAX_SYNONYM_LENGTH)) return SYNONYM_ERRORS.long;
+  if (sanitizeSynonyms(raw).length > MAX_SYNONYMS) return SYNONYM_ERRORS.many;
+  return null;
+}
+
 /** Formulário de criação/edição — mesma validação que a RPC aplica no servidor. */
 export const taxonomyFormSchema = z.object({
   label: z
@@ -117,25 +152,12 @@ export const taxonomyFormSchema = z.object({
   segmentId: z.string().min(1, "Escolha um segmento."),
   kind: z.enum(TAXONOMY_KINDS),
   description: z.string().trim().max(800, "Máximo de 800 caracteres.").optional().default(""),
-  synonyms: z.array(z.string()),
+  synonyms: z.array(z.string()).superRefine((value, ctx) => {
+    const err = validateSynonyms(value);
+    if (err) ctx.addIssue({ code: z.ZodIssueCode.custom, message: err });
+  }),
 });
 export type TaxonomyFormValues = z.infer<typeof taxonomyFormSchema>;
-
-/** Limpeza local espelhando `_sanitize_synonyms` do banco. */
-export function sanitizeSynonyms(raw: string[]): string[] {
-  const out: string[] = [];
-  const seen = new Set<string>();
-  for (const item of raw) {
-    const s = item.trim();
-    if (!s || s.length > MAX_SYNONYM_LENGTH) continue;
-    const key = s.toLowerCase();
-    if (seen.has(key)) continue;
-    seen.add(key);
-    out.push(s);
-    if (out.length >= MAX_SYNONYMS) break;
-  }
-  return out;
-}
 
 export function parseSynonymsInput(raw: string): string[] {
   return sanitizeSynonyms(raw.split(","));
@@ -150,6 +172,9 @@ export function translateTaxonomyError(err: unknown): string {
   if (msg.includes("invalid_kind")) return "Tipo inválido.";
   if (msg.includes("invalid_segment")) return "Segmento inválido.";
   if (msg.includes("invalid_description")) return "A descrição excede 800 caracteres.";
+  if (msg.includes("too_many_synonyms_raw")) return SYNONYM_ERRORS.raw;
+  if (msg.includes("too_many_synonyms")) return SYNONYM_ERRORS.many;
+  if (msg.includes("synonym_too_long")) return SYNONYM_ERRORS.long;
   if (msg.includes("slug_collision")) return "Não foi possível gerar um identificador único.";
   return "Não foi possível concluir a operação na taxonomia.";
 }
