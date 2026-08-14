@@ -11,7 +11,6 @@ import {
   taxonomyTotalPages,
   translateTaxonomyError,
   validateSynonyms,
-
 } from "@/features/admin/taxonomySchemas";
 
 const hasDb = !!process.env.PGHOST;
@@ -114,7 +113,6 @@ describe("Impl 11 — contratos e estado de URL da taxonomia", () => {
     // Vazios/duplicatas que normalizam para <= 20 são aceitos.
     expect(validateSynonyms(["a", " A ", "", "   ", "b"])).toBeNull();
   });
-
 
   it("parseSynonymsInput divide por vírgula", () => {
     expect(parseSynonymsInput("pdv, Ponto de venda ,pdv")).toEqual(["pdv", "Ponto de venda"]);

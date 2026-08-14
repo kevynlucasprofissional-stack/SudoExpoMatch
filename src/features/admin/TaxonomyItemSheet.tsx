@@ -278,9 +278,12 @@ export function TaxonomyItemSheet({
         ) : null}
       </SheetContent>
 
-      <AlertDialog open={confirmOff} onOpenChange={(v) => {
+      <AlertDialog
+        open={confirmOff}
+        onOpenChange={(v) => {
           if (!v) setConfirmOff(false);
-        }}>
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Desativar “{item?.label ?? "item"}”?</AlertDialogTitle>
