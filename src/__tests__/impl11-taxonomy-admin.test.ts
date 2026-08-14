@@ -10,6 +10,7 @@ import {
   taxonomyPageToOffset,
   taxonomyTotalPages,
   translateTaxonomyError,
+  validateSynonyms,
 } from "@/features/admin/taxonomySchemas";
 
 const hasDb = !!process.env.PGHOST;
@@ -97,10 +98,20 @@ d("Impl 11 — RPCs administrativas da taxonomia", () => {
 });
 
 describe("Impl 11 — contratos e estado de URL da taxonomia", () => {
-  it("sanitizeSynonyms espelha a regra do banco", () => {
+  it("sanitizeSynonyms faz apenas trim + dedupe (sem truncar nem descartar)", () => {
     expect(sanitizeSynonyms(["  PDV ", "pdv", "PdV", "", "   "])).toEqual(["PDV"]);
-    expect(sanitizeSynonyms([" a".repeat(1), "b".repeat(81)])).toEqual(["a"]);
-    expect(sanitizeSynonyms(Array.from({ length: 40 }, (_, i) => `s${i}`))).toHaveLength(20);
+    // Entradas inválidas NÃO são silenciosamente descartadas: viram erro em validateSynonyms.
+    expect(sanitizeSynonyms([" a", "b".repeat(81)])).toEqual(["a", "b".repeat(81)]);
+    expect(sanitizeSynonyms(Array.from({ length: 40 }, (_, i) => `s${i}`))).toHaveLength(40);
+  });
+
+  it("validateSynonyms rejeita limites do servidor", () => {
+    expect(validateSynonyms(["ok"])).toBeNull();
+    expect(validateSynonyms(["a".repeat(81)])).toBeTruthy();
+    expect(validateSynonyms(Array.from({ length: 21 }, (_, i) => `s${i}`))).toBeTruthy();
+    expect(validateSynonyms(Array.from({ length: 101 }, (_, i) => `s${i}`))).toBeTruthy();
+    // Vazios/duplicatas que normalizam para <= 20 são aceitos.
+    expect(validateSynonyms(["a", " A ", "", "   ", "b"])).toBeNull();
   });
 
   it("parseSynonymsInput divide por vírgula", () => {

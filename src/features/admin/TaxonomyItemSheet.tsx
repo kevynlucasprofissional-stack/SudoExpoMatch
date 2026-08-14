@@ -15,6 +15,16 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import {
   useAdminTaxonomyDetail,
@@ -86,17 +96,29 @@ export function TaxonomyItemSheet({
   const update = useUpdateTaxonomyItem(eventId);
   const toggle = useSetTaxonomyItemActive(eventId);
   const [editing, setEditing] = useState(false);
+  const [confirmOff, setConfirmOff] = useState(false);
 
   const item = detail.data?.item;
   const relations = detail.data?.relations ?? [];
 
-  async function handleToggle(next: boolean) {
+  /** Reativar é imediato; desativar SEMPRE pede confirmação explícita. */
+  function handleToggleRequest(next: boolean) {
+    if (!next) {
+      setConfirmOff(true);
+      return;
+    }
+    void applyActive(true);
+  }
+
+  async function applyActive(next: boolean) {
     if (!itemId) return;
     try {
       await toggle.mutateAsync({ itemId, active: next });
       toast.success(next ? "Item reativado." : "Item desativado (histórico preservado).");
     } catch (err) {
       toast.error(translateTaxonomyError(err));
+    } finally {
+      setConfirmOff(false);
     }
   }
 
@@ -104,7 +126,10 @@ export function TaxonomyItemSheet({
     <Sheet
       open={open}
       onOpenChange={(v) => {
-        if (!v) setEditing(false);
+        if (!v) {
+          setEditing(false);
+          setConfirmOff(false);
+        }
         onOpenChange(v);
       }}
     >
@@ -200,7 +225,7 @@ export function TaxonomyItemSheet({
                         id="tax-active"
                         checked={item.active}
                         disabled={toggle.isPending}
-                        onCheckedChange={handleToggle}
+                        onCheckedChange={handleToggleRequest}
                       />
                       <Label htmlFor="tax-active" className="text-sm">
                         Item ativo no catálogo
@@ -252,6 +277,36 @@ export function TaxonomyItemSheet({
           </Tabs>
         ) : null}
       </SheetContent>
+
+      <AlertDialog
+        open={confirmOff}
+        onOpenChange={(v) => {
+          if (!v) setConfirmOff(false);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desativar “{item?.label ?? "item"}”?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O item deixa de aparecer para novos cadastros e sugestões da IA. As referências
+              históricas (ofertas, necessidades, matches e motivos já registrados) permanecem
+              intactas e nada é apagado. Você pode reativar depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={toggle.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={toggle.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                void applyActive(false);
+              }}
+            >
+              {toggle.isPending ? "Desativando…" : "Desativar item"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
   );
 }

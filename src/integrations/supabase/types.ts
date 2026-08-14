@@ -1227,6 +1227,7 @@ export type Database = {
         Args: { _kind: string; _label: string; _segment_id: string }
         Returns: string
       }
+      _validate_synonyms: { Args: { _syn: string[] }; Returns: undefined }
       _validate_taxonomy_payload: {
         Args: {
           _description: string
