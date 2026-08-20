@@ -11,11 +11,14 @@ import { heuristicSuggestionProvider } from "@/features/onboarding/suggestions";
 
 function baseDraft(overrides?: Partial<WizardDraft>): WizardDraft {
   const d: WizardDraft = {
-    step: 5,
+    step: 4,
     name: "Ana",
     company: "Acme",
     city: "Rio Verde",
     neighborhood: "",
+    businessSize: "pequeno",
+    businessType: "servico",
+    niche: "",
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
     offers: [

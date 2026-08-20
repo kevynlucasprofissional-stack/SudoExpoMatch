@@ -985,6 +985,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          business_size: string | null
+          business_type: string | null
           city: string
           company: string
           created_at: string
@@ -993,6 +995,7 @@ export type Database = {
           is_demo: boolean
           name: string
           neighborhood: string | null
+          niche: string | null
           owner_id: string | null
           pin_code: string | null
           pin_placed_at: string | null
@@ -1002,6 +1005,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          business_size?: string | null
+          business_type?: string | null
           city: string
           company: string
           created_at?: string
@@ -1010,6 +1015,7 @@ export type Database = {
           is_demo?: boolean
           name: string
           neighborhood?: string | null
+          niche?: string | null
           owner_id?: string | null
           pin_code?: string | null
           pin_placed_at?: string | null
@@ -1019,6 +1025,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          business_size?: string | null
+          business_type?: string | null
           city?: string
           company?: string
           created_at?: string
@@ -1027,6 +1035,7 @@ export type Database = {
           is_demo?: boolean
           name?: string
           neighborhood?: string | null
+          niche?: string | null
           owner_id?: string | null
           pin_code?: string | null
           pin_placed_at?: string | null

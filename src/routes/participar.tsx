@@ -55,10 +55,9 @@ import {
 } from "@/features/onboarding/submitMachine";
 import {
   StepIdentity,
-  StepSegment,
+  StepWhoIAm,
   StepOffers,
   StepNeeds,
-  StepPriority,
   StepReview,
 } from "@/features/onboarding/steps";
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
@@ -90,10 +89,9 @@ export const Route = createFileRoute("/participar")({
 
 const STEPS = [
   "Identificação",
-  "Segmento",
-  "Ofertas",
-  "Necessidades",
-  "Prioridade",
+  "Quem eu sou",
+  "O que eu ofereço",
+  "O que eu procuro",
   "Revisão",
 ] as const;
 
@@ -575,7 +573,7 @@ function WizardPage() {
           />
         )}
         {step === 1 && (
-          <StepSegment
+          <StepWhoIAm
             draft={draft}
             update={update}
             onNext={next}
@@ -608,8 +606,7 @@ function WizardPage() {
             aiAnalysis={aiAnalysis}
           />
         )}
-        {step === 4 && <StepPriority draft={draft} update={update} onNext={next} onBack={back} />}
-        {step === 5 && (
+        {step === 4 && (
           <StepReview
             draft={draft}
             onBack={back}

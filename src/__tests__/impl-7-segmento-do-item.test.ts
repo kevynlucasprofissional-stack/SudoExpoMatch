@@ -191,11 +191,14 @@ function acceptNeeds(picks: AiSuggestionItem[], profileSegment: string): WizardN
 
 function draftWith(offers: WizardOffer[], needs: WizardNeed[]): WizardDraft {
   return {
-    step: 5,
+    step: 4,
     name: "Ana",
     company: "Restaurante",
     city: "Rio Verde",
     neighborhood: "",
+    businessSize: "pequeno",
+    businessType: "servico",
+    niche: "",
     segmentId: "alimentacao",
     summary: "Restaurante familiar com buffet corporativo diário.",
     offers,
@@ -253,6 +256,9 @@ describe("aceitar sugestão na UI preserva o segmento da taxonomia", () => {
       company: "Restaurante",
       city: "Rio Verde",
       neighborhood: null,
+      business_size: "pequeno",
+      business_type: "servico",
+      niche: null,
       segment_id: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
       consent: true,

@@ -51,6 +51,9 @@ export const ownProfileNeedSchema = ownProfileOfferSchema.extend({
   is_priority: z.boolean(),
 });
 
+export const businessSizeSchema = z.enum(["pequeno", "medio", "grande"]);
+export const businessTypeSchema = z.enum(["comercio", "industria", "servico"]);
+
 export const ownProfileSchema = z.object({
   id: z.string(),
   event_id: z.string(),
@@ -59,6 +62,9 @@ export const ownProfileSchema = z.object({
   city: z.string(),
   neighborhood: z.string().nullable(),
   segment_id: z.string(),
+  business_size: businessSizeSchema.nullable().default(null),
+  business_type: businessTypeSchema.nullable().default(null),
+  niche: z.string().nullable().default(null),
   summary: z.string(),
   consent: z.boolean(),
   created_at: z.string(),
@@ -171,6 +177,9 @@ export const saveOwnProfilePayloadSchema = z.object({
   city: z.string().min(1),
   neighborhood: z.string().nullable(),
   segment_id: z.string().min(1),
+  business_size: businessSizeSchema.nullable(),
+  business_type: businessTypeSchema.nullable(),
+  niche: z.string().max(120).nullable(),
   summary: z.string().min(1),
   consent: z.literal(true),
   policy_version: z.string(),

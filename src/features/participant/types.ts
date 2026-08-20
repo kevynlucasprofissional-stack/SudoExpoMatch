@@ -1,5 +1,10 @@
 import type { NeedKind, MatchKind, MatchLabel, Decision, ConnectionStatus } from "@/lib/types";
 
+/** Porte da empresa informado no cadastro. */
+export type BusinessSize = "pequeno" | "medio" | "grande";
+/** Tipo principal de atuação informado no cadastro. */
+export type BusinessType = "comercio" | "industria" | "servico";
+
 // ---------- Perfil próprio ----------
 export interface OwnProfileOffer {
   id: string;
@@ -20,6 +25,9 @@ export interface OwnProfileDTO {
   city: string;
   neighborhood: string | null;
   segment_id: string;
+  business_size: BusinessSize | null;
+  business_type: BusinessType | null;
+  niche: string | null;
   summary: string;
   consent: boolean;
   created_at: string;
@@ -110,6 +118,9 @@ export interface SaveOwnProfileInput {
   city: string;
   neighborhood?: string | null;
   segmentId: string;
+  businessSize?: BusinessSize | null;
+  businessType?: BusinessType | null;
+  niche?: string | null;
   summary: string;
   consent: boolean;
   offers: SaveOfferInput[];
@@ -163,6 +174,9 @@ export type ErrorCode =
   | "missing_fields"
   | "field_too_long"
   | "invalid_segment"
+  | "invalid_business_size"
+  | "invalid_business_type"
+  | "invalid_niche"
   | "invalid_offers_count"
   | "invalid_needs_count"
   | "invalid_input"

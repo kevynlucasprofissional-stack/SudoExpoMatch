@@ -19,13 +19,21 @@ export interface WizardNeed extends WizardOffer {
   isPriority: boolean;
 }
 
+/** Porte da empresa (seleção única) — "" = ainda não escolhido. */
+export type BusinessSize = "pequeno" | "medio" | "grande";
+/** Tipo principal de atuação (seleção única) — "" = ainda não escolhido. */
+export type BusinessType = "comercio" | "industria" | "servico";
+
 export interface WizardDraft {
   step: number;
   name: string;
   company: string;
   city: string;
   neighborhood: string;
+  businessSize: BusinessSize | "";
+  businessType: BusinessType | "";
   segmentId: string;
+  niche: string;
   summary: string;
   offers: WizardOffer[];
   needs: WizardNeed[];
