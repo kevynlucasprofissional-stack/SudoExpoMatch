@@ -277,13 +277,13 @@ function MetricCard({
           <div
             data-testid={`metric-skeleton-${label}`}
             aria-label={`${label}: carregando`}
-            className="h-[56px] w-28 animate-pulse rounded-2xl bg-white/10 xl:h-[92px] xl:w-44"
+            className="h-[48px] w-24 animate-pulse sm:h-[56px] sm:w-28 rounded-2xl bg-white/10 xl:h-[92px] xl:w-44"
           />
         ) : (
           <p
             key={value}
             data-testid={`metric-value-${label}`}
-            className="pb-value font-display text-6xl font-black leading-[0.85] tabular-nums text-white xl:text-8xl"
+            className="pb-value font-display text-5xl sm:text-6xl font-black leading-[0.85] tabular-nums text-white xl:text-8xl"
             style={{ textShadow: `0 0 42px ${t.hex}55` }}
           >
             {value}
