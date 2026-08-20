@@ -170,7 +170,7 @@ function PublicBoard() {
         {/* ÁREA PRINCIPAL: 4 métricas reais */}
         <div className="grid flex-1 content-center gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
           {metrics.map((m) => (
-            <MetricCard key={m.key} {...m} />
+            <MetricCard key={m.key} label={m.label} icon={m.icon} tone={m.tone} value={m.value} />
           ))}
         </div>
 
