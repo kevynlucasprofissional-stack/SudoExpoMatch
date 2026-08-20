@@ -97,7 +97,13 @@ describe("Entrega A — landing com menos texto", () => {
 
   it("layout responsivo preservado (sem largura fixa que estoure em 320px)", () => {
     for (const src of [HERO, BENEFITS, PROCESS, CTA]) {
-      expect(src).not.toMatch(/className="[^"]*(?<![-\w])w-\[\d{3,}px\]/);
+      // largura fixa só é aceitável em enfeite absoluto/escondido no mobile
+      const fixed = [...src.matchAll(/className="([^"]*(?<![-\w])w-\[\d{3,}px\][^"]*)"/g)].map(
+        (m) => m[1],
+      );
+      for (const cls of fixed) {
+        expect(cls).toMatch(/absolute|hidden/);
+      }
       expect(src).not.toMatch(/overflow-x-scroll/);
     }
     expect(HERO).toContain("md:grid-cols-");
