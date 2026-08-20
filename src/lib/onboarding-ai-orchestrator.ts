@@ -171,6 +171,7 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
     ">>>",
     socialBlock,
     socialAnalysisBlock,
+    confirmedOffersBlock,
 
     input.existingLabels && input.existingLabels.length > 0
       ? `Itens já adicionados (não repetir): ${input.existingLabels.join(", ")}`
