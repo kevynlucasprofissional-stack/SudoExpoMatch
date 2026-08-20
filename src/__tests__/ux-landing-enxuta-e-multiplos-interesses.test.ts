@@ -53,7 +53,7 @@ describe("Entrega A — landing com menos texto", () => {
 
 
   it("processo mantém as 4 etapas com rótulos curtos e sem subtítulo redundante", () => {
-    const stepsBlock = PROCESS.slice(PROCESS.indexOf("const STEPS"), PROCESS.indexOf("export function ProcessPanel"));
+    const stepsBlock = PROCESS.slice(PROCESS.indexOf("const STEPS"), PROCESS.indexOf("// Preview agregado"));
     const labels = [...stepsBlock.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
     expect(labels).toHaveLength(4);
     for (const l of labels) expect(l.length).toBeLessThanOrEqual(28);
