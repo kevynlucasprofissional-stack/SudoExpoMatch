@@ -96,30 +96,32 @@ export function ProcessPanel() {
               ))}
             </ol>
 
-            {/* Desktop: horizontal com setas */}
+            {/* Desktop: quadradinhos em grid */}
             <ol className="mt-4 hidden grid-cols-4 gap-3 lg:grid" aria-label="Etapas do Matchmaker">
               {STEPS.map((s, i) => (
-                <li key={s.label} className="relative">
-                  <div className="flex flex-col items-center text-center">
-                    <div className="relative">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-secondary font-display text-xs font-black text-[#0b1252]">
-                        {i + 1}
-                      </span>
-                      {i < STEPS.length - 1 && (
-                        <ChevronRight
-                          aria-hidden
-                          className="absolute -right-[18px] top-1/2 h-4 w-4 -translate-y-1/2 text-white/40"
-                        />
-                      )}
-                    </div>
-                    <s.Icon aria-hidden className="mt-2 h-4 w-4 text-white/70" />
-                    <span className="mt-1 text-[11px] font-medium leading-snug text-white/85">
-                      {s.label}
+                <li
+                  key={s.label}
+                  className="relative flex h-full flex-col gap-2 rounded-lg bg-white/[0.06] p-3 text-left ring-1 ring-white/10"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary font-display text-xs font-black text-[#0b1252]">
+                      {i + 1}
                     </span>
+                    <s.Icon aria-hidden className="h-4 w-4 shrink-0 text-white/70" />
                   </div>
+                  <span className="min-w-0 text-[13px] font-medium leading-snug text-white/90">
+                    {s.label}
+                  </span>
+                  {i < STEPS.length - 1 && (
+                    <ChevronRight
+                      aria-hidden
+                      className="absolute -right-[14px] top-1/2 h-4 w-4 -translate-y-1/2 text-white/30"
+                    />
+                  )}
                 </li>
               ))}
             </ol>
+
           </div>
 
           {/* Coluna 2: Painel público AGREGADO */}
