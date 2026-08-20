@@ -319,6 +319,25 @@ function MatchesBoard() {
             </div>
 
             <div>
+              <Label htmlFor="rev" className="text-xs">
+                Revisão do admin
+              </Label>
+              <Select
+                value={search.reviewed === null ? "all" : search.reviewed ? "1" : "0"}
+                onValueChange={(v) => setParam({ rev: v === "all" ? "" : v })}
+              >
+                <SelectTrigger id="rev">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="1">Revisados</SelectItem>
+                  <SelectItem value="0">Não revisados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
               <Label htmlFor="seg" className="text-xs">
                 Segmento (qualquer lado)
               </Label>
@@ -568,6 +587,10 @@ function MatchesBoard() {
                   key={m.id}
                   m={m}
                   onOpen={(id) => navigate({ search: (prev) => ({ ...prev, m: id }) })}
+                  onToggleReviewed={(id, reviewed) =>
+                    reviewMutation.mutate({ matchId: id, reviewed })
+                  }
+                  pending={pendingReviewId === m.id}
                 />
               ))}
             </ul>
