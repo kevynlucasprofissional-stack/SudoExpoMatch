@@ -12,6 +12,8 @@ import {
   ClipboardList,
   ArrowRightLeft,
   ShieldAlert,
+  MapPin,
+  MapPinOff,
   X,
 } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -61,6 +63,7 @@ import {
   cancelNoteSchema,
   adminRevealOverrideSchema,
   optionalStaffNoteSchema,
+  pinCodeSchema,
   translateStaffRevealError,
 } from "@/features/staff/schemas";
 import {
@@ -80,8 +83,14 @@ import {
   useConnectionDetail,
   QUEUE_SORT_LABEL,
   QUEUE_SORTS,
+  useParticipantPins,
+  useSetParticipantPin,
+  useClearParticipantPin,
+  useMarkConnectionMapped,
+  useUnmarkConnectionMapped,
   type QueueItem,
   type QueueSort,
+  type PinItem,
 } from "@/features/staff/useOperationalQueue";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -316,6 +325,9 @@ function StaffDashboard({
   const assume = useAssumeConnection(EVENT_ID);
   const release = useReleaseConnection(EVENT_ID);
   const advance = useAdvanceStatusMutation(EVENT_ID);
+  const markMapped = useMarkConnectionMapped(EVENT_ID);
+  const unmarkMapped = useUnmarkConnectionMapped(EVENT_ID);
+  const [pinsOpen, setPinsOpen] = useState(false);
 
   const items = queueQuery.data?.items ?? [];
   const total = queueQuery.data?.total ?? 0;
@@ -376,6 +388,21 @@ function StaffDashboard({
     }
   }
 
+  async function handleToggleMapped(c: QueueItem) {
+    try {
+      if (c.mapped_at) {
+        await unmarkMapped.mutateAsync({ connectionId: c.id });
+        toast.success("Registro no mapa físico desfeito.");
+      } else {
+        await markMapped.mutateAsync({ connectionId: c.id });
+        toast.success("Conexão registrada no mapa físico.");
+      }
+    } catch (err) {
+      toast.error(translateOperationalError(err));
+      queueQuery.refetch();
+    }
+  }
+
   async function handleConfirmCancel() {
     if (!cancelTarget) return;
     const parsed = cancelNoteSchema.safeParse(cancelNote);
@@ -411,6 +438,9 @@ function StaffDashboard({
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPinsOpen(true)}>
+              <MapPin className="mr-1 h-4 w-4" /> Pins do mapa
+            </Button>
             {isAdmin && (
               <Button asChild variant="outline" size="sm">
                 <Link to="/admin">Administração</Link>
@@ -428,7 +458,7 @@ function StaffDashboard({
           <Stat label="Mútuos" value={stats.mutualMatches} />
           <Stat label="Na fila" value={counts.pending ?? 0} />
           <Stat label="Minhas" value={counts.mine ?? 0} />
-          <Stat label="Livres" value={counts.unassigned ?? 0} />
+          <Stat label="Falta no mapa" value={counts.map_pending ?? 0} />
         </div>
 
         <Card className="mb-4 p-3">
@@ -441,6 +471,8 @@ function StaffDashboard({
                   ["unassigned", "Livres"],
                   ["all", "Todas"],
                   ["closed", "Encerradas"],
+                  ["map_pending", "Falta no mapa"],
+                  ["mapped", "No mapa"],
                 ] as const
               ).map(([s, label]) => (
                 <Button
@@ -546,7 +578,13 @@ function StaffDashboard({
                 c={c}
                 userId={userId}
                 isAdmin={isAdmin}
-                busy={assume.isPending || release.isPending || advance.isPending}
+                busy={
+                  assume.isPending ||
+                  release.isPending ||
+                  advance.isPending ||
+                  markMapped.isPending ||
+                  unmarkMapped.isPending
+                }
                 onAssume={() => handleAssume(c)}
                 onRelease={() => {
                   setReleaseTarget(c);
@@ -558,6 +596,7 @@ function StaffDashboard({
                   setCancelNote("");
                 }}
                 onReveal={() => setRevealTarget(c)}
+                onToggleMapped={() => handleToggleMapped(c)}
                 onDetail={() => setDetailId(c.id)}
               />
             ))}
@@ -590,6 +629,8 @@ function StaffDashboard({
           </div>
         )}
       </section>
+
+      <PinsDialog open={pinsOpen} onClose={() => setPinsOpen(false)} />
 
       <RevealContactDialog
         target={revealTarget}
@@ -759,6 +800,11 @@ function SegmentsFilter({
   );
 }
 
+/** O mapa físico só aceita conexões cujas partes já foram apresentadas. */
+function canMapConnection(status: ConnectionStatus): boolean {
+  return status === "apresentados" || status === "contato_trocado" || status === "concluido";
+}
+
 // ---------------------------------------------------------------- ConnectionCard
 function ConnectionCard({
   c,
@@ -770,6 +816,7 @@ function ConnectionCard({
   onAdvance,
   onCancel,
   onReveal,
+  onToggleMapped,
   onDetail,
 }: {
   c: QueueItem;
@@ -781,6 +828,7 @@ function ConnectionCard({
   onAdvance: (c: QueueItem, next: ConnectionStatus) => void;
   onCancel: () => void;
   onReveal: () => void;
+  onToggleMapped: () => void;
   onDetail: () => void;
 }) {
   const nextStatus = NEXT_CONNECTION_STATUS[c.status];
@@ -810,6 +858,21 @@ function ConnectionCard({
                 Livre
               </Badge>
             )}
+            {c.mapped_at ? (
+              <Badge
+                variant="outline"
+                className="border-emerald-500/40 text-xs text-emerald-700"
+                title={`Registrada no mapa em ${new Date(c.mapped_at).toLocaleString("pt-BR")}${
+                  c.mapped_by_email ? ` por ${c.mapped_by_email}` : ""
+                }`}
+              >
+                <MapPin className="mr-1 h-3 w-3" /> No mapa
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs text-muted-foreground">
+                <MapPinOff className="mr-1 h-3 w-3" /> Fora do mapa
+              </Badge>
+            )}
             <span className="text-xs text-muted-foreground">
               Criada {new Date(c.created_at).toLocaleString("pt-BR")}
             </span>
@@ -827,6 +890,10 @@ function ConnectionCard({
           </p>
           <p className="text-xs text-muted-foreground">
             {c.a_city ?? "—"} · {c.b_city ?? "—"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pin {c.a_name}: {c.a_pin_code ?? (c.a_pin_placed_at ? "sem código" : "sem pin")} · Pin{" "}
+            {c.b_name}: {c.b_pin_code ?? (c.b_pin_placed_at ? "sem código" : "sem pin")}
           </p>
           {c.notes && (
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-xs italic text-muted-foreground">
@@ -864,6 +931,19 @@ function ConnectionCard({
               title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
             >
               {getOperationalCta(c.status)}
+            </Button>
+          )}
+          {canOp && canMapConnection(c.status) && (
+            <Button size="sm" variant="outline" onClick={onToggleMapped} disabled={busy}>
+              {c.mapped_at ? (
+                <>
+                  <MapPinOff className="mr-1 h-4 w-4" /> Desfazer mapa
+                </>
+              ) : (
+                <>
+                  <MapPin className="mr-1 h-4 w-4" /> Registrar no mapa
+                </>
+              )}
             </Button>
           )}
           {!isTerminalStatus(c.status) && canOp && (
@@ -972,6 +1052,12 @@ function ConnectionDetailDrawer({
                 <TimeRow label="Contato trocado" v={q.data.contact_exchanged_at} />
                 <TimeRow label="Concluída" v={q.data.completed_at} />
                 <TimeRow label="Cancelada" v={q.data.cancelled_at} />
+                <TimeRow label="Registrada no mapa" v={q.data.mapped_at} />
+                {q.data.mapped_by_email && (
+                  <p className="text-xs text-muted-foreground">
+                    Registro no mapa por {q.data.mapped_by_email}
+                  </p>
+                )}
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
                 <div>
@@ -1162,6 +1248,8 @@ function PartyBlock({
     city: string | null;
     segment_id: string | null;
     summary: string | null;
+    pin_code?: string | null;
+    pin_placed_at?: string | null;
   };
 }) {
   return (
@@ -1171,8 +1259,168 @@ function PartyBlock({
       <p className="text-xs text-muted-foreground">
         {p.company ?? "—"} · {p.city ?? "—"}
       </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {p.pin_placed_at
+          ? `Pin no mapa: ${p.pin_code ?? "sem código"}`
+          : "Ainda sem pin no mapa"}
+      </p>
       {p.summary && <p className="mt-1 text-xs">{p.summary}</p>}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- PinsDialog
+function PinsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [search, setSearch] = useState("");
+  const [onlyMissing, setOnlyMissing] = useState(true);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const q = useParticipantPins(
+    { eventId: EVENT_ID, search: search.trim() || undefined, onlyMissing, limit: 50 },
+    open,
+  );
+  const setPin = useSetParticipantPin(EVENT_ID);
+  const clearPin = useClearParticipantPin(EVENT_ID);
+
+  useEffect(() => {
+    if (!open) {
+      setDrafts({});
+      setSearch("");
+      setOnlyMissing(true);
+    }
+  }, [open]);
+
+  async function handleSave(item: PinItem) {
+    const parsed = pinCodeSchema.safeParse(drafts[item.id] ?? item.pin_code ?? "");
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Identificação inválida.");
+      return;
+    }
+    try {
+      const res = await setPin.mutateAsync({ profileId: item.id, pinCode: parsed.data });
+      toast.success(res.changed ? "Pin registrado." : "Pin já estava assim.");
+      setDrafts((d) => ({ ...d, [item.id]: parsed.data }));
+    } catch (err) {
+      toast.error(translateOperationalError(err));
+    }
+  }
+
+  async function handleClear(item: PinItem) {
+    try {
+      await clearPin.mutateAsync({ profileId: item.id });
+      toast.success("Pin removido do participante.");
+      setDrafts((d) => ({ ...d, [item.id]: "" }));
+    } catch (err) {
+      toast.error(translateOperationalError(err));
+    }
+  }
+
+  const items = q.data?.items ?? [];
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Pins do mapa físico</DialogTitle>
+          <DialogDescription>
+            Marque quem já recebeu e colocou o pin no mapa da SudoExpo. A identificação do pin é
+            opcional para a pessoa, mas precisa ser única no evento.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Buscar por nome, empresa ou pin"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={onlyMissing}
+              onCheckedChange={(v) => setOnlyMissing(v === true)}
+            />
+            Somente sem pin
+          </label>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {q.data ? `${q.data.pins_placed} com pin · ${q.data.pins_missing} sem pin` : "Carregando…"}
+        </p>
+
+        {q.isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : items.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum participante encontrado com esses filtros.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((item) => (
+              <li key={item.id} className="rounded-md border p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.company ?? "—"} · {item.city ?? "—"}
+                    </p>
+                  </div>
+                  {item.pin_placed_at ? (
+                    <Badge variant="outline" className="text-xs">
+                      <MapPin className="mr-1 h-3 w-3" /> Pin colocado
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">
+                      Sem pin
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Input
+                    className="h-9 max-w-[200px]"
+                    maxLength={24}
+                    placeholder="Identificação do pin"
+                    value={drafts[item.id] ?? item.pin_code ?? ""}
+                    onChange={(e) => setDrafts((d) => ({ ...d, [item.id]: e.target.value }))}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleSave(item)}
+                    disabled={setPin.isPending || clearPin.isPending}
+                  >
+                    Salvar pin
+                  </Button>
+                  {item.pin_placed_at && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleClear(item)}
+                      disabled={setPin.isPending || clearPin.isPending}
+                    >
+                      Remover
+                    </Button>
+                  )}
+                  {item.pin_placed_by_email && (
+                    <span className="text-xs text-muted-foreground">
+                      por {item.pin_placed_by_email}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

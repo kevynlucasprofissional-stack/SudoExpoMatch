@@ -344,6 +344,8 @@ export type Database = {
           created_at: string
           event_id: string
           id: string
+          mapped_at: string | null
+          mapped_by: string | null
           match_id: string
           notes: string | null
           presented_at: string | null
@@ -363,6 +365,8 @@ export type Database = {
           created_at?: string
           event_id: string
           id?: string
+          mapped_at?: string | null
+          mapped_by?: string | null
           match_id: string
           notes?: string | null
           presented_at?: string | null
@@ -382,6 +386,8 @@ export type Database = {
           created_at?: string
           event_id?: string
           id?: string
+          mapped_at?: string | null
+          mapped_by?: string | null
           match_id?: string
           notes?: string | null
           presented_at?: string | null
@@ -997,6 +1003,9 @@ export type Database = {
           neighborhood: string | null
           offers: Json
           owner_id: string | null
+          pin_code: string | null
+          pin_placed_at: string | null
+          pin_placed_by: string | null
           recovery_code: string
           segment_id: string
           summary: string
@@ -1016,6 +1025,9 @@ export type Database = {
           neighborhood?: string | null
           offers?: Json
           owner_id?: string | null
+          pin_code?: string | null
+          pin_placed_at?: string | null
+          pin_placed_by?: string | null
           recovery_code: string
           segment_id: string
           summary: string
@@ -1035,6 +1047,9 @@ export type Database = {
           neighborhood?: string | null
           offers?: Json
           owner_id?: string | null
+          pin_code?: string | null
+          pin_placed_at?: string | null
+          pin_placed_by?: string | null
           recovery_code?: string
           segment_id?: string
           summary?: string
@@ -1490,6 +1505,10 @@ export type Database = {
         Args: { _connection_id: string }
         Returns: Json
       }
+      staff_clear_participant_pin: {
+        Args: { _note?: string; _profile_id: string }
+        Returns: Json
+      }
       staff_list_connection_detail: {
         Args: { _connection_id: string }
         Returns: Json
@@ -1507,6 +1526,20 @@ export type Database = {
         }
         Returns: Json
       }
+      staff_list_pins: {
+        Args: {
+          _event_id: string
+          _limit?: number
+          _offset?: number
+          _only_missing?: boolean
+          _search?: string
+        }
+        Returns: Json
+      }
+      staff_mark_connection_mapped: {
+        Args: { _connection_id: string; _note?: string }
+        Returns: Json
+      }
       staff_release_connection: {
         Args: { _connection_id: string; _note?: string }
         Returns: undefined
@@ -1520,6 +1553,14 @@ export type Database = {
           phone_e164: string
           profile_id: string
         }[]
+      }
+      staff_set_participant_pin: {
+        Args: { _pin_code?: string; _profile_id: string }
+        Returns: Json
+      }
+      staff_unmark_connection_mapped: {
+        Args: { _connection_id: string; _note?: string }
+        Returns: Json
       }
       taxonomy_match: {
         Args: {
