@@ -64,8 +64,11 @@ export async function runWizardSubmit(args: {
   mode: WizardMode;
   phone: string;
   eventId: string;
+  /** Contexto social já saneado na sessão do wizard, quando existir. */
+  socialContext?: SocialBusinessContext | null;
   deps: SubmitOrchestratorDeps;
 }): Promise<SubmitEvent[]> {
+
   const events: SubmitEvent[] = [];
   const pre = preSubmit(args);
   if (!pre.ok) {
