@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, Users, Package, Handshake } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
-import { HeroVisualMobile } from "./HeroVisualMobile";
 
 function Highlight({ children, bg }: { children: React.ReactNode; bg: string }) {
   return (

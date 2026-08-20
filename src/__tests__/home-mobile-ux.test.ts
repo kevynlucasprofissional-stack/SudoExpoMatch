@@ -7,20 +7,11 @@ const read = (p: string) => readFileSync(resolve(__dirname, "..", "..", p), "utf
 describe("Home mobile UX — estrutura do código", () => {
   const hero = read("src/components/home/Hero.tsx");
   const process = read("src/components/home/ProcessPanel.tsx");
-  const heroMobile = read("src/components/home/HeroVisualMobile.tsx");
 
-  it("Hero: visual desktop está oculto em < md (hidden md:block) e mobile visível em < md (md:hidden)", () => {
-    expect(hero).toMatch(
-      /data-testid="hero-visual-desktop"[\s\S]*?md:block|md:block[\s\S]*?data-testid="hero-visual-desktop"/,
-    );
-    expect(hero).toMatch(
-      /md:hidden[\s\S]*?data-testid="hero-visual-mobile"|data-testid="hero-visual-mobile"[\s\S]*?md:hidden/,
-    );
-  });
-
-  it("Hero: importa HeroVisualMobile dedicado (não é apenas o desktop escondido)", () => {
-    expect(hero).toContain("import { HeroVisualMobile }");
-    expect(hero).toContain("<HeroVisualMobile />");
+  it("Hero: usa uma única ilustração compartilhada em todos os tamanhos", () => {
+    expect(hero).toContain('data-testid="hero-visual"');
+    expect(hero).not.toContain("HeroVisualMobile");
+    expect(hero).toContain("<HeroVisual />");
   });
 
   it("Hero: usa clamp() na headline e envolve destaques em whitespace-nowrap para não separar da vírgula", () => {
@@ -54,9 +45,10 @@ describe("Home mobile UX — estrutura do código", () => {
     expect(index).not.toContain("HomeHeader");
   });
 
-  it("HeroVisualMobile: acessível via role=img + aria-label descritivo", () => {
-    expect(heroMobile).toContain('role="img"');
-    expect(heroMobile).toMatch(/aria-label="[^"]*match encontrado[^"]*"/i);
-    expect(heroMobile).toContain("clamp(260px, 78vw, 340px)");
+  it("HeroVisual: ilustração com alt descritivo", () => {
+    const visual = read("src/components/home/HeroVisual.tsx");
+    expect(visual).toContain("hero-matchmaker.png.asset.json");
+    expect(visual).toMatch(/alt="[^"]+"/);
   });
+});
 });
