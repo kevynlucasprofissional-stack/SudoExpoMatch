@@ -355,3 +355,131 @@ export function useAddConnectionNote(eventId: string) {
     },
   });
 }
+
+// --------------------------------------------------------------------------
+// Mapa físico da SudoExpo (pins e registro da conexão no painel)
+// --------------------------------------------------------------------------
+
+const pinItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  company: z.string().nullable().default(""),
+  city: z.string().nullable().default(""),
+  segment_id: z.string().nullable(),
+  pin_code: z.string().nullable().default(null),
+  pin_placed_at: z.string().nullable().default(null),
+  pin_placed_by_email: z.string().nullable().default(null),
+  created_at: z.string(),
+});
+
+const pinsResponseSchema = z.object({
+  items: z.array(pinItemSchema),
+  total: nonNegativeInt,
+  limit: nonNegativeInt,
+  offset: nonNegativeInt,
+  pins_missing: nonNegativeInt,
+  pins_placed: nonNegativeInt,
+});
+
+export type PinItem = z.infer<typeof pinItemSchema>;
+export type PinsResponse = z.infer<typeof pinsResponseSchema>;
+
+export interface PinsQueryInput {
+  eventId: string;
+  search?: string;
+  onlyMissing?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
+export function useParticipantPins(input: PinsQueryInput, enabled: boolean) {
+  const { eventId, ...rest } = input;
+  return useQuery({
+    queryKey: ["staff", "pins", eventId, rest] as const,
+    enabled,
+    staleTime: 5_000,
+    placeholderData: (prev) => prev,
+    queryFn: async (): Promise<PinsResponse> => {
+      const { data, error } = await supabase.rpc("staff_list_pins", {
+        _event_id: eventId,
+        _search: input.search || undefined,
+        _only_missing: input.onlyMissing ?? false,
+        _limit: input.limit ?? 25,
+        _offset: input.offset ?? 0,
+      });
+      if (error) throw error;
+      return pinsResponseSchema.parse(data);
+    },
+  });
+}
+
+function invalidatePins(qc: ReturnType<typeof useQueryClient>, eventId: string) {
+  qc.invalidateQueries({ queryKey: ["staff", "pins", eventId] });
+  qc.invalidateQueries({ queryKey: ["staff", "queue", eventId] });
+}
+
+export function useSetParticipantPin(eventId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { profileId: string; pinCode: string }) => {
+      const { data, error } = await supabase.rpc("staff_set_participant_pin", {
+        _profile_id: input.profileId,
+        _pin_code: input.pinCode,
+      });
+      if (error) throw error;
+      return data as { changed: boolean; pin_code: string | null };
+    },
+    onSuccess: () => invalidatePins(qc, eventId),
+  });
+}
+
+export function useClearParticipantPin(eventId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { profileId: string; note?: string }) => {
+      const { data, error } = await supabase.rpc("staff_clear_participant_pin", {
+        _profile_id: input.profileId,
+        _note: input.note ?? undefined,
+      });
+      if (error) throw error;
+      return data as { changed: boolean };
+    },
+    onSuccess: () => invalidatePins(qc, eventId),
+  });
+}
+
+export function useMarkConnectionMapped(eventId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { connectionId: string; note?: string }) => {
+      const { data, error } = await supabase.rpc("staff_mark_connection_mapped", {
+        _connection_id: input.connectionId,
+        _note: input.note ?? undefined,
+      });
+      if (error) throw error;
+      return data as { changed: boolean; mapped_at: string | null };
+    },
+    onSuccess: (_, input) => {
+      invalidateOps(qc, eventId);
+      qc.invalidateQueries({ queryKey: ["staff", "connection-detail", input.connectionId] });
+    },
+  });
+}
+
+export function useUnmarkConnectionMapped(eventId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { connectionId: string; note?: string }) => {
+      const { data, error } = await supabase.rpc("staff_unmark_connection_mapped", {
+        _connection_id: input.connectionId,
+        _note: input.note ?? undefined,
+      });
+      if (error) throw error;
+      return data as { changed: boolean };
+    },
+    onSuccess: (_, input) => {
+      invalidateOps(qc, eventId);
+      qc.invalidateQueries({ queryKey: ["staff", "connection-detail", input.connectionId] });
+    },
+  });
+}
