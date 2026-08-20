@@ -68,9 +68,6 @@ async function fallbackToHeuristic(
  */
 async function buildProductionDeps(apiKey: string | undefined): Promise<OrchestratorDeps> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  // Private schema não é tipado (não faz parte do Data API). Cast controlado.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const priv: any = (supabaseAdmin as any).schema("private");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = supabaseAdmin;
 
@@ -104,41 +101,32 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
       }
     },
     readCache: async (key) => {
-      const q = priv
-        .from("ai_onboarding_cache")
-        .select("result, expires_at")
-        .eq("input_hash", key)
-        .eq("prompt_version", PROMPT_VERSION)
-        .eq("model", AI_MODEL)
-        .maybeSingle();
-      const { data, error } = (await q) as {
-        data: { result: unknown; expires_at: string } | null;
-        error: unknown;
-      };
+      // IMPL 23: o schema privado NÃO é acessível pela API — o acesso passa
+      // por wrappers SECURITY DEFINER expostos só ao service_role.
+      const { data, error } = await admin.rpc("ai_cache_lookup", {
+        _key: key,
+        _prompt_version: PROMPT_VERSION,
+        _model: AI_MODEL,
+      });
       if (error || !data) return null;
-      if (new Date(data.expires_at).getTime() < Date.now()) return null;
       // Defesa em profundidade — cache é validado de novo no orquestrador,
       // mas rejeitamos aqui também para nunca devolver JSON com shape
       // antigo/corrompido.
-      const parsed = aiSuggestionResultSchema.safeParse(data.result);
+      const parsed = aiSuggestionResultSchema.safeParse(data);
       if (!parsed.success) return null;
       return parsed.data;
     },
     writeCache: async (key, value, ttlSec) => {
-      const expires = new Date(Date.now() + ttlSec * 1000).toISOString();
-      await priv.from("ai_onboarding_cache").upsert(
-        {
-          input_hash: key,
-          prompt_version: PROMPT_VERSION,
-          model: AI_MODEL,
-          result: value,
-          expires_at: expires,
-        },
-        { onConflict: "input_hash,prompt_version,model" },
-      );
+      await admin.rpc("ai_cache_store", {
+        _key: key,
+        _prompt_version: PROMPT_VERSION,
+        _model: AI_MODEL,
+        _result: value,
+        _ttl_sec: ttlSec,
+      });
     },
     consumeRateLimit: async (actor) => {
-      const { data, error } = await priv.rpc("consume_ai_rate_limit", {
+      const { data, error } = await admin.rpc("ai_rate_limit_consume", {
         _actor: actor,
         _window_sec: 300,
         _max_calls: 10,
@@ -152,6 +140,7 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
       }
       return data;
     },
+
     logRun: async (row: AiRunLogRow) => {
       try {
         await admin.from("ai_runs").insert({
