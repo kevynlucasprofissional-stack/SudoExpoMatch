@@ -56,12 +56,6 @@ export function Hero() {
             >
               Criar meu perfil <ArrowRight className="h-4 w-4" />
             </Link>
-            <Link
-              to="/participante"
-              className="inline-flex min-h-12 w-full items-center justify-center rounded-md border border-white/30 bg-transparent px-6 py-3 font-semibold text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] sm:w-auto"
-            >
-              Ver minhas conexões
-            </Link>
           </div>
 
 
