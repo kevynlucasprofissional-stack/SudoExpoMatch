@@ -14,7 +14,7 @@ export function FinalCta() {
         <svg
           aria-hidden
           viewBox="0 0 260 120"
-          className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[220px] opacity-40 lg:block"
+          className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden h-full w-[220px] opacity-25 lg:block"
           preserveAspectRatio="xMaxYMax slice"
         >
           <g fill="rgba(255,255,255,0.16)">
@@ -27,7 +27,7 @@ export function FinalCta() {
           </g>
         </svg>
 
-        <div className="relative flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left lg:pr-[240px]">
+        <div className="relative z-10 flex w-full flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
           <div className="min-w-0">
             <h3 className="font-display text-lg font-black text-white md:text-xl">
               Já criou seu perfil?
