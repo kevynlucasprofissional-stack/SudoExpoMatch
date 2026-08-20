@@ -2,7 +2,6 @@ import { createFileRoute } from "@tanstack/react-router";
 import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { Hero } from "@/components/home/Hero";
-import { BenefitCards } from "@/components/home/BenefitCards";
 import { ProcessPanel } from "@/components/home/ProcessPanel";
 import { FinalCta } from "@/components/home/FinalCta";
 import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
@@ -44,7 +43,6 @@ function Index() {
 
         <div className="relative">
           <Hero />
-          <BenefitCards />
           <ProcessPanel />
           <FinalCta />
         </div>

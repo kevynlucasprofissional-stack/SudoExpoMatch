@@ -8,7 +8,6 @@ import { wizardCreateSchema } from "@/features/onboarding/schemas";
 const read = (p: string) => readFileSync(resolve(process.cwd(), p), "utf8");
 
 const HERO = read("src/components/home/Hero.tsx");
-const BENEFITS = read("src/components/home/BenefitCards.tsx");
 const PROCESS = read("src/components/home/ProcessPanel.tsx");
 const CTA = read("src/components/home/FinalCta.tsx");
 const MATCH_CARD = read("src/features/participant/components/MatchCard.tsx");
@@ -52,14 +51,6 @@ describe("Entrega A — landing com menos texto", () => {
     expect(HERO).toContain("<HeroVisualMobile />");
   });
 
-  it("benefícios ficam em título + frase curta (<= 60 caracteres)", () => {
-    const bodies = [...BENEFITS.matchAll(/body: "([^"]+)"/g)].map((m) => m[1]);
-    expect(bodies).toHaveLength(3);
-    for (const b of bodies) {
-      expect(b.length).toBeLessThanOrEqual(60);
-      expect(b.split(". ").length).toBeLessThanOrEqual(1);
-    }
-  });
 
   it("processo mantém as 4 etapas com rótulos curtos e sem subtítulo redundante", () => {
     const stepsBlock = PROCESS.slice(PROCESS.indexOf("const STEPS"), PROCESS.indexOf("const AUDIENCE"));
@@ -80,23 +71,23 @@ describe("Entrega A — landing com menos texto", () => {
   });
 
   it("a mesma explicação não se repete entre hero, benefícios e processo", () => {
-    const analisa = [HERO, BENEFITS, PROCESS, CTA].filter((s) =>
+    const analisa = [HERO, PROCESS, CTA].filter((s) =>
       visibleText(s).includes("analisa os perfis"),
     );
     expect(analisa).toHaveLength(0);
-    const cruza = [HERO, BENEFITS, PROCESS].filter((s) => /cruza as informações/.test(s));
+    const cruza = [HERO, PROCESS].filter((s) => /cruza as informações/.test(s));
     expect(cruza.length).toBeLessThanOrEqual(1);
   });
 
   it("volume de texto visível da landing cai para um patamar enxuto", () => {
-    const chars = [HERO, BENEFITS, PROCESS, CTA]
+    const chars = [HERO, PROCESS, CTA]
       .map((s) => visibleText(s).length)
       .reduce((a, b) => a + b, 0);
     expect(chars).toBeLessThan(4200);
   });
 
   it("layout responsivo preservado (sem largura fixa que estoure em 320px)", () => {
-    for (const src of [HERO, BENEFITS, PROCESS, CTA]) {
+    for (const src of [HERO, PROCESS, CTA]) {
       // largura fixa só é aceitável em enfeite absoluto/escondido no mobile
       const fixed = [...src.matchAll(/className="([^"]*(?<![-\w])w-\[\d{3,}px\][^"]*)"/g)].map(
         (m) => m[1],
@@ -107,7 +98,6 @@ describe("Entrega A — landing com menos texto", () => {
       expect(src).not.toMatch(/overflow-x-scroll/);
     }
     expect(HERO).toContain("md:grid-cols-");
-    expect(BENEFITS).toContain("sm:grid-cols-2");
     expect(PROCESS).toContain("lg:grid-cols-");
     expect(CTA).toContain("md:flex-row");
   });
