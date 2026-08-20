@@ -6,11 +6,6 @@ import {
   ArrowRight,
   ChevronRight,
   Users,
-  Package,
-  Truck,
-  Wrench,
-  Handshake as HandshakeIcon,
-  
   BarChart3,
   Sparkles,
   Activity,
@@ -23,14 +18,6 @@ const STEPS = [
   { Icon: Handshake, label: "A ACIRV apresenta vocês" },
 ] as const;
 
-const AUDIENCE: { label: string; Icon: typeof Users; tone: string }[] = [
-  { label: "Clientes", Icon: Users, tone: "var(--success)" },
-  { label: "Fornecedores", Icon: Package, tone: "var(--secondary)" },
-  { label: "Parceiros", Icon: HandshakeIcon, tone: "var(--accent)" },
-  { label: "Distribuidores", Icon: Truck, tone: "#6b57e0" },
-  { label: "Prestadores de serviços", Icon: Wrench, tone: "#129cdf" },
-];
-
 // Preview agregado do painel público — não expõe empresas nomeadas
 const AGGREGATE_METRICS: { Icon: typeof Users; label: string; value: string; tone: string }[] = [
   { Icon: Users, label: "Participantes", value: "+120", tone: "var(--success)" },
@@ -42,7 +29,7 @@ export function ProcessPanel() {
   return (
     <section className="mx-auto max-w-[1480px] px-8 pb-4 md:px-32 md:pb-5">
       <div className="relative overflow-hidden rounded-[16px] border border-secondary/40 bg-[#070d3a] p-4 text-white shadow-xl md:p-6">
-        <div className="grid gap-6 lg:grid-cols-[46fr_30fr_24fr] lg:gap-0 lg:divide-x lg:divide-white/10">
+        <div className="grid gap-6 lg:grid-cols-[60fr_40fr] lg:gap-0 lg:divide-x lg:divide-white/10">
           {/* Coluna 1: Como funciona */}
           <div className="text-center lg:pr-6 lg:text-left">
             <h2 className="font-display text-xl font-black md:text-2xl">Como funciona</h2>
