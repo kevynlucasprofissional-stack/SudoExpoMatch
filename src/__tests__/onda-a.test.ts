@@ -365,13 +365,13 @@ describe("ensureParticipantSession", () => {
   });
 });
 
-// ---------- Static guard: nenhuma rota importa domains/matching/score ----------
+// ---------- Static guard: nenhuma rota importa o simulador de matching ----------
 describe("busca estática: score.ts nunca importado por rotas/componentes", () => {
-  it("nenhum arquivo em src/routes ou src/components importa domains/matching/score", () => {
+  it("nenhum arquivo em src/routes, src/components ou src/features importa src/testing/matching-spec", () => {
     // eslint-disable-next-line @typescript-eslint/no-require-imports -- carga tardia intencional em teste
     const { execSync } = require("node:child_process") as typeof import("node:child_process");
     const out = execSync(
-      'grep -rEn "from [\'\\"](@/)?domains/matching/score" src/routes src/components src/features || true',
+      'grep -rEn "from [\'\\"](@/)?testing/matching-spec" src/routes src/components src/features || true',
       { encoding: "utf8" },
     );
     const clean = out

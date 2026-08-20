@@ -497,7 +497,7 @@ describe("static guards — /participante e componentes", () => {
     "NEED_KIND_LABELS",
     "useEventTaxonomy",
     "supabase.channel",
-    "domains/matching/score",
+    "testing/matching-spec",
   ];
 
   for (const f of files) {

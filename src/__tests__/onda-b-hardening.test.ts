@@ -166,7 +166,7 @@ describe("busca estática (hardening B): sem catálogo mockado", () => {
     );
     expect(out.trim()).toBe("");
   });
-  it("wizard não importa mock-data (exceto EVENT_ID em rotas)", () => {
+  it("o wizard não importa a configuração global do evento (recebe via props/rota)", () => {
     const out = execSync(
       'grep -rnE "from [\'\\"]@/config/event[\'\\"]" src/features/onboarding || true',
       { encoding: "utf8" },

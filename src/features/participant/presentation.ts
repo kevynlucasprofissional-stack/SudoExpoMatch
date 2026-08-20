@@ -3,7 +3,8 @@ import type { ConnectionStatus, NeedKind } from "@/lib/types";
 
 // ---------------------------------------------------------------------------
 // Textos visuais — únicas fontes de tradução para presentation na rota
-// /participante. Nunca importe SEGMENTS/NEED_KIND_LABELS de mock-data aqui.
+// /participante. Nunca importe catálogos estáticos aqui: segmentos e taxonomia
+// vêm sempre do banco.
 // ---------------------------------------------------------------------------
 
 export const NEED_KIND_TEXT: Record<NeedKind, string> = {

@@ -580,13 +580,8 @@ describe("busca estática: /participar e wizard não consomem catálogo mockado"
     );
     expect(out.trim()).toBe("");
   });
-  it("não importa catálogo de mock-data em componentes do wizard (src/features/onboarding)", () => {
-    const out = execSync(
-      'grep -rnE "from [\'\\"]@/config/event[\'\\"]" src/features/onboarding || true',
-      { encoding: "utf8" },
-    );
-    // Permitido nenhum uso do mock catalog no wizard.
-    expect(out.trim()).toBe("");
+  it("o catálogo mockado (src/lib/mock-data.ts) não existe mais no repositório", () => {
+    expect(existsSync("src/lib/mock-data.ts")).toBe(false);
   });
   it("wizard não usa mais useSaveOwnProfile (wrapper legado)", () => {
     const out = execSync(
@@ -595,11 +590,9 @@ describe("busca estática: /participar e wizard não consomem catálogo mockado"
     );
     expect(out.trim()).toBe("");
   });
-  it("wizard não usa mais domains/ai/mock (adaptador antigo)", () => {
-    const out = execSync(
-      'grep -rnE "domains/ai/mock" src/routes/participar.tsx src/features/onboarding || true',
-      { encoding: "utf8" },
-    );
+  it("o adaptador antigo de IA (src/domains/ai/mock.ts) não existe mais", () => {
+    expect(existsSync("src/domains/ai/mock.ts")).toBe(false);
+    const out = execSync('grep -rnE "domains/ai/mock" src || true', { encoding: "utf8" });
     expect(out.trim()).toBe("");
   });
 });
