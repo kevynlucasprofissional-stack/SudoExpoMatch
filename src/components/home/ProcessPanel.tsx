@@ -27,7 +27,39 @@ export function formatAggregateMetric(value: number): string {
 
 
 export function ProcessPanel() {
+  // Mesma query/RPC do painel público (/publico), sem infra paralela.
+  const statsQuery = useEventStats(EVENT_ID);
+  const stats = statsQuery.data;
+  const ready = Boolean(stats) && !statsQuery.isError;
+
+  const metrics: {
+    Icon: typeof Users;
+    label: string;
+    value: string | null;
+    tone: string;
+  }[] = [
+    {
+      Icon: Users,
+      label: "Participantes",
+      value: ready ? formatAggregateMetric(stats!.totalProfiles) : null,
+      tone: "var(--success)",
+    },
+    {
+      Icon: Sparkles,
+      label: "Matches gerados",
+      value: ready ? formatAggregateMetric(stats!.totalMatches) : null,
+      tone: "var(--secondary)",
+    },
+    {
+      Icon: Activity,
+      label: "Interesses mútuos",
+      value: ready ? formatAggregateMetric(stats!.mutualMatches) : null,
+      tone: "var(--accent)",
+    },
+  ];
+
   return (
+
     <section className="mx-auto max-w-[1480px] px-8 pb-4 md:px-32 md:pb-5">
       <div className="relative overflow-hidden rounded-[16px] border border-secondary/40 bg-[#070d3a] p-4 text-white shadow-xl md:p-6">
         <div className="grid gap-6 lg:grid-cols-[60fr_40fr] lg:gap-0 lg:divide-x lg:divide-white/10">
