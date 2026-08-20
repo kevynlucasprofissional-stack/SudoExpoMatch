@@ -57,7 +57,7 @@ const baseProfessional = wizardDraftSchema.extend({
   businessSize: businessSizeSchema,
   businessType: businessTypeSchema,
   segmentId: z.string().trim().min(1, "Escolha um segmento"),
-  summary: z.string().trim().min(20, "Resumo curto demais"),
+  summary: z.string().trim().min(1, "Informe um resumo").max(500),
   offers: z.array(wizardOfferSchema).min(1, "Adicione pelo menos 1 oferta").max(5),
   needs: z.array(wizardNeedSchema).min(1, "Adicione pelo menos 1 necessidade").max(5),
   consent: z.literal(true, {

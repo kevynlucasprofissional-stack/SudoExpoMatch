@@ -691,12 +691,13 @@ function WizardPage() {
         <div className="mb-4 flex justify-end">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             data-testid="wizard-reset-trigger"
             onClick={() => setShowReset(true)}
-            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+            className="gap-2 text-sm font-medium text-foreground hover:border-destructive hover:text-destructive"
           >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
             {WIZARD_RESET_COPY.trigger}
           </Button>
         </div>
