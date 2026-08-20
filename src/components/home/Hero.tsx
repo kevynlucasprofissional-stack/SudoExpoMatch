@@ -54,7 +54,7 @@ export function Hero() {
             para você durante a SudoExpo.
           </p>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-nowrap sm:items-center">
             <Link
               to="/participar"
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-success px-6 py-3 font-semibold text-[#0b1252] shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] sm:w-auto"
