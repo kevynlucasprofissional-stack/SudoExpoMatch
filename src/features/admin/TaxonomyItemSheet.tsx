@@ -259,9 +259,39 @@ export function TaxonomyItemSheet({
             </TabsContent>
 
             <TabsContent value="relacoes" className="mt-4 space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Visão somente leitura das relações complementares usadas pelo matcher.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Relações complementares usadas pelo matcher. Nada é apagado: relações são
+                  desativadas.
+                </p>
+                {!creating ? (
+                  <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
+                    Nova relação
+                  </Button>
+                ) : null}
+              </div>
+
+              {creating ? (
+                <div className="rounded-md border p-3">
+                  <TaxonomyRelationForm
+                    eventId={eventId}
+                    currentItemId={item.id}
+                    mode="create"
+                    pending={createRelation.isPending}
+                    onCancel={() => setCreating(false)}
+                    onSubmit={async (values) => {
+                      try {
+                        await createRelation.mutateAsync(values);
+                        toast.success("Relação criada.");
+                        setCreating(false);
+                      } catch (err) {
+                        toast.error(translateTaxonomyError(err));
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
+
               {relations.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhuma relação complementar cadastrada para este item.
@@ -269,11 +299,66 @@ export function TaxonomyItemSheet({
               ) : (
                 <ul className="space-y-2">
                   {relations.map((r) => (
-                    <RelationItem key={`${r.direction}-${r.id}`} r={r} />
+                    <li key={`${r.direction}-${r.id}`}>
+                      <RelationItem r={r} />
+                      {editingRelation === r.id ? (
+                        <div className="mt-2 rounded-md border p-3">
+                          <TaxonomyRelationForm
+                            eventId={eventId}
+                            currentItemId={item.id}
+                            mode="edit"
+                            pending={updateRelation.isPending}
+                            initial={{
+                              direction: r.direction,
+                              otherItemId: r.other_id,
+                              relationType: "complements",
+                              weight: r.weight,
+                              rationale: r.rationale ?? "",
+                              otherLabel: r.other_label,
+                            }}
+                            onCancel={() => setEditingRelation(null)}
+                            onSubmit={async (values) => {
+                              try {
+                                await updateRelation.mutateAsync({ relationId: r.id, values });
+                                toast.success("Relação atualizada.");
+                                setEditingRelation(null);
+                              } catch (err) {
+                                toast.error(translateTaxonomyError(err));
+                              }
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingRelation(r.id)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={toggleRelation.isPending}
+                            onClick={() => {
+                              if (r.active) {
+                                setConfirmRelationOff(r);
+                                return;
+                              }
+                              void applyRelationActive(r.id, true);
+                            }}
+                          >
+                            {r.active ? "Desativar" : "Reativar"}
+                          </Button>
+                        </div>
+                      )}
+                    </li>
                   ))}
                 </ul>
               )}
             </TabsContent>
+
           </Tabs>
         ) : null}
       </SheetContent>
