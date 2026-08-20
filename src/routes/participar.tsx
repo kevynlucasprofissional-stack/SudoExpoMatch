@@ -27,7 +27,10 @@ import {
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
 import { EVENT_ID } from "@/config/event";
-import { useEnsureParticipantSession } from "@/features/participant/session";
+import {
+  useEnsureParticipantSession,
+  resetParticipantSession,
+} from "@/features/participant/session";
 import { track } from "@/features/analytics/track";
 import { useEventTaxonomy } from "@/features/taxonomy/queries";
 import { useOwnProfile } from "@/features/participant/useOwnProfile";
@@ -73,6 +76,7 @@ import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
 import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
 import { resolveWizardPageState } from "@/features/onboarding/pageState";
+import { runWizardReset, WIZARD_RESET_COPY } from "@/features/onboarding/wizardReset";
 import { runWizardSubmit } from "@/features/onboarding/submitOrchestrator";
 
 export const Route = createFileRoute("/participar")({
@@ -198,6 +202,8 @@ function WizardPage() {
     message: "",
   });
   const socialGen = useRef(0);
+  const socialRehydrated = useRef<string | null>(null);
+  const [showReset, setShowReset] = useState(false);
 
   /**
    * Enriquecimento opcional: qualquer falha vira mensagem informativa e o
@@ -227,6 +233,54 @@ function WizardPage() {
   );
 
 
+
+  /**
+   * Reload durante o preenchimento: o `@` sobrevive no rascunho local, então
+   * reidratamos o contexto social a partir do cache persistente do backend.
+   * `cacheOnly` garante zero chamadas ao Instagram e zero tokens de IA.
+   */
+  useEffect(() => {
+    if (!hydrated) return;
+    const handle = draft.instagram?.trim();
+    if (!handle) return;
+    if (social.status !== "idle") return;
+    if (socialRehydrated.current === handle) return;
+    socialRehydrated.current = handle;
+    const gen = ++socialGen.current;
+    void (async () => {
+      let result: SocialEnrichmentResult;
+      try {
+        result = await analyzeSocial({ data: { input: handle, cacheOnly: true } });
+      } catch {
+        return;
+      }
+      if (gen !== socialGen.current) return;
+      if (result.status !== "ok") return; // sem cache: usuário pode reanalisar
+      setSocial({ status: "done", result, message: socialLookupMessage(result) });
+    })();
+  }, [hydrated, draft.instagram, social.status, analyzeSocial]);
+
+  /**
+   * "Resetar formulário": só executa após confirmação explícita. Não apaga o
+   * perfil já salvo no backend nem o cache social global do handle.
+   */
+  const confirmReset = useCallback(async () => {
+    setShowReset(false);
+    socialGen.current += 1;
+    socialRehydrated.current = null;
+    await runWizardReset({
+      setDraft,
+      setPhone,
+      resetSocial: () => setSocial({ status: "idle", result: null, message: "" }),
+      resetAi: aiAnalysis.reset,
+      resetSubmit: () => dispatch({ type: "RESET" }),
+      clearQueryCache: () => qc.clear(),
+      resetSession: resetParticipantSession,
+    });
+    setMode("create");
+    setShowConflict(false);
+    toast.success("Formulário limpo. Pode começar um novo cadastro.");
+  }, [aiAnalysis.reset, qc]);
 
   function next() {
     setDraft((d) => ({ ...d, step: Math.min(d.step + 1, STEPS.length - 1) }));
@@ -609,6 +663,21 @@ function WizardPage() {
           </div>
         )}
 
+        {/* Ação secundária/perigosa: fica no cabeçalho, longe dos CTAs de
+            navegação (Avançar/Voltar/Salvar perfil) no rodapé de cada etapa. */}
+        <div className="mb-4 flex justify-end">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            data-testid="wizard-reset-trigger"
+            onClick={() => setShowReset(true)}
+            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+          >
+            {WIZARD_RESET_COPY.trigger}
+          </Button>
+        </div>
+
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
             <span>
@@ -697,6 +766,24 @@ function WizardPage() {
         code={submit.recoveryCode}
         onConfirm={() => void codeConfirmed()}
       />
+
+      <AlertDialog open={showReset} onOpenChange={setShowReset}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{WIZARD_RESET_COPY.title}</AlertDialogTitle>
+            <AlertDialogDescription>{WIZARD_RESET_COPY.description}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{WIZARD_RESET_COPY.cancel}</AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="wizard-reset-confirm"
+              onClick={() => void confirmReset()}
+            >
+              {WIZARD_RESET_COPY.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={showConflict}>
         <AlertDialogContent>
