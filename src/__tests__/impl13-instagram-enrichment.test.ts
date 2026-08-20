@@ -157,8 +157,9 @@ describe("providers", () => {
       resolveInstagramProvider({
         INSTAGRAM_GRAPH_ACCESS_TOKEN: "tok",
         INSTAGRAM_BUSINESS_ACCOUNT_ID: "123",
+        INSTAGRAM_PUBLIC_READ_DISABLED: "1",
       }).id,
-    ).toBe("instagram_graph");
+    ).toBe("instagram_graph"); // sem Apify e com leitura pública desligada
   });
 
   it("pode ser desligado explicitamente", () => {
