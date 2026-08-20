@@ -349,7 +349,6 @@ describe("mappers: mapProfileToWizardDraft", () => {
       niche: null,
       segment_id: "servicos",
       summary: "resumo",
-      instagram: "",
       consent: true,
       created_at: "x",
       updated_at: "x",
@@ -559,7 +558,6 @@ describe("suggestions: heurística sobre catálogo real", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "servicos",
       summary: "Consultoria contábil e tributária",
-      instagram: "",
       catalog: CATALOG,
     });
     const validIds = new Set(CATALOG.taxonomy.map((t) => t.id));
@@ -573,7 +571,6 @@ describe("suggestions: heurística sobre catálogo real", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "servicos",
       summary: "consultoria",
-      instagram: "",
       catalog: CATALOG,
     });
     expect(r.items.every((i) => i.taxonomyItemId !== "outro-off-1")).toBe(true);

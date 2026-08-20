@@ -153,7 +153,6 @@ describe("suggestions: catálogo vazio (modo manual)", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "servicos",
       summary: "qualquer",
-      instagram: "",
       catalog: { segments: [], taxonomy: [] },
     });
     expect(r.items).toEqual([]);

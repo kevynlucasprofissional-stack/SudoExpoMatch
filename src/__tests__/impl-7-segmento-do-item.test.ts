@@ -141,7 +141,6 @@ describe("heurística (fallback) também usa o segmento do item", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "alimentacao",
       summary: "restaurante com buffet",
-      instagram: "",
       catalog,
     });
     for (const item of r.items) {
@@ -155,7 +154,6 @@ describe("heurística (fallback) também usa o segmento do item", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "alimentacao",
       summary: "restaurante",
-      instagram: "",
       catalog,
     });
     const semSeg = r.items.find((i) => i.label === "Item sem segmento");
