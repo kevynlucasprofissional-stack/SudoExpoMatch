@@ -4,7 +4,8 @@ import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
-import type { SocialBusinessContext, SocialLookupResult } from "@/lib/social-context";
+import type { SocialBusinessContext } from "@/lib/social-context";
+import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
 
 
@@ -261,7 +262,7 @@ function ChoiceGroup<T extends string>({
 /** Estado de UI do enriquecimento por Instagram (nunca bloqueia o cadastro). */
 export interface SocialLookupUiState {
   status: "idle" | "loading" | "done";
-  result: SocialLookupResult | null;
+  result: SocialEnrichmentResult | null;
   message: string;
 }
 
