@@ -94,38 +94,7 @@ export function ProcessPanel() {
             </ol>
           </div>
 
-          {/* Coluna 2: Chips com ícones */}
-          <div className="text-center lg:px-6 lg:text-left">
-            <h3 className="font-display text-base font-bold">
-              Quem você pode encontrar
-            </h3>
-            <div
-              className="mt-3 grid grid-cols-1 gap-1.5 min-[390px]:grid-cols-2"
-              data-testid="audience-chips"
-            >
-              {AUDIENCE.map(({ label, Icon, tone }, i) => (
-                <span
-                  key={label}
-                  className={`inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-2.5 text-[12px] font-semibold text-[#0b1252] shadow-sm${
-                    i === AUDIENCE.length - 1
-                      ? " min-[390px]:col-span-2 min-[390px]:justify-center"
-                      : ""
-                  }`}
-                >
-                  <span
-                    aria-hidden
-                    className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full"
-                    style={{ background: tone }}
-                  >
-                    <Icon className="h-3 w-3 text-[#0b1252]" />
-                  </span>
-                  <span className="truncate">{label}</span>
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* Coluna 3: Painel público AGREGADO */}
+          {/* Coluna 2: Painel público AGREGADO */}
           <div className="text-center lg:pl-6 lg:text-left" data-testid="public-panel-aggregate">
             <Link
               to="/publico"
