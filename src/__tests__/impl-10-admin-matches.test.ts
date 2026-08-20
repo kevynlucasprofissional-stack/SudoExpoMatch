@@ -284,8 +284,11 @@ describe("Impl 10 — query keys", () => {
 });
 
 describe("Impl 10 — contratos de código", () => {
-  it("API é somente leitura (sem mutations)", () => {
-    expect(API).not.toMatch(/useMutation/);
+  it("API só muta governança humana (IMPL 15), nunca dados do matcher", () => {
+    // Impl 10 era read-only; IMPL 15 adicionou apenas o "match revisado".
+    expect(API.match(/useMutation/g) ?? []).toHaveLength(1);
+    expect(API).toMatch(/admin_set_match_reviewed/);
+    expect(API).not.toMatch(/score_for_|algorithm_version|reasons_for_/);
     expect(API).toMatch(/admin_list_matches/);
     expect(API).toMatch(/admin_get_match_detail/);
   });
