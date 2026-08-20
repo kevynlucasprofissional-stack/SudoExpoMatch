@@ -9,4 +9,5 @@ export const qk = {
   ownMatches: (eventId: string) => ["own-matches", eventId] as const,
   publicStats: (eventId: string) => ["stats", eventId] as const,
   staffQueue: (eventId: string) => ["staff-queue", eventId] as const,
+  ownSocial: (eventId: string) => ["own-social", eventId] as const,
 } as const;
