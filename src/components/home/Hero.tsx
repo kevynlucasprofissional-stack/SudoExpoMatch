@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Users, Package, Handshake } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
 
 function Highlight({ children, bg }: { children: React.ReactNode; bg: string }) {
@@ -17,12 +17,6 @@ function Highlight({ children, bg }: { children: React.ReactNode; bg: string }) 
     </span>
   );
 }
-
-const MOBILE_CATEGORIES = [
-  { Icon: Users, label: "Clientes", tone: "var(--success)" },
-  { Icon: Package, label: "Fornecedores", tone: "var(--secondary)" },
-  { Icon: Handshake, label: "Parceiros", tone: "var(--accent)" },
-] as const;
 
 export function Hero() {
   return (
@@ -71,28 +65,7 @@ export function Hero() {
           </div>
 
 
-          {/* Categorias compactas — só mobile */}
-          <ul
-            className="mt-5 grid grid-cols-3 gap-2 md:hidden"
-            aria-label="Categorias de conexões"
-            data-testid="hero-mobile-categories"
-          >
-            {MOBILE_CATEGORIES.map(({ Icon, label, tone }) => (
-              <li
-                key={label}
-                className="flex flex-col items-center gap-1.5 rounded-lg bg-white/10 px-2 py-2 text-center text-[11px] font-semibold text-white ring-1 ring-white/15"
-              >
-                <span
-                  aria-hidden
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-[#0b1252]"
-                  style={{ background: tone }}
-                >
-                  <Icon className="h-3.5 w-3.5" />
-                </span>
-                <span className="leading-tight">{label}</span>
-              </li>
-            ))}
-          </ul>
+
         </div>
 
         {/* Ilustração do matchmaker — mesma composição em todos os tamanhos */}

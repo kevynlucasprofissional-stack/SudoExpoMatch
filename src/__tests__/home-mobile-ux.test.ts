@@ -21,12 +21,11 @@ describe("Home mobile UX — estrutura do código", () => {
     );
   });
 
-  it("Hero: apresenta 3 categorias mobile (Clientes, Fornecedores, Parceiros)", () => {
-    expect(hero).toContain('data-testid="hero-mobile-categories"');
-    expect(hero).toMatch(/label:\s*"Clientes"/);
-    expect(hero).toMatch(/label:\s*"Fornecedores"/);
-    expect(hero).toMatch(/label:\s*"Parceiros"/);
+  it("Hero: não exibe mais as categorias compactas no mobile", () => {
+    expect(hero).not.toContain('data-testid="hero-mobile-categories"');
+    expect(hero).not.toContain("MOBILE_CATEGORIES");
   });
+
 
   it("ProcessPanel: painel público agregado (sem CTA 'Explorar participantes' e sem nomes)", () => {
     expect(process).toContain("Acompanhar painel público");
