@@ -4,7 +4,6 @@ import { Clock, HeartHandshake, Sparkles, Users, Handshake } from "lucide-react"
 
 import { EVENT_ID } from "@/config/event";
 import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
-import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 import { useEventStats } from "@/features/staff/useEventStats";
 
 export const Route = createFileRoute("/publico")({
@@ -139,21 +138,11 @@ function PublicBoard() {
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
-        {/* TOPO: identidade institucional + relógio */}
-        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
-          <div className="flex min-w-0 items-center gap-3">
-            <span
-              aria-hidden
-              className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-secondary/40 bg-white/[0.06] shadow-[0_0_28px_-8px_rgba(34,211,238,0.7)]"
-            >
-              <NetworkGraphic className="h-5 w-5" />
-            </span>
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.42em] text-white/60 xl:text-[13px]">
-              SudoExpo 2026 · ACIRV
-            </p>
-          </div>
+        {/* TOPO: relógio */}
+        <header className="flex items-center justify-end gap-4">
           <BoardClock />
         </header>
+
 
         {/* TÍTULO */}
         <div className="mt-8 xl:mt-12">
