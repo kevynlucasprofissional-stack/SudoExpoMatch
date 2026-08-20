@@ -23,10 +23,12 @@ function psql(sql: string): string {
   }).trim();
 }
 
-/** Executa em transação com uma identidade simulada e faz ROLLBACK ao final. */
+/**
+ * Executa em transação com a identidade simulada via claims JWT (auth.uid())
+ * e faz ROLLBACK ao final — nenhum estado de teste é persistido.
+ */
 function asUser(uid: string, body: string): string {
   return psql(`BEGIN;
-    SET LOCAL role authenticated;
     SET LOCAL request.jwt.claims = '{"sub":"${uid}","role":"authenticated"}';
     ${body}
     ROLLBACK;`);
