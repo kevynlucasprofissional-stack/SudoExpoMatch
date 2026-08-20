@@ -1052,6 +1052,12 @@ function ConnectionDetailDrawer({
                 <TimeRow label="Contato trocado" v={q.data.contact_exchanged_at} />
                 <TimeRow label="Concluída" v={q.data.completed_at} />
                 <TimeRow label="Cancelada" v={q.data.cancelled_at} />
+                <TimeRow label="Registrada no mapa" v={q.data.mapped_at} />
+                {q.data.mapped_by_email && (
+                  <p className="text-xs text-muted-foreground">
+                    Registro no mapa por {q.data.mapped_by_email}
+                  </p>
+                )}
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2 rounded-md border border-border/60 bg-muted/30 p-2 text-xs">
                 <div>
@@ -1242,6 +1248,8 @@ function PartyBlock({
     city: string | null;
     segment_id: string | null;
     summary: string | null;
+    pin_code?: string | null;
+    pin_placed_at?: string | null;
   };
 }) {
   return (
@@ -1251,8 +1259,168 @@ function PartyBlock({
       <p className="text-xs text-muted-foreground">
         {p.company ?? "—"} · {p.city ?? "—"}
       </p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        {p.pin_placed_at
+          ? `Pin no mapa: ${p.pin_code ?? "sem código"}`
+          : "Ainda sem pin no mapa"}
+      </p>
       {p.summary && <p className="mt-1 text-xs">{p.summary}</p>}
     </div>
+  );
+}
+
+// ---------------------------------------------------------------- PinsDialog
+function PinsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [search, setSearch] = useState("");
+  const [onlyMissing, setOnlyMissing] = useState(true);
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+
+  const q = useParticipantPins(
+    { eventId: EVENT_ID, search: search.trim() || undefined, onlyMissing, limit: 50 },
+    open,
+  );
+  const setPin = useSetParticipantPin(EVENT_ID);
+  const clearPin = useClearParticipantPin(EVENT_ID);
+
+  useEffect(() => {
+    if (!open) {
+      setDrafts({});
+      setSearch("");
+      setOnlyMissing(true);
+    }
+  }, [open]);
+
+  async function handleSave(item: PinItem) {
+    const parsed = pinCodeSchema.safeParse(drafts[item.id] ?? item.pin_code ?? "");
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? "Identificação inválida.");
+      return;
+    }
+    try {
+      const res = await setPin.mutateAsync({ profileId: item.id, pinCode: parsed.data });
+      toast.success(res.changed ? "Pin registrado." : "Pin já estava assim.");
+      setDrafts((d) => ({ ...d, [item.id]: parsed.data }));
+    } catch (err) {
+      toast.error(translateOperationalError(err));
+    }
+  }
+
+  async function handleClear(item: PinItem) {
+    try {
+      await clearPin.mutateAsync({ profileId: item.id });
+      toast.success("Pin removido do participante.");
+      setDrafts((d) => ({ ...d, [item.id]: "" }));
+    } catch (err) {
+      toast.error(translateOperationalError(err));
+    }
+  }
+
+  const items = q.data?.items ?? [];
+
+  return (
+    <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Pins do mapa físico</DialogTitle>
+          <DialogDescription>
+            Marque quem já recebeu e colocou o pin no mapa da SudoExpo. A identificação do pin é
+            opcional para a pessoa, mas precisa ser única no evento.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="relative min-w-[200px] flex-1">
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              className="pl-8"
+              placeholder="Buscar por nome, empresa ou pin"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox
+              checked={onlyMissing}
+              onCheckedChange={(v) => setOnlyMissing(v === true)}
+            />
+            Somente sem pin
+          </label>
+        </div>
+
+        <p className="text-xs text-muted-foreground">
+          {q.data ? `${q.data.pins_placed} com pin · ${q.data.pins_missing} sem pin` : "Carregando…"}
+        </p>
+
+        {q.isLoading ? (
+          <Skeleton className="h-40 w-full" />
+        ) : items.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">
+            Nenhum participante encontrado com esses filtros.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {items.map((item) => (
+              <li key={item.id} className="rounded-md border p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.company ?? "—"} · {item.city ?? "—"}
+                    </p>
+                  </div>
+                  {item.pin_placed_at ? (
+                    <Badge variant="outline" className="text-xs">
+                      <MapPin className="mr-1 h-3 w-3" /> Pin colocado
+                    </Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-xs">
+                      Sem pin
+                    </Badge>
+                  )}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Input
+                    className="h-9 max-w-[200px]"
+                    maxLength={24}
+                    placeholder="Identificação do pin"
+                    value={drafts[item.id] ?? item.pin_code ?? ""}
+                    onChange={(e) => setDrafts((d) => ({ ...d, [item.id]: e.target.value }))}
+                  />
+                  <Button
+                    size="sm"
+                    onClick={() => handleSave(item)}
+                    disabled={setPin.isPending || clearPin.isPending}
+                  >
+                    Salvar pin
+                  </Button>
+                  {item.pin_placed_at && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => handleClear(item)}
+                      disabled={setPin.isPending || clearPin.isPending}
+                    >
+                      Remover
+                    </Button>
+                  )}
+                  {item.pin_placed_by_email && (
+                    <span className="text-xs text-muted-foreground">
+                      por {item.pin_placed_by_email}
+                    </span>
+                  )}
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose}>
+            Fechar
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
