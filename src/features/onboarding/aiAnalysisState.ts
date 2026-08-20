@@ -78,6 +78,7 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
       setStatus({ s: "loading", keyId });
       callCountRef.current += 1;
 
+      // eslint-disable-next-line prefer-const -- atribuído após a definição de `run`, que a referencia
       let self: Promise<void>;
       const run = async () => {
         try {
