@@ -132,10 +132,9 @@ BEGIN
   -- 4. Referências históricas reais apontando para o item
   ---------------------------------------------------------------------------
   RESET role;
-  INSERT INTO public.profiles (id, event_id, name, company, city, whatsapp, segment_id,
-                               summary, consent, recovery_code)
-  VALUES (v_pa, v_ev, 'Perfil A', 'Empresa A', 'Rio Verde', '+5564900000001', 'servicos', 'a', true, 'x'),
-         (v_pb, v_ev, 'Perfil B', 'Empresa B', 'Rio Verde', '+5564900000002', 'servicos', 'b', true, 'y');
+  INSERT INTO public.profiles (id, event_id, name, company, city, segment_id, summary)
+  VALUES (v_pa, v_ev, 'Perfil A', 'Empresa A', 'Rio Verde', 'servicos', 'a'),
+         (v_pb, v_ev, 'Perfil B', 'Empresa B', 'Rio Verde', 'servicos', 'b');
 
   INSERT INTO public.profile_offers (profile_id, event_id, segment_id, text, label,
                                      taxonomy_item_id, sort_order)

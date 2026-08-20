@@ -47,13 +47,13 @@ BEGIN
   -- cidades diferentes => nenhum sinal literal, de prioridade, de segmento
   -- complementar ou de proximidade. Sobra apenas 'atualidade' (3 pts), que
   -- por si só NÃO cria match (v_signal continua falso).
-  INSERT INTO public.profiles (id, event_id, name, company, city, whatsapp, segment_id,
-                               summary, offers, needs, consent, is_demo, recovery_code)
+  INSERT INTO public.profiles (id, event_id, name, company, city, segment_id,
+                               summary, is_demo)
   VALUES
-    (v_pa, v_ev, 'Prova A', 'Empresa A', 'Rio Verde', '', 'servicos',
-     'perfil de prova A', '[]'::jsonb, '[]'::jsonb, true, true, 'x'),
-    (v_pb, v_ev, 'Prova B', 'Empresa B', 'Montividiu', '', 'servicos',
-     'perfil de prova B', '[]'::jsonb, '[]'::jsonb, true, true, 'x');
+    (v_pa, v_ev, 'Prova A', 'Empresa A', 'Rio Verde', 'servicos',
+     'perfil de prova A', true),
+    (v_pb, v_ev, 'Prova B', 'Empresa B', 'Montividiu', 'servicos',
+     'perfil de prova B', true);
 
   ---------------------------------------------------------------------------
   -- 1. Admin cria os dois itens de taxonomia (RPC auditada da Impl 11)

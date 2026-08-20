@@ -38,13 +38,13 @@ BEGIN
     (v_ev, v_staff, 'staff'),
     (v_ev2, v_out, 'admin');
 
-  INSERT INTO public.profiles (id, event_id, owner_id, name, company, city, whatsapp,
-                               segment_id, summary, offers, needs, consent, is_demo, recovery_code)
+  INSERT INTO public.profiles (id, event_id, owner_id, name, company, city,
+                               segment_id, summary, is_demo)
   VALUES
-    (v_pa, v_ev, v_visitor, 'Prova A', 'Empresa A', 'Rio Verde', '', 'servicos',
-     'perfil A', '[]'::jsonb, '[]'::jsonb, true, true, 'x'),
-    (v_pb, v_ev, NULL, 'Prova B', 'Empresa B', 'Rio Verde', '', 'servicos',
-     'perfil B', '[]'::jsonb, '[]'::jsonb, true, true, 'x');
+    (v_pa, v_ev, v_visitor, 'Prova A', 'Empresa A', 'Rio Verde', 'servicos',
+     'perfil A', true),
+    (v_pb, v_ev, NULL, 'Prova B', 'Empresa B', 'Rio Verde', 'servicos',
+     'perfil B', true);
 
   INSERT INTO public.matches (id, event_id, a_profile_id, b_profile_id, kind,
                               score_for_a, score_for_b, label, algorithm_version)
