@@ -14,6 +14,8 @@ import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 import { EVENT_ID } from "@/config/event";
 import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
 import { qk } from "@/features/participant/queryKeys";
+import { WhatsappAccessCard } from "@/features/access/WhatsappAccessCard";
+import { usePhoneAuthCapability } from "@/features/access/usePhoneAuthCapability";
 
 /**
  * Tela de recuperação — política de dados sensíveis.
@@ -37,6 +39,7 @@ export function RecoveryView() {
   const [error, setError] = useState<string | null>(null);
   const [rotatedCode, setRotatedCode] = useState<string | null>(null);
   const recoverMutation = useRecoverProfile();
+  const capability = usePhoneAuthCapability();
 
   const mountedRef = useRef(true);
   const requestVersionRef = useRef(0);
@@ -102,10 +105,26 @@ export function RecoveryView() {
     <PageShell>
       <section className="mx-auto max-w-md px-4 py-12">
         <Card className="p-6">
-          <h1 className="font-display text-2xl font-bold">Recuperar meu perfil</h1>
+          <h1 className="font-display text-2xl font-bold">Acessar meu perfil</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Informe o WhatsApp e o código pessoal recebidos quando criou o perfil.
+            {capability.otpEnabled
+              ? "Use seu WhatsApp para entrar sem senha."
+              : "Informe o WhatsApp e o código pessoal recebidos quando criou o perfil."}
           </p>
+
+          {capability.otpEnabled && (
+            <div className="mt-6">
+              <WhatsappAccessCard capability={capability} />
+              <div className="mt-6 flex items-center gap-3">
+                <span className="h-px flex-1 bg-border" />
+                <span className="text-xs uppercase tracking-wide text-muted-foreground">
+                  ou use seu código pessoal
+                </span>
+                <span className="h-px flex-1 bg-border" />
+              </div>
+            </div>
+          )}
+
           <div className="mt-6 space-y-4">
             <div>
               <Label htmlFor="wa">WhatsApp</Label>
