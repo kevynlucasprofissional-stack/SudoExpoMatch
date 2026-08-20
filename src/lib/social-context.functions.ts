@@ -83,9 +83,12 @@ export const refreshParticipantSocial = createServerFn({ method: "POST" })
       data,
       context,
     }): Promise<{ ok: boolean; reason?: string; result?: SocialEnrichmentResult }> => {
-      // 1) Autorização + cooldown + auditoria são decididos no banco, com o
-      //    auth.uid() do chamador (nunca com service_role).
-      const { data: gate, error } = await context.supabase.rpc("service_refresh_profile_social", {
+      // 1) Autorização (admin do evento), cooldown e auditoria são decididos
+      //    no banco. A RPC é `service_role` e recebe explicitamente o usuário
+      //    autenticado desta requisição — validado pelo middleware.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const { data: gate, error } = await supabaseAdmin.rpc("service_refresh_profile_social", {
+        _actor_user_id: context.userId,
         _profile_id: data.profileId,
       });
       const row = gate as { allowed?: boolean; handle?: string | null; reason?: string } | null;
