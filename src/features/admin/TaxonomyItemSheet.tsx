@@ -100,8 +100,14 @@ export function TaxonomyItemSheet({
   const detail = useAdminTaxonomyDetail(eventId, itemId, open);
   const update = useUpdateTaxonomyItem(eventId);
   const toggle = useSetTaxonomyItemActive(eventId);
+  const createRelation = useCreateTaxonomyRelation(eventId, itemId);
+  const updateRelation = useUpdateTaxonomyRelation(eventId, itemId);
+  const toggleRelation = useSetTaxonomyRelationActive(eventId, itemId);
   const [editing, setEditing] = useState(false);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [editingRelation, setEditingRelation] = useState<string | null>(null);
+  const [confirmRelationOff, setConfirmRelationOff] = useState<TaxonomyRelation | null>(null);
 
   const item = detail.data?.item;
   const relations = detail.data?.relations ?? [];
@@ -126,6 +132,19 @@ export function TaxonomyItemSheet({
       setConfirmOff(false);
     }
   }
+
+  /** Relações também nunca são apagadas: desativar exige confirmação. */
+  async function applyRelationActive(relationId: string, next: boolean) {
+    try {
+      await toggleRelation.mutateAsync({ relationId, active: next });
+      toast.success(next ? "Relação reativada." : "Relação desativada (histórico preservado).");
+    } catch (err) {
+      toast.error(translateTaxonomyError(err));
+    } finally {
+      setConfirmRelationOff(null);
+    }
+  }
+
 
   return (
     <Sheet
