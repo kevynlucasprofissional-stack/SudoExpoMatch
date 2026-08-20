@@ -623,6 +623,8 @@ function WizardPage() {
             catalog={catalog}
             manualMode={manualCatalogMode}
             manualSegmentLabel={fallbackSegmentId}
+            social={social}
+            onAnalyzeInstagram={onAnalyzeInstagram}
           />
         )}
 
@@ -635,6 +637,7 @@ function WizardPage() {
             catalog={catalog}
             eventId={EVENT_ID}
             aiAnalysis={aiAnalysis}
+            socialContext={social.result?.status === "ok" ? social.result.context : null}
           />
         )}
         {step === 3 && (
@@ -646,6 +649,7 @@ function WizardPage() {
             catalog={catalog}
             eventId={EVENT_ID}
             aiAnalysis={aiAnalysis}
+            socialContext={social.result?.status === "ok" ? social.result.context : null}
           />
         )}
         {step === 4 && (
