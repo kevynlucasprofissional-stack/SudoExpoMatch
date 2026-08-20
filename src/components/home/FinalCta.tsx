@@ -27,7 +27,7 @@ export function FinalCta() {
           </g>
         </svg>
 
-        <div className="relative flex flex-col items-start gap-3 md:flex-row md:items-center md:justify-between md:pr-[260px]">
+        <div className="relative flex flex-col items-center gap-3 text-center md:flex-row md:text-left md:items-center md:justify-between md:pr-[260px]">
           <div className="flex items-center gap-3">
             <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
               <UserCircle2 className="h-6 w-6" />
