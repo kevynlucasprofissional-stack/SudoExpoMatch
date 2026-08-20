@@ -19,9 +19,9 @@ import {
 
 const STEPS = [
   { Icon: UserPlus, label: "Crie seu perfil" },
-  { Icon: Shuffle, label: "O sistema cruza os interesses" },
+  { Icon: Shuffle, label: "Cruzamento de interesses" },
   { Icon: Star, label: "Avalie suas conexões" },
-  { Icon: Handshake, label: "A ACIRV ajuda na aproximação" },
+  { Icon: Handshake, label: "ACIRV aproxima vocês" },
 ] as const;
 
 const AUDIENCE: { label: string; Icon: typeof Users; tone: string }[] = [
@@ -48,10 +48,6 @@ export function ProcessPanel() {
           {/* Coluna 1: Como funciona */}
           <div className="lg:pr-6">
             <h2 className="font-display text-xl font-black md:text-2xl">Como funciona</h2>
-            <p className="mt-0.5 font-display text-sm font-semibold text-success md:text-base">
-              Conexões profissionais em quatro etapas
-            </p>
-
             {/* Mobile: sequência vertical */}
             <ol
               className="mt-4 flex flex-col gap-3 lg:hidden"
@@ -103,7 +99,7 @@ export function ProcessPanel() {
           {/* Coluna 2: Chips com ícones */}
           <div className="lg:px-6">
             <h3 className="font-display text-base font-bold">
-              Quem você pode encontrar no Matchmaker?
+              Quem você pode encontrar
             </h3>
             <div
               className="mt-3 grid grid-cols-1 gap-1.5 min-[390px]:grid-cols-2"
@@ -130,9 +126,7 @@ export function ProcessPanel() {
           {/* Coluna 3: Painel público AGREGADO */}
           <div className="lg:pl-6" data-testid="public-panel-aggregate">
             <h3 className="font-display text-base font-bold">Painel público da SudoExpo</h3>
-            <p className="mt-1 text-xs text-white/75">
-              Dados agregados dos participantes, sem expor empresas ou perfis individuais.
-            </p>
+            <p className="mt-1 text-xs text-white/75">Números agregados, sem expor empresas.</p>
             <Link
               to="/publico"
               className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#070d3a]"

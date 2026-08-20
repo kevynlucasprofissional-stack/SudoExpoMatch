@@ -6,21 +6,21 @@ const CARDS = [
     color: "var(--success)",
     fg: "#0b1252",
     title: "Apresente o seu negócio",
-    body: "Descreva os produtos e serviços que você oferece e o tipo de público que gostaria de atender na feira.",
+    body: "Produtos, serviços e o público que quer atender.",
   },
   {
     Icon: Search,
     color: "var(--secondary)",
     fg: "#0b1252",
     title: "Informe o que você procura",
-    body: "Diga se busca fornecedores, clientes, parceiros ou soluções específicas para o seu negócio.",
+    body: "Clientes, fornecedores, parceiros ou soluções.",
   },
   {
     Icon: Users,
     color: "var(--accent)",
     fg: "#0b1252",
     title: "Receba conexões recomendadas",
-    body: "O Matchmaker cruza as informações e destaca oportunidades reais entre os participantes.",
+    body: "Oportunidades reais, priorizadas para você.",
   },
 ] as const;
 

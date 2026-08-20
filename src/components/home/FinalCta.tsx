@@ -37,7 +37,7 @@ export function FinalCta() {
                 Já criou seu perfil?
               </h3>
               <p className="mt-0.5 text-xs text-white/80 md:text-sm">
-                Acesse suas conexões, veja quem demonstrou interesse e responda.
+                Veja quem tem interesse em você.
               </p>
             </div>
           </div>

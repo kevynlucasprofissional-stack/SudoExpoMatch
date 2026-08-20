@@ -55,10 +55,8 @@ export function Hero() {
           </h1>
 
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
-            Informe o que você oferece e o que está procurando. O Matchmaker analisa os perfis dos
-            participantes e recomenda as conexões profissionais que mais fazem sentido para você.
-            Quando houver interesse dos dois lados, a equipe da ACIRV ajuda a aproximar vocês
-            durante a feira.
+            Diga o que oferece e o que procura. O Matchmaker encontra as conexões mais relevantes
+            para você durante a SudoExpo.
           </p>
 
           <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -77,7 +75,7 @@ export function Hero() {
           </div>
 
           <p className="mt-3 flex items-center gap-2 text-xs text-white/70">
-            <Clock className="h-3.5 w-3.5" /> Cadastro gratuito · Leva cerca de 3 minutos
+            <Clock className="h-3.5 w-3.5" /> Cadastro gratuito · 3 minutos
           </p>
 
           {/* Categorias compactas — só mobile */}
