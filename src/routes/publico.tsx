@@ -138,12 +138,6 @@ function PublicBoard() {
       </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
-        {/* TOPO: relógio */}
-        <header className="flex items-center justify-end gap-4">
-          <BoardClock />
-        </header>
-
-
         {/* TÍTULO */}
         <div className="mt-8 xl:mt-12">
           <h1 className="font-display text-4xl font-black leading-[1.02] tracking-tight md:text-6xl xl:text-[5.2rem]">
@@ -152,14 +146,18 @@ function PublicBoard() {
           <p className="mt-4 max-w-4xl text-base text-[#b9c6ee] md:text-xl xl:text-2xl">
             Conectando pessoas, ideias e oportunidades durante a SudoExpo.
           </p>
-          <span className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-[#3a5bd9]/50 bg-white/[0.04] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#c9d6f5] backdrop-blur xl:text-[11px]">
-            <span
-              aria-hidden
-              className="pb-status-dot h-2 w-2 rounded-full bg-[#a3e635]"
-            />
-            Dados atualizados em tempo real
-          </span>
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#3a5bd9]/50 bg-white/[0.04] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#c9d6f5] backdrop-blur xl:text-[11px]">
+              <span
+                aria-hidden
+                className="pb-status-dot h-2 w-2 rounded-full bg-[#a3e635]"
+              />
+              Dados atualizados em tempo real
+            </span>
+            <BoardClock />
+          </div>
         </div>
+
 
         {/* ÁREA PRINCIPAL: 4 métricas reais */}
         <div className="mt-6 mb-8 grid sm:mt-8 sm:mb-12 flex-1 content-center gap-4 sm:grid-cols-2 sm:gap-5 xl:mt-10 xl:mb-16 xl:grid-cols-4 xl:gap-8">
