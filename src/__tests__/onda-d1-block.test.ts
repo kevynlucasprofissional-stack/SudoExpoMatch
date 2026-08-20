@@ -40,7 +40,15 @@ describe("D1 — labels/opções de ordenação", () => {
   });
 
   it("scopes conhecidos ficam estáveis (allowlist da UI)", () => {
-    expect([...QUEUE_SCOPES].sort()).toEqual(["all", "closed", "mine", "pending", "unassigned"]);
+    expect([...QUEUE_SCOPES].sort()).toEqual([
+      "all",
+      "closed",
+      "map_pending",
+      "mapped",
+      "mine",
+      "pending",
+      "unassigned",
+    ]);
   });
 });
 
