@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-import { EVENT_ID } from "@/lib/mock-data";
+import { EVENT_ID } from "@/config/event";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";

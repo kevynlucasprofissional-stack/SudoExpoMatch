@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
-import { EVENT_ID } from "@/lib/mock-data";
+import { EVENT_ID } from "@/config/event";
 import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
 import { qk } from "@/features/participant/queryKeys";
 

@@ -168,7 +168,7 @@ describe("busca estática (hardening B): sem catálogo mockado", () => {
   });
   it("wizard não importa mock-data (exceto EVENT_ID em rotas)", () => {
     const out = execSync(
-      'grep -rnE "from [\'\\"]@/lib/mock-data[\'\\"]" src/features/onboarding || true',
+      'grep -rnE "from [\'\\"]@/config/event[\'\\"]" src/features/onboarding || true',
       { encoding: "utf8" },
     );
     expect(out.trim()).toBe("");

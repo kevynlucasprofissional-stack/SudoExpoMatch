@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { HeartHandshake, Sparkles, Users, Handshake } from "lucide-react";
 
-import { EVENT_ID, EVENT_NAME } from "@/lib/mock-data";
+import { EVENT_ID, EVENT_NAME } from "@/config/event";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 import { useEventStats } from "@/features/staff/useEventStats";
 

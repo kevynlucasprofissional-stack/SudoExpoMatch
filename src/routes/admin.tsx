@@ -28,7 +28,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { EVENT_ID } from "@/lib/mock-data";
+import { EVENT_ID } from "@/config/event";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { signOut } from "@/features/auth/actions";

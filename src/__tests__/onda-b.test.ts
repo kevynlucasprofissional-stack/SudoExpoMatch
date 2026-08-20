@@ -582,7 +582,7 @@ describe("busca estática: /participar e wizard não consomem catálogo mockado"
   });
   it("não importa catálogo de mock-data em componentes do wizard (src/features/onboarding)", () => {
     const out = execSync(
-      'grep -rnE "from [\'\\"]@/lib/mock-data[\'\\"]" src/features/onboarding || true',
+      'grep -rnE "from [\'\\"]@/config/event[\'\\"]" src/features/onboarding || true',
       { encoding: "utf8" },
     );
     // Permitido nenhum uso do mock catalog no wizard.

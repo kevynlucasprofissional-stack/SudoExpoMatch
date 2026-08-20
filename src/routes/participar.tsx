@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
-import { EVENT_ID } from "@/lib/mock-data";
+import { EVENT_ID } from "@/config/event";
 import { useEnsureParticipantSession } from "@/features/participant/session";
 import { track } from "@/features/analytics/track";
 import { useEventTaxonomy } from "@/features/taxonomy/queries";
