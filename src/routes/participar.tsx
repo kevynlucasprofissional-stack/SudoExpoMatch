@@ -239,14 +239,11 @@ function WizardPage() {
   const continueFromWhoIAm = useCallback(async () => {
     if (socialBusy.current) return; // anti double-click
     const raw = draft.instagram?.trim() ?? "";
-    const current =
+    const resolved =
       social.status === "done" && social.result?.status === "ok"
-        ? `@${social.result.context.handle}`
+        ? social.result.context.handle
         : null;
-    const normalizedRaw = raw.replace(/^@+/, "").toLowerCase();
-    const alreadyDone =
-      !!current && current.slice(1).toLowerCase() === normalizedRaw.replace(/\/$/, "");
-    if (raw && !alreadyDone) {
+    if (shouldRunSocialEnrichment(raw, resolved)) {
       socialBusy.current = true;
       try {
         await runSocialEnrich(raw);
