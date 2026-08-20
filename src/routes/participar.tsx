@@ -33,6 +33,7 @@ import { useOwnProfile } from "@/features/participant/useOwnProfile";
 import {
   ApiError,
   saveOwnProfile,
+  linkOwnSocialProfile,
   setOwnContact,
   rotateOwnRecoveryCode,
 } from "@/features/participant/api";
@@ -347,7 +348,7 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, navigate, goToIdentity]);
+  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
