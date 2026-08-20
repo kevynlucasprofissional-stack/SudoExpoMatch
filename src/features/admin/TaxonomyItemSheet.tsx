@@ -416,6 +416,38 @@ export function TaxonomyItemSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmRelationOff}
+        onOpenChange={(v) => {
+          if (!v) setConfirmRelationOff(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Desativar relação com “{confirmRelationOff?.other_label ?? "outro item"}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              O matcher deixa de usar esta relação em novos cálculos. Os motivos de match já
+              registrados permanecem intactos e nada é apagado. Você pode reativar depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={toggleRelation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={toggleRelation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmRelationOff) void applyRelationActive(confirmRelationOff.id, false);
+              }}
+            >
+              {toggleRelation.isPending ? "Desativando…" : "Desativar relação"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
+
   );
 }
