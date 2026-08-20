@@ -78,7 +78,8 @@ function RelationItem({ r }: { r: TaxonomyRelation }) {
       {r.rationale ? (
         <p className="mt-1 text-xs text-muted-foreground">Justificativa: {r.rationale}</p>
       ) : null}
-    </li>
+    </div>
+
   );
 }
 
