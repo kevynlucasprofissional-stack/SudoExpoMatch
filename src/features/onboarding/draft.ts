@@ -1,9 +1,14 @@
-import type { WizardDraft, WizardNeed, WizardOffer } from "./types";
+import type { BusinessSize, BusinessType, WizardDraft, WizardNeed, WizardOffer } from "./types";
 import { persistedDraftSchema, wizardDraftSchema } from "./schemas";
 
 export const WIZARD_DRAFT_KEY = "sudoexpo:wizard-draft:v2";
 export const LEGACY_DRAFT_KEY = "sudoexpo:draft";
 export const DRAFT_MAX_AGE_MS = 24 * 60 * 60 * 1000;
+/** Número de etapas do wizard (0..MAX_STEP). */
+export const MAX_STEP = 4;
+
+const BUSINESS_SIZES = new Set<BusinessSize>(["pequeno", "medio", "grande"]);
+const BUSINESS_TYPES = new Set<BusinessType>(["comercio", "industria", "servico"]);
 
 export function createEmptyDraft(): WizardDraft {
   return {
@@ -12,7 +17,10 @@ export function createEmptyDraft(): WizardDraft {
     company: "",
     city: "",
     neighborhood: "",
+    businessSize: "",
+    businessType: "",
     segmentId: "",
+    niche: "",
     summary: "",
     offers: [],
     needs: [],
@@ -71,7 +79,7 @@ export function sanitizeWizardDraft(raw: unknown): WizardDraft {
   if (!raw || typeof raw !== "object") return empty;
   const r = raw as Record<string, unknown>;
   const stepRaw = typeof r.step === "number" ? r.step : 0;
-  const step = Math.min(5, Math.max(0, Math.floor(stepRaw)));
+  const step = Math.min(MAX_STEP, Math.max(0, Math.floor(stepRaw)));
   const offers = Array.isArray(r.offers)
     ? (r.offers.map(sanitizeOffer).filter(Boolean) as WizardOffer[]).slice(0, 5)
     : [];
@@ -84,7 +92,16 @@ export function sanitizeWizardDraft(raw: unknown): WizardDraft {
     company: typeof r.company === "string" ? r.company.slice(0, 120) : "",
     city: typeof r.city === "string" ? r.city.slice(0, 80) : "",
     neighborhood: typeof r.neighborhood === "string" ? r.neighborhood.slice(0, 80) : "",
+    businessSize:
+      typeof r.businessSize === "string" && BUSINESS_SIZES.has(r.businessSize as BusinessSize)
+        ? (r.businessSize as BusinessSize)
+        : "",
+    businessType:
+      typeof r.businessType === "string" && BUSINESS_TYPES.has(r.businessType as BusinessType)
+        ? (r.businessType as BusinessType)
+        : "",
     segmentId: typeof r.segmentId === "string" ? r.segmentId.slice(0, 60) : "",
+    niche: typeof r.niche === "string" ? r.niche.slice(0, 120) : "",
     summary: typeof r.summary === "string" ? r.summary.slice(0, 500) : "",
     offers,
     needs,
@@ -131,7 +148,7 @@ export function saveWizardDraft(
     storage.setItem(
       WIZARD_DRAFT_KEY,
       JSON.stringify({
-        version: 2 as const,
+        version: 3 as const,
         savedAt: new Date(now).toISOString(),
         draft: clean,
       }),
@@ -209,7 +226,10 @@ export function draftAllowedKeys(): ReadonlyArray<keyof WizardDraft> {
     "company",
     "city",
     "neighborhood",
+    "businessSize",
+    "businessType",
     "segmentId",
+    "niche",
     "summary",
     "offers",
     "needs",

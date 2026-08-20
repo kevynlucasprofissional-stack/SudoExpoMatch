@@ -17,11 +17,19 @@ import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 import type { NeedKind } from "@/lib/types";
-import type { SubmitState, WizardDraft, WizardMode, WizardNeed, WizardOffer } from "./types";
+import type {
+  BusinessSize,
+  BusinessType,
+  SubmitState,
+  WizardDraft,
+  WizardMode,
+  WizardNeed,
+  WizardOffer,
+} from "./types";
 import { cryptoUid } from "./draft";
 import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
-import { phoneCreateSchema, phoneEditSchema } from "./schemas";
+import { OTHER_SEGMENT_ID, phoneCreateSchema, phoneEditSchema } from "./schemas";
 import { isSubmitting, reviewIsActionable } from "./submitMachine";
 import { currentPriorityId, type WizardValidation } from "./validate";
 
@@ -192,9 +200,62 @@ export function StepIdentity({
 }
 
 // ============================================================================
-// StepSegment
+// StepWhoIAm — porte, tipo, segmento, nicho e resumo
 // ============================================================================
-export function StepSegment({
+const BUSINESS_SIZE_OPTIONS: { value: BusinessSize; label: string }[] = [
+  { value: "pequeno", label: "Pequeno" },
+  { value: "medio", label: "Médio" },
+  { value: "grande", label: "Grande" },
+];
+const BUSINESS_TYPE_OPTIONS: { value: BusinessType; label: string }[] = [
+  { value: "comercio", label: "Comércio" },
+  { value: "industria", label: "Indústria" },
+  { value: "servico", label: "Serviço" },
+];
+export const BUSINESS_SIZE_LABEL: Record<BusinessSize, string> = Object.fromEntries(
+  BUSINESS_SIZE_OPTIONS.map((o) => [o.value, o.label]),
+) as Record<BusinessSize, string>;
+export const BUSINESS_TYPE_LABEL: Record<BusinessType, string> = Object.fromEntries(
+  BUSINESS_TYPE_OPTIONS.map((o) => [o.value, o.label]),
+) as Record<BusinessType, string>;
+
+function ChoiceGroup<T extends string>({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: T | "";
+  options: { value: T; label: string }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div>
+      <Label>{label}</Label>
+      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={label}>
+        {options.map((o) => {
+          const active = value === o.value;
+          return (
+            <button
+              key={o.value}
+              type="button"
+              aria-pressed={active}
+              onClick={() => onChange(o.value)}
+              className={`rounded-full border px-4 py-2 text-sm transition-all ${
+                active ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "hover:bg-muted"
+              }`}
+            >
+              {o.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function StepWhoIAm({
   draft,
   update,
   onNext,
@@ -207,7 +268,14 @@ export function StepSegment({
   manualMode?: boolean;
   manualSegmentLabel?: string;
 }) {
-  const canNext = !!draft.segmentId && draft.summary.trim().length >= 20;
+  const isOther = draft.segmentId === OTHER_SEGMENT_ID;
+  const nicheOk = !isOther || draft.niche.trim().length >= 3;
+  const canNext =
+    !!draft.segmentId &&
+    !!draft.businessSize &&
+    !!draft.businessType &&
+    nicheOk &&
+    draft.summary.trim().length >= 20;
 
   function handleSelect(segmentId: string) {
     if (draft.segmentId && draft.segmentId !== segmentId) {
@@ -231,60 +299,101 @@ export function StepSegment({
 
   return (
     <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">Seu segmento</h2>
+      <h2 className="font-display text-2xl font-semibold">Quem eu sou</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {manualMode
           ? "Catálogo indisponível — o segmento atual está bloqueado para edição."
-          : "Escolha o segmento principal e escreva um resumo curto do que você faz."}
+          : "Conte o porte, o tipo de atuação e o segmento da sua empresa."}
       </p>
 
-      {manualMode ? (
-        <div
-          className="mt-6 rounded-xl border border-warning/40 bg-warning/5 p-3 text-sm"
-          aria-live="polite"
-        >
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">
-            Segmento atual (bloqueado)
-          </p>
-          <p className="mt-1 font-medium">{manualSegmentLabel ?? draft.segmentId}</p>
-        </div>
-      ) : (
-        <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {catalog.segments.map((s) => {
-            const active = draft.segmentId === s.id;
-            return (
-              <button
-                key={s.id}
-                type="button"
-                onClick={() => handleSelect(s.id)}
-                aria-pressed={active}
-                className={`rounded-xl border p-3 text-left text-sm transition-all ${
-                  active
-                    ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
-                    : "hover:bg-muted"
-                }`}
-              >
-                {s.emoji && <span className="mr-1">{s.emoji}</span>}
-                {s.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
-
-      <div className="mt-6">
-        <Label htmlFor="summary">Resumo profissional</Label>
-        <Textarea
-          id="summary"
-          value={draft.summary}
-          onChange={(e) => update("summary", e.target.value)}
-          placeholder="Ex.: Oferecemos serviços de contabilidade para pequenas indústrias e restaurantes na região."
-          className="mt-1 min-h-[110px]"
-          maxLength={500}
+      <div className="mt-6 space-y-6">
+        <ChoiceGroup
+          label="Porte da empresa"
+          value={draft.businessSize}
+          options={BUSINESS_SIZE_OPTIONS}
+          onChange={(v) => update("businessSize", v)}
         />
-        <p className="mt-1 text-xs text-muted-foreground">
-          {draft.summary.length}/500 · Mínimo 20 caracteres
-        </p>
+        <ChoiceGroup
+          label="Tipo principal"
+          value={draft.businessType}
+          options={BUSINESS_TYPE_OPTIONS}
+          onChange={(v) => update("businessType", v)}
+        />
+
+        <div>
+          <Label>Segmento</Label>
+          {manualMode ? (
+            <div
+              className="mt-2 rounded-xl border border-warning/40 bg-warning/5 p-3 text-sm"
+              aria-live="polite"
+            >
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                Segmento atual (bloqueado)
+              </p>
+              <p className="mt-1 font-medium">{manualSegmentLabel ?? draft.segmentId}</p>
+            </div>
+          ) : (
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {catalog.segments.map((s) => {
+                const active = draft.segmentId === s.id;
+                return (
+                  <button
+                    key={s.id}
+                    type="button"
+                    onClick={() => handleSelect(s.id)}
+                    aria-pressed={active}
+                    className={`rounded-xl border p-3 text-left text-sm transition-all ${
+                      active
+                        ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    {s.emoji && <span className="mr-1">{s.emoji}</span>}
+                    {s.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="niche">
+            {isOther ? "Nicho — descreva sua atividade" : "Nicho (opcional)"}
+          </Label>
+          <Input
+            id="niche"
+            value={draft.niche}
+            onChange={(e) => update("niche", e.target.value.slice(0, 120))}
+            placeholder={
+              isOther
+                ? "Ex.: Manutenção de equipamentos agrícolas"
+                : "Ex.: Panificação artesanal"
+            }
+            className="mt-1"
+            maxLength={120}
+          />
+          {isOther && !nicheOk && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Como você escolheu "Outros", explique sua atividade aqui.
+            </p>
+          )}
+        </div>
+
+        <div>
+          <Label htmlFor="summary">Resumo profissional</Label>
+          <Textarea
+            id="summary"
+            value={draft.summary}
+            onChange={(e) => update("summary", e.target.value)}
+            placeholder="Ex.: Oferecemos serviços de contabilidade para pequenas indústrias e restaurantes na região."
+            className="mt-1 min-h-[110px]"
+            maxLength={500}
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            {draft.summary.length}/500 · Mínimo 20 caracteres
+          </p>
+        </div>
       </div>
 
       <div className="mt-6 flex justify-between">
@@ -619,6 +728,29 @@ export function StepNeeds({
     );
   }
 
+  // Prioridade agora vive nesta etapa. Regra: exatamente uma necessidade
+  // marcada. Se nenhuma estiver marcada (item novo, rascunho antigo ou item
+  // prioritário removido), a primeira assume automaticamente.
+  const priorityId = currentPriorityId(draft);
+  useEffect(() => {
+    if (draft.needs.length === 0) return;
+    const marked = draft.needs.filter((n) => n.isPriority);
+    if (marked.length === 1) return;
+    const targetId = marked[0]?.localId ?? draft.needs[0].localId;
+    update(
+      "needs",
+      draft.needs.map((n) => ({ ...n, isPriority: n.localId === targetId })),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draft.needs]);
+
+  function setPriority(localId: string) {
+    update(
+      "needs",
+      draft.needs.map((n) => ({ ...n, isPriority: n.localId === localId })),
+    );
+  }
+
   return (
     <Card className="p-6">
       <h2 className="font-display text-2xl font-semibold">O que você procura</h2>
@@ -717,22 +849,42 @@ export function StepNeeds({
       </div>
 
       <div className="mt-6">
-        <p className="mb-2 text-sm font-medium">Suas necessidades ({draft.needs.length}/5)</p>
+        <p className="mb-1 text-sm font-medium">Suas necessidades ({draft.needs.length}/5)</p>
+        <p className="mb-3 text-xs text-muted-foreground">
+          <Star className="mr-1 inline h-3.5 w-3.5 text-warning" />
+          Marque a prioridade: aquela que, se resolvida, já teria valido sua visita.
+        </p>
         {draft.needs.length === 0 ? (
           <p className="rounded-lg border border-dashed p-4 text-center text-sm text-muted-foreground">
             Adicione pelo menos uma necessidade.
           </p>
         ) : (
-          <ul className="space-y-2">
+          <RadioGroup
+            value={priorityId}
+            onValueChange={setPriority}
+            className="space-y-2"
+            aria-label="Necessidade prioritária"
+          >
             {draft.needs.map((n) => (
-              <li
+              <div
                 key={n.localId}
-                className="flex items-center justify-between rounded-lg border bg-card px-3 py-2"
+                className={`flex items-center justify-between rounded-lg border bg-card px-3 py-2 ${
+                  n.isPriority ? "border-warning/60 bg-warning/5" : ""
+                }`}
               >
-                <div className="flex items-center gap-2">
+                <label
+                  htmlFor={`p-${n.localId}`}
+                  className="flex flex-1 cursor-pointer items-center gap-2"
+                >
+                  <RadioGroupItem
+                    id={`p-${n.localId}`}
+                    value={n.localId}
+                    aria-label={`Definir ${n.label} como prioridade`}
+                  />
                   <Badge variant="secondary">{NEED_LABEL[n.needKind]}</Badge>
                   <span className="text-sm">{n.label}</span>
-                </div>
+                  {n.isPriority && <Star className="h-4 w-4 fill-warning text-warning" />}
+                </label>
                 <button
                   type="button"
                   onClick={() => remove(n.localId)}
@@ -741,9 +893,9 @@ export function StepNeeds({
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
-              </li>
+              </div>
             ))}
-          </ul>
+          </RadioGroup>
         )}
       </div>
 
@@ -751,7 +903,7 @@ export function StepNeeds({
         <Button variant="outline" onClick={onBack}>
           Voltar
         </Button>
-        <Button onClick={onNext} disabled={draft.needs.length === 0}>
+        <Button onClick={onNext} disabled={draft.needs.length === 0 || !priorityId}>
           Continuar
         </Button>
       </div>
@@ -759,62 +911,9 @@ export function StepNeeds({
   );
 }
 
-// ============================================================================
-// StepPriority
-// ============================================================================
-export function StepPriority({ draft, update, onNext, onBack }: BaseProps) {
-  const priorityId = currentPriorityId(draft);
-  const hasPriority = priorityId !== "";
-  return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">
-        <Star className="mr-1 inline h-6 w-6 text-warning" />
-        Qual é a prioridade?
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Marque a necessidade que, se resolvida, já teria valido sua visita.
-      </p>
+// A antiga etapa "Prioridade" foi integrada em StepNeeds (etapa "O que eu
+// procuro"). O Matcher v2.3 continua consumindo `is_priority` normalmente.
 
-      <RadioGroup
-        value={priorityId}
-        onValueChange={(v) => {
-          update(
-            "needs",
-            draft.needs.map((n) => ({ ...n, isPriority: n.localId === v })),
-          );
-        }}
-        className="mt-6 space-y-2"
-      >
-        {draft.needs.map((n) => (
-          <label
-            key={n.localId}
-            htmlFor={`p-${n.localId}`}
-            className="flex cursor-pointer items-center gap-3 rounded-lg border bg-card p-3 hover:bg-muted/40"
-          >
-            <RadioGroupItem id={`p-${n.localId}`} value={n.localId} />
-            <div>
-              <Badge variant="secondary">{NEED_LABEL[n.needKind]}</Badge>
-              <span className="ml-2 text-sm">{n.label}</span>
-            </div>
-          </label>
-        ))}
-      </RadioGroup>
-
-      {!hasPriority && (
-        <p className="mt-3 text-xs text-muted-foreground">Escolha uma prioridade para continuar.</p>
-      )}
-
-      <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
-        <Button onClick={onNext} disabled={!hasPriority}>
-          Continuar
-        </Button>
-      </div>
-    </Card>
-  );
-}
 
 // ============================================================================
 // StepReview
@@ -882,9 +981,18 @@ export function StepReview({
           value={[draft.neighborhood, draft.city].filter(Boolean).join(" · ")}
         />
         <ReviewRow
+          label="Porte"
+          value={draft.businessSize ? BUSINESS_SIZE_LABEL[draft.businessSize] : "—"}
+        />
+        <ReviewRow
+          label="Tipo principal"
+          value={draft.businessType ? BUSINESS_TYPE_LABEL[draft.businessType] : "—"}
+        />
+        <ReviewRow
           label="Segmento"
           value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
         />
+        <ReviewRow label="Nicho" value={draft.niche} />
         <ReviewRow label="Resumo" value={draft.summary} />
         <div>
           <p className="text-xs uppercase tracking-wide text-muted-foreground">Ofereço</p>

@@ -64,11 +64,14 @@ class MemStorage implements Storage {
 
 function goodDraft(overrides?: Partial<WizardDraft>): WizardDraft {
   const d: WizardDraft = {
-    step: 5,
+    step: 4,
     name: "Ana",
     company: "Acme",
     city: "Rio Verde",
     neighborhood: "",
+    businessSize: "pequeno",
+    businessType: "servico",
+    niche: "",
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
     offers: [
@@ -340,6 +343,9 @@ describe("mappers: mapProfileToWizardDraft", () => {
       company: "Acme",
       city: "Rio Verde",
       neighborhood: null,
+      business_size: "pequeno",
+      business_type: "servico",
+      niche: null,
       segment_id: "servicos",
       summary: "resumo",
       consent: true,

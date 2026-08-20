@@ -233,11 +233,14 @@ describe("pipeline UI → payload de submit", () => {
   it("o needKind sugerido sobrevive até o payload de save_own_profile_v2", () => {
     const needs = accept("servico", "fornecedor");
     const draft: WizardDraft = {
-      step: 5,
+      step: 4,
       name: "Ana",
       company: "Rest",
       city: "RV",
       neighborhood: "",
+      businessSize: "pequeno",
+      businessType: "servico",
+      niche: "",
       segmentId: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
       offers: [

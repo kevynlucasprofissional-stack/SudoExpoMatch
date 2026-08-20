@@ -14,24 +14,37 @@ export const wizardNeedSchema = wizardOfferSchema.extend({
   isPriority: z.boolean(),
 });
 
+export const businessSizeSchema = z.enum(["pequeno", "medio", "grande"]);
+export const businessTypeSchema = z.enum(["comercio", "industria", "servico"]);
+
+/** Segmento genérico — exige nicho descrevendo a atividade. */
+export const OTHER_SEGMENT_ID = "outros";
+
 export const wizardDraftSchema = z.object({
-  step: z.number().int().min(0).max(5),
+  step: z.number().int().min(0).max(4),
   name: z.string().max(120),
   company: z.string().max(120),
   city: z.string().max(80),
   neighborhood: z.string().max(80),
+  businessSize: z.union([businessSizeSchema, z.literal("")]),
+  businessType: z.union([businessTypeSchema, z.literal("")]),
   segmentId: z.string().max(60),
+  niche: z.string().max(120),
   summary: z.string().max(500),
   offers: z.array(wizardOfferSchema).max(5),
   needs: z.array(wizardNeedSchema).max(5),
   consent: z.boolean(),
 });
 
-/** Envelope persistido. */
+/** Envelope persistido (aceita rascunhos v2 antigos; grava sempre v3). */
 export const persistedDraftSchema = z.object({
-  version: z.literal(2),
+  version: z.union([z.literal(2), z.literal(3)]),
   savedAt: z.string(),
-  draft: wizardDraftSchema,
+  draft: wizardDraftSchema.partial({
+    businessSize: true,
+    businessType: true,
+    niche: true,
+  }),
 });
 
 // ---------- Validações de submit (novo x edição) ----------
@@ -39,6 +52,8 @@ const baseProfessional = wizardDraftSchema.extend({
   name: z.string().trim().min(2, "Informe seu nome"),
   company: z.string().trim().min(2, "Informe sua empresa"),
   city: z.string().trim().min(2, "Informe sua cidade"),
+  businessSize: businessSizeSchema,
+  businessType: businessTypeSchema,
   segmentId: z.string().trim().min(1, "Escolha um segmento"),
   summary: z.string().trim().min(20, "Resumo curto demais"),
   offers: z.array(wizardOfferSchema).min(1, "Adicione pelo menos 1 oferta").max(5),
@@ -56,6 +71,13 @@ export const wizardCreateSchema = baseProfessional.superRefine((v, ctx) => {
       code: "custom",
       path: ["needs"],
       message: "Marque exatamente uma prioridade",
+    });
+  }
+  if (v.segmentId.trim() === OTHER_SEGMENT_ID && v.niche.trim().length < 3) {
+    ctx.addIssue({
+      code: "custom",
+      path: ["niche"],
+      message: "Descreva sua atividade no campo nicho",
     });
   }
 });
