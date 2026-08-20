@@ -4,6 +4,8 @@ import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
+import type { SocialBusinessContext, SocialLookupResult } from "@/lib/social-context";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -419,7 +421,14 @@ export function StepOffers({
   catalog,
   eventId,
   aiAnalysis,
-}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
+  socialContext,
+}: BaseProps & {
+  catalog: EventCatalog;
+  eventId?: string;
+  aiAnalysis?: SharedAiAnalysis;
+  socialContext?: SocialBusinessContext | null;
+}) {
+
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -518,7 +527,12 @@ export function StepOffers({
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.offers.map((o) => o.label)}
+          businessSize={draft.businessSize}
+          businessType={draft.businessType}
+          niche={draft.niche}
+          socialContext={socialContext ?? null}
           analysis={aiAnalysis}
+
           onAcceptMany={(picks: AiSuggestionItem[], source) => {
             const additions: WizardOffer[] = picks.map((s) => ({
               localId: cryptoUid(),
@@ -678,7 +692,14 @@ export function StepNeeds({
   catalog,
   eventId,
   aiAnalysis,
-}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
+  socialContext,
+}: BaseProps & {
+  catalog: EventCatalog;
+  eventId?: string;
+  aiAnalysis?: SharedAiAnalysis;
+  socialContext?: SocialBusinessContext | null;
+}) {
+
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 

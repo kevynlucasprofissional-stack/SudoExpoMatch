@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { needKindSchema } from "@/features/participant/schemas";
+import { socialBusinessContextSchema } from "./social-context";
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
 /**
@@ -8,8 +9,11 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
  * próprio taxonomy item. Versão nova invalida cache sem esses campos.
  * IMPL 8: o prompt passou a definir `confidence` como ADERÊNCIA ao resumo e
  * a normalização descarta itens abaixo de `MIN_SUGGESTION_CONFIDENCE`.
+ * IMPL 9: o input passou a carregar perfil de negócio (porte/tipo/nicho) e
+ * contexto público de rede social (Instagram), ambos opcionais.
  */
-export const PROMPT_VERSION = "a1a2-v6-adherence";
+export const PROMPT_VERSION = "a1a2-v7-profile-social";
+
 
 /**
  * IMPL 8 — única defesa determinística contra sugestão semanticamente
@@ -44,8 +48,15 @@ export const suggestOnboardingInputSchema = z.object({
   segmentId: z.string().min(1).max(60),
   summary: z.string().trim().min(1).max(800),
   existingLabels: z.array(z.string().max(80)).max(10).optional(),
+  /** IMPL 9 — perfil de negócio declarado na etapa "Quem eu sou". */
+  businessSize: z.enum(["pequeno", "medio", "grande"]).optional(),
+  businessType: z.enum(["comercio", "industria", "servico"]).optional(),
+  niche: z.string().trim().max(120).optional(),
+  /** IMPL 9 — contexto público de rede social (opcional, já sanitizado). */
+  socialContext: socialBusinessContextSchema.optional(),
 });
 export type SuggestOnboardingInput = z.infer<typeof suggestOnboardingInputSchema>;
+
 
 export const aiSuggestionItemSchema = z
   .object({
@@ -288,7 +299,7 @@ export function classifyGatewayError(err: unknown): "terminal_4xx" | "transient"
   return "unknown";
 }
 
-/** Payload de log seguro em `ai_runs` — sem PII e sem summary bruto. */
+/** Payload de log seguro em `ai_runs` — sem PII e sem conteúdo bruto. */
 export function buildAiRunInput(input: SuggestOnboardingInput, cacheKey: string) {
   return {
     hash: cacheKey,
@@ -297,5 +308,13 @@ export function buildAiRunInput(input: SuggestOnboardingInput, cacheKey: string)
     summaryLen: input.summary.length,
     existingCount: input.existingLabels?.length ?? 0,
     promptVersion: PROMPT_VERSION,
+    businessSize: input.businessSize ?? null,
+    businessType: input.businessType ?? null,
+    nicheLen: input.niche?.length ?? 0,
+    // Somente métricas do contexto social — nada de bio, HTML ou posts.
+    socialProvider: input.socialContext?.provider ?? null,
+    socialKeywordCount: input.socialContext?.keywords.length ?? 0,
+    socialSignalCount: input.socialContext?.signals.length ?? 0,
   };
 }
+

@@ -2,21 +2,38 @@ import { useCallback, useRef, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { suggestOnboardingItems } from "@/lib/onboarding-ai.functions";
 import type { AiSuggestionResult } from "@/lib/onboarding-ai-schema";
+import { socialContextFingerprint, type SocialBusinessContext } from "@/lib/social-context";
+import type { BusinessSize, BusinessType } from "./types";
 
 /**
  * Chave da entrada analisada — se mudar, o resultado atual é invalidado.
  * `existingLabels` NÃO entra na chave para permitir reuso entre Ofertas e
  * Necessidades (labels adicionadas em uma etapa não devem reanalisar).
+ * IMPL 9: porte, tipo, nicho e contexto público do Instagram entram na chave
+ * — mudar qualquer um deles produz sugestões diferentes.
  */
 export interface AnalysisKey {
   eventId: string;
   segmentId: string;
   summary: string;
+  businessSize?: BusinessSize | "";
+  businessType?: BusinessType | "";
+  niche?: string;
+  socialContext?: SocialBusinessContext | null;
 }
 
 export function serializeAnalysisKey(k: AnalysisKey): string {
-  return `${k.eventId}\u0001${k.segmentId}\u0001${k.summary.trim()}`;
+  return [
+    k.eventId,
+    k.segmentId,
+    k.summary.trim(),
+    k.businessSize ?? "",
+    k.businessType ?? "",
+    (k.niche ?? "").trim().toLowerCase(),
+    socialContextFingerprint(k.socialContext ?? null),
+  ].join("\u0001");
 }
+
 
 export type AnalysisStatus =
   | { s: "idle" }
@@ -88,8 +105,13 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
               segmentId: key.segmentId,
               summary: key.summary,
               existingLabels,
+              ...(key.businessSize ? { businessSize: key.businessSize } : {}),
+              ...(key.businessType ? { businessType: key.businessType } : {}),
+              ...(key.niche?.trim() ? { niche: key.niche.trim() } : {}),
+              ...(key.socialContext ? { socialContext: key.socialContext } : {}),
             },
           });
+
           // Só a request mais recente pode mutar o estado compartilhado.
           if (gen === activeGen.current) {
             setStatus({ s: "done", result, keyId });

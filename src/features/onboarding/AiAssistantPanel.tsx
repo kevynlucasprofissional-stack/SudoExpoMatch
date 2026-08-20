@@ -5,6 +5,9 @@ import type { AiSuggestionItem, AiSuggestionResult } from "@/lib/onboarding-ai-s
 import type { AnalysisKey, SharedAiAnalysis } from "./aiAnalysisState";
 import { serializeAnalysisKey } from "./aiAnalysisState";
 import { track } from "@/features/analytics/track";
+import type { SocialBusinessContext } from "@/lib/social-context";
+import type { BusinessSize, BusinessType } from "./types";
+
 
 interface Props {
   kind: "offer" | "need";
@@ -13,6 +16,11 @@ interface Props {
   summary: string;
   existingLabels: string[];
   analysis: SharedAiAnalysis;
+  /** IMPL 9 — perfil declarado e contexto público, quando disponíveis. */
+  businessSize?: BusinessSize | "";
+  businessType?: BusinessType | "";
+  niche?: string;
+  socialContext?: SocialBusinessContext | null;
   /**
    * Aceita um lote de sugestões atomicamente. `source` é a origem REAL do
    * resultado (ai vs heuristic). O parent deve fazer o merge respeitando o
@@ -23,8 +31,17 @@ interface Props {
 }
 
 function analysisKey(p: Props): AnalysisKey {
-  return { eventId: p.eventId, segmentId: p.segmentId, summary: p.summary };
+  return {
+    eventId: p.eventId,
+    segmentId: p.segmentId,
+    summary: p.summary,
+    businessSize: p.businessSize ?? "",
+    businessType: p.businessType ?? "",
+    niche: p.niche ?? "",
+    socialContext: p.socialContext ?? null,
+  };
 }
+
 
 export function AiAssistantPanel(props: Props) {
   const { analysis } = props;
