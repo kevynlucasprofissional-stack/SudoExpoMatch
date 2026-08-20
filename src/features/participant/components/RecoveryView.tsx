@@ -14,6 +14,8 @@ import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 import { EVENT_ID } from "@/config/event";
 import { useRecoverProfile } from "@/features/participant/useRecoverProfile";
 import { qk } from "@/features/participant/queryKeys";
+import { WhatsappAccessCard } from "@/features/access/WhatsappAccessCard";
+import { usePhoneAuthCapability } from "@/features/access/usePhoneAuthCapability";
 
 /**
  * Tela de recuperação — política de dados sensíveis.
