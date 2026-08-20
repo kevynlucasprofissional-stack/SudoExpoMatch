@@ -368,6 +368,7 @@ describe("ensureParticipantSession", () => {
 // ---------- Static guard: nenhuma rota importa domains/matching/score ----------
 describe("busca estática: score.ts nunca importado por rotas/componentes", () => {
   it("nenhum arquivo em src/routes ou src/components importa domains/matching/score", () => {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports -- carga tardia intencional em teste
     const { execSync } = require("node:child_process") as typeof import("node:child_process");
     const out = execSync(
       'grep -rEn "from [\'\\"](@/)?domains/matching/score" src/routes src/components src/features || true',
