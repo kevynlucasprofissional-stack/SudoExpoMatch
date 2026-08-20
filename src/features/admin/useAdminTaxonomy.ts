@@ -10,6 +10,7 @@ import {
   type TaxonomyDetail,
   type TaxonomyFormValues,
   type TaxonomyPage,
+  type TaxonomyRelationFormValues,
 } from "@/features/admin/taxonomySchemas";
 
 /**
