@@ -541,6 +541,54 @@ export type Database = {
         }
         Relationships: []
       }
+      match_admin_reviews: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          match_id: string
+          reviewed: boolean
+          reviewed_at: string | null
+          reviewed_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          match_id: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          match_id?: string
+          reviewed?: boolean
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_admin_reviews_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_admin_reviews_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_decisions: {
         Row: {
           decided_at: string
@@ -1324,6 +1372,7 @@ export type Database = {
           _min_score?: number
           _mutual_only?: boolean
           _offset?: number
+          _reviewed?: boolean
           _score_side?: string
           _search?: string
           _segment_ids?: string[]
@@ -1366,6 +1415,10 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      admin_set_match_reviewed: {
+        Args: { _event_id: string; _match_id: string; _reviewed: boolean }
+        Returns: Json
       }
       admin_set_taxonomy_item_active: {
         Args: { _active: boolean; _event_id: string; _item_id: string }

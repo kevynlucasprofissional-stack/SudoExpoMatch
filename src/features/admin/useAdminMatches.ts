@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   matchDetailSchema,
@@ -41,6 +41,7 @@ export const matchesKey = (eventId: string, f: MatchesFilters) =>
     [...f.connectionStatuses].sort().join(","),
     [...f.versions].sort().join(","),
     f.sort,
+    f.reviewed,
     f.offset,
     f.limit ?? MATCHES_PAGE_SIZE,
   ] as const;
@@ -66,6 +67,7 @@ export async function fetchAdminMatches(eventId: string, f: MatchesFilters): Pro
     _connection_statuses: arr(f.connectionStatuses),
     _algorithm_versions: arr(f.versions),
     _sort: f.sort,
+    _reviewed: f.reviewed ?? undefined,
     _limit: limit,
     _offset: Math.max(0, f.offset),
   });
@@ -95,5 +97,30 @@ export function useAdminMatchDetail(matchId: string | null, enabled: boolean) {
     enabled: enabled && !!matchId,
     staleTime: 15_000,
     queryFn: () => fetchAdminMatchDetail(matchId!),
+  });
+}
+
+/**
+ * IMPL 15 — única mutation da tela: governança humana ("match revisado").
+ * Não toca em score, label, reasons, kind nem algorithm_version, e o matcher
+ * não depende deste estado.
+ */
+export async function setMatchReviewed(eventId: string, matchId: string, reviewed: boolean) {
+  const { error } = await supabase.rpc("admin_set_match_reviewed", {
+    _event_id: eventId,
+    _match_id: matchId,
+    _reviewed: reviewed,
+  });
+  if (error) throw error;
+}
+
+export function useSetMatchReviewed(eventId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (vars: { matchId: string; reviewed: boolean }) =>
+      setMatchReviewed(eventId, vars.matchId, vars.reviewed),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin", "matches", eventId] });
+    },
   });
 }

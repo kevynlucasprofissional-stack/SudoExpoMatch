@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Network, Search, ShieldAlert } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Network, Search, ShieldAlert } from "lucide-react";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -24,7 +24,8 @@ import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
 import { useDebouncedValue } from "@/features/admin/useAdminParticipants";
-import { useAdminMatches } from "@/features/admin/useAdminMatches";
+import { useAdminMatches, useSetMatchReviewed } from "@/features/admin/useAdminMatches";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   CONNECTION_MODES,
   CONNECTION_MODE_TEXT,
@@ -112,10 +113,25 @@ function MatchesPage() {
   return <MatchesBoard />;
 }
 
-function MatchCardRow({ m, onOpen }: { m: MatchRow; onOpen: (id: string) => void }) {
+/**
+ * IMPL 15 — o card mantém toda a inteligência A/B existente e ganha apenas um
+ * check de GOVERNANÇA ("match revisado pelo admin"). O check vive FORA do
+ * botão que abre o detalhe, então clicar nele nunca abre o MatchDetailSheet.
+ */
+function MatchCardRow({
+  m,
+  onOpen,
+  onToggleReviewed,
+  pending,
+}: {
+  m: MatchRow;
+  onOpen: (id: string) => void;
+  onToggleReviewed: (id: string, reviewed: boolean) => void;
+  pending: boolean;
+}) {
   const gap = m.score_gap;
   return (
-    <li>
+    <li className={m.reviewed ? "rounded-lg ring-1 ring-primary/30" : undefined}>
       <button
         type="button"
         onClick={() => onOpen(m.id)}
@@ -166,6 +182,30 @@ function MatchCardRow({ m, onOpen }: { m: MatchRow; onOpen: (id: string) => void
           )}
         </div>
       </button>
+
+      <div
+        className="mt-1 flex items-center gap-2 rounded-md px-3 pb-1 text-xs"
+        data-testid="match-review-control"
+      >
+        <Checkbox
+          id={`review-${m.id}`}
+          checked={m.reviewed}
+          disabled={pending}
+          onCheckedChange={(v) => onToggleReviewed(m.id, v === true)}
+          aria-label={`Marcar match entre ${m.a_name} e ${m.b_name} como revisado`}
+        />
+        <label
+          htmlFor={`review-${m.id}`}
+          className="cursor-pointer select-none text-muted-foreground"
+        >
+          Match revisado
+        </label>
+        {m.reviewed ? (
+          <span className="inline-flex items-center gap-1 text-primary" data-testid="reviewed-flag">
+            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Revisado
+          </span>
+        ) : null}
+      </div>
     </li>
   );
 }
@@ -201,6 +241,7 @@ function MatchesBoard() {
       connectionStatuses: search.connectionStatuses,
       versions: search.versions,
       sort: search.sort,
+      reviewed: search.reviewed,
       offset: matchesPageToOffset(search.page),
       limit: MATCHES_PAGE_SIZE,
     },
@@ -209,6 +250,9 @@ function MatchesBoard() {
 
   const data = listQuery.data;
   const pages = matchesTotalPages(data?.total ?? 0);
+  const reviewMutation = useSetMatchReviewed(EVENT_ID);
+  const pendingReviewId =
+    reviewMutation.isPending ? (reviewMutation.variables?.matchId ?? null) : null;
 
   const setParam = (patch: Record<string, unknown>) =>
     navigate({ search: (prev) => ({ ...prev, ...patch, page: 1 }), replace: true });
@@ -270,6 +314,25 @@ function MatchesBoard() {
                       {KIND_TEXT[k as MatchKind]}
                     </SelectItem>
                   ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="rev" className="text-xs">
+                Revisão do admin
+              </Label>
+              <Select
+                value={search.reviewed === null ? "all" : search.reviewed ? "1" : "0"}
+                onValueChange={(v) => setParam({ rev: v === "all" ? "" : v })}
+              >
+                <SelectTrigger id="rev">
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="1">Revisados</SelectItem>
+                  <SelectItem value="0">Não revisados</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -524,6 +587,10 @@ function MatchesBoard() {
                   key={m.id}
                   m={m}
                   onOpen={(id) => navigate({ search: (prev) => ({ ...prev, m: id }) })}
+                  onToggleReviewed={(id, reviewed) =>
+                    reviewMutation.mutate({ matchId: id, reviewed })
+                  }
+                  pending={pendingReviewId === m.id}
                 />
               ))}
             </ul>

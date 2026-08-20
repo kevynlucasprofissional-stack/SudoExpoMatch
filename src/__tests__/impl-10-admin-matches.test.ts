@@ -284,8 +284,13 @@ describe("Impl 10 — query keys", () => {
 });
 
 describe("Impl 10 — contratos de código", () => {
-  it("API é somente leitura (sem mutations)", () => {
-    expect(API).not.toMatch(/useMutation/);
+  it("API só muta governança humana (IMPL 15), nunca dados do matcher", () => {
+    // Impl 10 era read-only; IMPL 15 adicionou apenas o "match revisado".
+    expect(API.match(/useMutation\(/g) ?? []).toHaveLength(1);
+    expect(API).toMatch(/admin_set_match_reviewed/);
+    // a única RPC de escrita é a de revisão administrativa
+    expect(API.match(/supabase\.rpc\("[a-z_]+"/g) ?? []).toContain('supabase.rpc("admin_set_match_reviewed"');
+    expect(API).not.toMatch(/\.update\(|\.insert\(|\.delete\(/);
     expect(API).toMatch(/admin_list_matches/);
     expect(API).toMatch(/admin_get_match_detail/);
   });

@@ -67,6 +67,7 @@ export const matchesSearchSchema = z.object({
   cstatus: fallback(z.string(), "").default(""),
   ver: fallback(z.string(), "").default(""),
   sort: fallback(z.string(), "score_desc").default("score_desc"),
+  rev: fallback(z.string(), "").default(""),
   page: fallback(z.coerce.number().int(), 1).default(1),
   m: fallback(z.string(), "").default(""),
 });
@@ -86,6 +87,8 @@ export interface NormalizedMatchesSearch {
   connectionStatuses: string[];
   versions: string[];
   sort: (typeof SORTS)[number];
+  /** null = todos, true = revisados, false = não revisados (IMPL 15). */
+  reviewed: boolean | null;
   page: number;
   /** match aberto no detalhe (estado de URL, compartilhável) */
   selected: string | null;
@@ -142,6 +145,7 @@ export function normalizeMatchesSearch(s: Partial<MatchesSearch>): NormalizedMat
     connectionStatuses: list(s.cstatus, CONNECTION_STATUSES),
     versions: list(s.ver, undefined, 10),
     sort,
+    reviewed: (s.rev ?? "").toString() === "1" ? true : (s.rev ?? "").toString() === "0" ? false : null,
     page,
     selected: UUID_RE.test(raw) ? raw : null,
   };
@@ -167,7 +171,8 @@ export function hasActiveMatchFilters(s: NormalizedMatchesSearch): boolean {
     s.mutual ||
     s.connection !== "any" ||
     s.connectionStatuses.length > 0 ||
-    s.versions.length > 0
+    s.versions.length > 0 ||
+    s.reviewed !== null
   );
 }
 
@@ -185,6 +190,7 @@ export const EMPTY_MATCHES_SEARCH: MatchesSearch = {
   cstatus: "",
   ver: "",
   sort: "score_desc",
+  rev: "",
   page: 1,
   m: "",
 };
