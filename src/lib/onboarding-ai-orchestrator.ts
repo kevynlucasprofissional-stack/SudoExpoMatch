@@ -5,6 +5,7 @@ import {
   aiSuggestionResultSchema,
   buildAiRunInput,
   classifyGatewayError,
+  filterMirroredNeeds,
   hashCacheKey,
   modelOutputSchema,
   normalizeAgainstCatalog,
@@ -109,16 +110,47 @@ export function buildBusinessProfileBlock(input: SuggestOnboardingInput): string
   );
 }
 
+/**
+ * IMPL 22 — bloco das ofertas CONFIRMADAS pelo participante na Etapa 3.
+ * Só entra na análise de necessidades.
+ */
+export function buildConfirmedOffersBlock(input: SuggestOnboardingInput): string {
+  const offers = input.confirmedOffers ?? [];
+  if ((input.focus ?? "offers") !== "needs" || offers.length === 0) return "";
+  return [
+    "Ofertas CONFIRMADAS pelo participante (o que esta empresa efetivamente entrega):",
+    ...offers.map((o) => `- ${o.label}${o.segmentId ? ` (setor: ${o.segmentId})` : ""}`),
+    "PROIBIDO sugerir como necessidade um item igual ou equivalente a qualquer oferta confirmada acima (quem oferece gestão de redes sociais não precisa de gestão de redes sociais). Só abra exceção com razão comercial excepcional e explícita na rationale.",
+  ].join("\n");
+}
+
 export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog): string {
   const compactCatalog = buildCompactCatalog(catalog);
   const seg = catalog.segments.find((s) => s.id === input.segmentId);
   const profileBlock = buildBusinessProfileBlock(input);
   const socialBlock = buildSocialContextPromptBlock(input.socialContext ?? null);
   const socialAnalysisBlock = buildSocialAnalysisPromptBlock(input.socialAnalysis ?? null);
+  const focus = input.focus ?? "offers";
+  const confirmedOffersBlock = buildConfirmedOffersBlock(input);
+
+  const focusBlock =
+    focus === "needs"
+      ? [
+          "FOCO DESTA ANÁLISE: NECESSIDADES.",
+          "Responda à pergunta: considerando quem esta empresa é e o que ela efetivamente oferece, quais produtos, serviços, fornecedores, parceiros, compradores, profissionais ou soluções empresas como esta normalmente precisam?",
+          "O resumo é fonte importante, mas NÃO limite as sugestões ao que já foi explicitamente pedido: queremos descobrir necessidades plausíveis que o empresário talvez ainda não tenha formulado.",
+          "Priorize o campo `needs`; `offers` pode vir vazio.",
+        ].join("\n")
+      : [
+          "FOCO DESTA ANÁLISE: OFERTAS.",
+          "Responda: o que esta empresa pode oferecer a outros participantes da feira?",
+          "Priorize o campo `offers`; `needs` pode vir vazio.",
+        ].join("\n");
 
   return [
     "Você é um assistente de onboarding para uma feira de negócios (SudoExpo).",
     "Analise o resumo profissional de UM participante e sugira ofertas e necessidades.",
+    focusBlock,
     "Use apenas os itens da taxonomia listada abaixo quando fizer sentido; caso contrário, retorne taxonomyItemId: null e proponha uma label curta.",
     "Nunca invente informação que o participante não declarou.",
     "Se o resumo for ambíguo, defina clarifyingQuestion.",
@@ -176,7 +208,20 @@ export async function buildCacheKey(
     .map((l) => l.trim().toLowerCase())
     .sort()
     .join(",");
+  // IMPL 22 — a intenção da análise e as ofertas confirmadas fazem parte da
+  // identidade semântica: trocar uma oferta na Etapa 3 precisa invalidar a
+  // análise de necessidades da Etapa 4; não mexer nelas reaproveita o cache.
+  const focus = input.focus ?? "offers";
+  const confirmed =
+    focus === "needs"
+      ? (input.confirmedOffers ?? [])
+          .map((o) => `${o.taxonomyItemId ?? ""}|${o.label.trim().toLowerCase()}`)
+          .sort()
+          .join(";")
+      : "";
   return hashCacheKey([
+    focus,
+    confirmed,
     input.eventId,
     input.segmentId,
     input.summary,
@@ -323,6 +368,8 @@ export async function runOnboardingAi(args: {
   });
   const result: AiSuggestionResult = aiSuggestionResultSchema.parse({
     ...normalized,
+    // IMPL 22 — defesa determinística contra o espelho oferta → necessidade.
+    needs: filterMirroredNeeds(normalized.needs, input.confirmedOffers),
     source: "ai",
     promptVersion: PROMPT_VERSION,
   });

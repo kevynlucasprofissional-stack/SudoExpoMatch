@@ -12,8 +12,12 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
  * a normalização descarta itens abaixo de `MIN_SUGGESTION_CONFIDENCE`.
  * IMPL 9: o input passou a carregar perfil de negócio (porte/tipo/nicho) e
  * contexto público de rede social (Instagram), ambos opcionais.
+ * IMPL 22: o input carrega `focus` ("offers" | "needs") e, para necessidades,
+ * as ofertas CONFIRMADAS pelo participante na etapa anterior. A análise de
+ * necessidades é semanticamente diferente da de ofertas — e nunca deve
+ * espelhar como necessidade aquilo que a empresa já declarou oferecer.
  */
-export const PROMPT_VERSION = "a1a2-v8-social-analysis";
+export const PROMPT_VERSION = "a1a2-v9-focus-confirmed-offers";
 
 
 /**
@@ -43,8 +47,27 @@ export function coerceNeedKind(raw: unknown): z.infer<typeof needKindSchema> {
  */
 export const AI_MODEL = "google/gemini-2.5-flash-lite";
 
+/**
+ * IMPL 22 — oferta confirmada pelo participante (estrutura enxuta, sem
+ * `localId` nem qualquer dado de sessão).
+ */
+export const confirmedOfferSchema = z.object({
+  taxonomyItemId: z.string().nullable(),
+  label: z.string().trim().min(1).max(80),
+  segmentId: z.string().min(1).nullable(),
+});
+export type ConfirmedOfferInput = z.infer<typeof confirmedOfferSchema>;
+
 /** Payload que o cliente envia ao server fn. Sem PII. */
 export const suggestOnboardingInputSchema = z.object({
+  /**
+   * IMPL 22 — intenção da análise. `offers` = o que a empresa pode oferecer;
+   * `needs` = o que empresas como esta normalmente precisam, já sabendo o que
+   * ela confirmou oferecer. Ausente = `offers` (compatibilidade).
+   */
+  focus: z.enum(["offers", "needs"]).optional(),
+  /** IMPL 22 — só faz sentido com `focus: "needs"`. */
+  confirmedOffers: z.array(confirmedOfferSchema).max(5).optional(),
   eventId: z.string().min(1).max(120),
   segmentId: z.string().min(1).max(60),
   summary: z.string().trim().min(1).max(800),
@@ -302,10 +325,41 @@ export function classifyGatewayError(err: unknown): "terminal_4xx" | "transient"
   return "unknown";
 }
 
+/** Normaliza label para comparação determinística (case/acento-insensitive). */
+export function normalizeSuggestionLabel(label: string): string {
+  return label
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+/**
+ * IMPL 22 — defesa determinística contra o espelho oferta → necessidade:
+ * remove das necessidades tudo que a empresa JÁ declarou oferecer, casando
+ * por `taxonomyItemId` e, na ausência dele, por label normalizado.
+ */
+export function filterMirroredNeeds(
+  needs: AiSuggestionItem[],
+  confirmedOffers: ConfirmedOfferInput[] | undefined,
+): AiSuggestionItem[] {
+  if (!confirmedOffers || confirmedOffers.length === 0) return needs;
+  const ids = new Set(confirmedOffers.map((o) => o.taxonomyItemId).filter(Boolean) as string[]);
+  const labels = new Set(confirmedOffers.map((o) => normalizeSuggestionLabel(o.label)));
+  return needs.filter(
+    (n) =>
+      !(n.taxonomyItemId && ids.has(n.taxonomyItemId)) &&
+      !labels.has(normalizeSuggestionLabel(n.label)),
+  );
+}
+
 /** Payload de log seguro em `ai_runs` — sem PII e sem conteúdo bruto. */
 export function buildAiRunInput(input: SuggestOnboardingInput, cacheKey: string) {
   return {
     hash: cacheKey,
+    focus: input.focus ?? "offers",
+    confirmedOfferCount: input.confirmedOffers?.length ?? 0,
     eventId: input.eventId,
     segmentId: input.segmentId,
     summaryLen: input.summary.length,
