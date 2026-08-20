@@ -100,7 +100,7 @@ export function ProcessPanel() {
                 </span>
               </div>
               <ul className="grid grid-cols-3 gap-1.5 p-1.5">
-                {AGGREGATE_METRICS.map(({ Icon, label, value, tone }) => (
+                {metrics.map(({ Icon, label, value, tone }) => (
                   <li
                     key={label}
                     className="flex flex-col items-center gap-1 rounded-md bg-white/95 p-2 text-[#0b1252]"
@@ -112,9 +112,20 @@ export function ProcessPanel() {
                       <Icon className="h-3.5 w-3.5" />
                     </span>
                     <div className="w-full min-w-0 text-center">
-                      <div className="truncate font-display text-[12px] font-black leading-tight">
-                        {value}
-                      </div>
+                      {value === null ? (
+                        <div
+                          data-testid={`metric-skeleton-${label}`}
+                          aria-label={`${label}: carregando`}
+                          className="mx-auto h-[15px] w-8 animate-pulse rounded bg-slate-200"
+                        />
+                      ) : (
+                        <div
+                          data-testid={`metric-value-${label}`}
+                          className="truncate font-display text-[12px] font-black leading-tight"
+                        >
+                          {value}
+                        </div>
+                      )}
                       <div className="truncate text-[9px] font-semibold text-slate-500">
                         {label}
                       </div>
@@ -122,6 +133,7 @@ export function ProcessPanel() {
                   </li>
                 ))}
               </ul>
+
             </div>
 
             <Link
