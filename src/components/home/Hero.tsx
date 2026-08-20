@@ -30,7 +30,7 @@ export function Hero() {
     <section className="relative text-white">
       <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:px-32 md:py-10 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-6 lg:py-12">
         {/* Coluna esquerda — texto e CTAs */}
-        <div className="min-w-0 max-w-xl md:max-w-none lg:max-w-xl">
+        <div className="mx-auto min-w-0 max-w-xl text-center md:max-w-none lg:mx-0 lg:max-w-xl lg:text-left">
 
           <h1
             className="mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
