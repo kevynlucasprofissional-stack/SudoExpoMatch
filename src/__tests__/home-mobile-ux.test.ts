@@ -31,7 +31,9 @@ describe("Home mobile UX — estrutura do código", () => {
     expect(process).toContain("Acompanhar painel público");
     expect(process).not.toContain("Explorar participantes");
     expect(process).not.toMatch(/TechSolutions|Indústria Alfa|Verde Log/);
-    expect(process).toContain("AGGREGATE_METRICS");
+    // métricas agora vêm do painel público real (RPC event_stats)
+    expect(process).toContain("useEventStats");
+
   });
 
   it("ProcessPanel: mobile em coluna vertical, desktop em grid horizontal separado", () => {

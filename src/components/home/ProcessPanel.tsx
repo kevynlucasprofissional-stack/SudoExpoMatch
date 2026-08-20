@@ -11,6 +11,10 @@ import {
   Activity,
 } from "lucide-react";
 
+import { EVENT_ID } from "@/config/event";
+import { useEventStats } from "@/features/staff/useEventStats";
+
+
 const STEPS = [
   { Icon: UserPlus, label: "Crie seu perfil" },
   { Icon: Sparkles, label: "Receba matches automáticos" },
@@ -18,15 +22,52 @@ const STEPS = [
   { Icon: Handshake, label: "A ACIRV apresenta vocês" },
 ] as const;
 
-// Preview agregado do painel público — não expõe empresas nomeadas
-const AGGREGATE_METRICS: { Icon: typeof Users; label: string; value: string; tone: string }[] = [
-  { Icon: Users, label: "Participantes", value: "+120", tone: "var(--success)" },
-  { Icon: Sparkles, label: "Matches gerados", value: "+380", tone: "var(--secondary)" },
-  { Icon: Activity, label: "Interesses mútuos", value: "+65", tone: "var(--accent)" },
-];
+// Preview agregado do painel público — MESMA fonte de verdade (RPC event_stats
+// via useEventStats), sem números hardcoded e sem regra de contagem própria.
+export function formatAggregateMetric(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  return `+${value}`;
+}
+
 
 export function ProcessPanel() {
+  // Mesma query/RPC do painel público (/publico), sem infra paralela.
+  const statsQuery = useEventStats(EVENT_ID);
+  const stats = statsQuery.data;
+  const ready = Boolean(stats) && !statsQuery.isError;
+  // Erro: nada de número inventado — placeholder neutro, bloco intacto.
+  const render = (v: number | undefined) =>
+    statsQuery.isError ? "—" : ready ? formatAggregateMetric(v ?? 0) : null;
+
+
+  const metrics: {
+    Icon: typeof Users;
+    label: string;
+    value: string | null;
+    tone: string;
+  }[] = [
+    {
+      Icon: Users,
+      label: "Participantes",
+      value: render(stats?.totalProfiles),
+      tone: "var(--success)",
+    },
+    {
+      Icon: Sparkles,
+      label: "Matches gerados",
+      value: render(stats?.totalMatches),
+      tone: "var(--secondary)",
+    },
+    {
+      Icon: Activity,
+      label: "Interesses mútuos",
+      value: render(stats?.mutualMatches),
+      tone: "var(--accent)",
+    },
+  ];
+
   return (
+
     <section className="mx-auto max-w-[1480px] px-8 pb-4 md:px-32 md:pb-5">
       <div className="relative overflow-hidden rounded-[16px] border border-secondary/40 bg-[#070d3a] p-4 text-white shadow-xl md:p-6">
         <div className="grid gap-6 lg:grid-cols-[60fr_40fr] lg:gap-0 lg:divide-x lg:divide-white/10">
@@ -99,7 +140,7 @@ export function ProcessPanel() {
                 </span>
               </div>
               <ul className="grid grid-cols-3 gap-1.5 p-1.5">
-                {AGGREGATE_METRICS.map(({ Icon, label, value, tone }) => (
+                {metrics.map(({ Icon, label, value, tone }) => (
                   <li
                     key={label}
                     className="flex flex-col items-center gap-1 rounded-md bg-white/95 p-2 text-[#0b1252]"
@@ -111,9 +152,20 @@ export function ProcessPanel() {
                       <Icon className="h-3.5 w-3.5" />
                     </span>
                     <div className="w-full min-w-0 text-center">
-                      <div className="truncate font-display text-[12px] font-black leading-tight">
-                        {value}
-                      </div>
+                      {value === null ? (
+                        <div
+                          data-testid={`metric-skeleton-${label}`}
+                          aria-label={`${label}: carregando`}
+                          className="mx-auto h-[15px] w-8 animate-pulse rounded bg-slate-200"
+                        />
+                      ) : (
+                        <div
+                          data-testid={`metric-value-${label}`}
+                          className="truncate font-display text-[12px] font-black leading-tight"
+                        >
+                          {value}
+                        </div>
+                      )}
                       <div className="truncate text-[9px] font-semibold text-slate-500">
                         {label}
                       </div>
@@ -121,6 +173,7 @@ export function ProcessPanel() {
                   </li>
                 ))}
               </ul>
+
             </div>
 
             <Link
