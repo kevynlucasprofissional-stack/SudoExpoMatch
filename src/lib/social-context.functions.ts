@@ -35,7 +35,9 @@ async function buildEnrichmentDeps() {
     provider: resolveInstagramProvider({
       INSTAGRAM_GRAPH_ACCESS_TOKEN: process.env["INSTAGRAM_GRAPH_ACCESS_TOKEN"],
       INSTAGRAM_BUSINESS_ACCOUNT_ID: process.env["INSTAGRAM_BUSINESS_ACCOUNT_ID"],
+      INSTAGRAM_GRAPH_API_VERSION: process.env["INSTAGRAM_GRAPH_API_VERSION"],
       INSTAGRAM_PUBLIC_READ_DISABLED: process.env["INSTAGRAM_PUBLIC_READ_DISABLED"],
+      APIFY_API_TOKEN: process.env["APIFY_API_TOKEN"],
     }),
     memory: socialMemory(),
     store: createSupabaseSocialCacheStore(
@@ -113,3 +115,29 @@ export const refreshParticipantSocial = createServerFn({ method: "POST" })
       }
     },
   );
+
+
+/**
+ * Diagnóstico dos providers de Instagram (somente admin do evento).
+ * Devolve apenas `configured` + código de status — nunca token, URL com
+ * credencial ou resposta bruta do fornecedor.
+ */
+export const instagramProviderHealth = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data: staff } = await context.supabase
+      .from("event_staff")
+      .select("role")
+      .eq("user_id", context.userId);
+    const isAdmin = (staff ?? []).some((r: { role?: string }) => r.role === "admin");
+    if (!isAdmin) return { ok: false as const, reason: "not_allowed" as const };
+    const { checkInstagramProviderHealth } = await import("./instagram-provider.server");
+    const health = await checkInstagramProviderHealth({
+      INSTAGRAM_GRAPH_ACCESS_TOKEN: process.env["INSTAGRAM_GRAPH_ACCESS_TOKEN"],
+      INSTAGRAM_BUSINESS_ACCOUNT_ID: process.env["INSTAGRAM_BUSINESS_ACCOUNT_ID"],
+      INSTAGRAM_GRAPH_API_VERSION: process.env["INSTAGRAM_GRAPH_API_VERSION"],
+      INSTAGRAM_PUBLIC_READ_DISABLED: process.env["INSTAGRAM_PUBLIC_READ_DISABLED"],
+      APIFY_API_TOKEN: process.env["APIFY_API_TOKEN"],
+    });
+    return { ok: true as const, health };
+  });

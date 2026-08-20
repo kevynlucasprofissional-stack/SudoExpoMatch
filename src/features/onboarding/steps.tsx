@@ -275,13 +275,11 @@ export function StepWhoIAm({
   manualMode = false,
   manualSegmentLabel,
   social,
-  onAnalyzeInstagram,
 }: BaseProps & {
   catalog: EventCatalog;
   manualMode?: boolean;
   manualSegmentLabel?: string;
   social?: SocialLookupUiState;
-  onAnalyzeInstagram?: (raw: string) => void;
 }) {
 
   const isOther = draft.segmentId === OTHER_SEGMENT_ID;
@@ -413,40 +411,21 @@ export function StepWhoIAm({
 
         <div>
           <Label htmlFor="instagram">Instagram (opcional)</Label>
-          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-            <Input
-              id="instagram"
-              value={draft.instagram}
-              onChange={(e) => update("instagram", e.target.value.slice(0, 300))}
-              placeholder="@minhaempresa"
-              maxLength={300}
-              inputMode="text"
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="flex-1"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              disabled={!draft.instagram.trim() || social?.status === "loading"}
-              onClick={() => onAnalyzeInstagram?.(draft.instagram)}
-              className="sm:w-auto"
-            >
-              {social?.status === "loading" ? (
-                <>
-                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Analisando…
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-1 h-3 w-3" /> Analisar perfil
-                </>
-              )}
-            </Button>
-          </div>
+          <Input
+            id="instagram"
+            value={draft.instagram}
+            onChange={(e) => update("instagram", e.target.value.slice(0, 300))}
+            placeholder="@minhaempresa"
+            maxLength={300}
+            inputMode="text"
+            autoCapitalize="none"
+            autoCorrect="off"
+            className="mt-1"
+          />
           <p className="mt-1 text-xs text-muted-foreground">
             Usaremos apenas informações públicas para personalizar suas sugestões.
           </p>
-          {social && social.status !== "idle" && social.message && (
+          {social && social.status === "done" && social.message && (
             <p
               aria-live="polite"
               className={`mt-1 text-xs ${
@@ -454,9 +433,6 @@ export function StepWhoIAm({
               }`}
             >
               {social.message}
-              {social.status === "done" && social.result?.status !== "ok" && (
-                <> Você pode continuar sem Instagram.</>
-              )}
             </p>
           )}
         </div>
@@ -467,8 +443,18 @@ export function StepWhoIAm({
         <Button variant="outline" onClick={onBack}>
           Voltar
         </Button>
-        <Button onClick={onNext} disabled={!canNext}>
-          Continuar
+        <Button
+          onClick={onNext}
+          disabled={!canNext || social?.status === "loading"}
+          data-testid="who-i-am-continue"
+        >
+          {social?.status === "loading" ? (
+            <>
+              <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Preparando suas sugestões…
+            </>
+          ) : (
+            "Continuar"
+          )}
         </Button>
       </div>
     </Card>

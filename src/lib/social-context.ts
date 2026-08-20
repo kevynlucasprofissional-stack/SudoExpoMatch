@@ -108,7 +108,12 @@ export function isAllowedInstagramHost(hostname: string): boolean {
 }
 
 // ------------------------------------------------------------------ schema
-export const socialProviderSchema = z.enum(["instagram_graph", "instagram_public", "mock"]);
+export const socialProviderSchema = z.enum([
+  "instagram_graph",
+  "instagram_apify",
+  "instagram_public",
+  "mock",
+]);
 
 export const socialMediaItemSchema = z.object({
   mediaType: z.enum(["IMAGE", "VIDEO", "CAROUSEL_ALBUM", "OTHER"]),
@@ -129,6 +134,7 @@ export const socialBusinessContextSchema = z.object({
   /** Campos oficiais adicionais (Graph/business_discovery), quando houver. */
   website: z.string().max(300).optional(),
   followersCount: z.number().int().nonnegative().max(1_000_000_000).optional(),
+  followsCount: z.number().int().nonnegative().max(1_000_000_000).optional(),
   mediaCount: z.number().int().nonnegative().max(10_000_000).optional(),
   profilePictureUrl: z.string().max(600).optional(),
   recentMedia: z.array(socialMediaItemSchema).max(MAX_RECENT_MEDIA).optional(),
@@ -195,6 +201,7 @@ export function sanitizeSocialBusinessContext(raw: unknown): SocialBusinessConte
     signals: clampList(r.signals, MAX_SIGNALS, MAX_SIGNAL_CHARS),
     website: clampText(r.website, 300),
     followersCount: intOrUndefined(r.followersCount),
+    followsCount: intOrUndefined(r.followsCount),
     mediaCount: intOrUndefined(r.mediaCount),
     profilePictureUrl: clampText(r.profilePictureUrl, 600),
     recentMedia: sanitizeRecentMedia(r.recentMedia),
@@ -444,13 +451,17 @@ export type SocialLookupFailure =
         | "empty"
         | "error"
         /** Consulta restrita ao cache persistente e nada havia guardado. */
-        | "cache_miss";
+        | "cache_miss"
+        /** Alvo existe mas não é conta profissional (Business/Creator). */
+        | "not_professional"
+        /** Credencial/permissão do provider inválida — problema de config. */
+        | "config_error";
     };
 
 export type SocialLookupResult = { status: "ok"; context: SocialBusinessContext } | SocialLookupFailure;
 
 export interface SocialProvider {
-  id: SocialBusinessContext["provider"] | "unconfigured";
+  id: SocialBusinessContext["provider"] | "unconfigured" | "chain";
   fetchProfile(handle: string): Promise<SocialLookupResult>;
 }
 
@@ -626,6 +637,10 @@ export function socialLookupMessage(res: SocialLookupResult | null): string {
     case "rate_limited":
       return "Muitas tentativas seguidas. Tente novamente em alguns minutos.";
     case "unavailable":
+      if (res.reason === "not_professional") {
+        return "Esse perfil não é uma conta profissional do Instagram. Você pode continuar sem ele.";
+      }
+      return "Não foi possível analisar o Instagram agora. Você pode continuar sem ele.";
     default:
       return "Não foi possível analisar o Instagram agora. Você pode continuar sem ele.";
   }

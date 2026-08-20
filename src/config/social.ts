@@ -51,3 +51,20 @@ export function resolveSocialConfig(
     adminRefreshCooldownMs: DEFAULT_SOCIAL_CONFIG.adminRefreshCooldownMs,
   };
 }
+
+/**
+ * Versão da Graph API usada pelo provider oficial (Business Discovery).
+ *
+ * Validada na documentação oficial da Meta (Graph API Versions/Changelog):
+ * a versão mais recente disponível é `v26.0` (lançada em 29/07/2026) — é o
+ * default. Pode ser sobrescrita por `INSTAGRAM_GRAPH_API_VERSION` sem deploy
+ * de código quando a Meta publicar uma nova versão ou expirar esta.
+ */
+export const DEFAULT_GRAPH_API_VERSION = "v26.0";
+
+const GRAPH_VERSION_RE = /^v\d{1,3}\.\d{1,2}$/;
+
+export function resolveGraphApiVersion(env: Record<string, string | undefined> = {}): string {
+  const raw = env["INSTAGRAM_GRAPH_API_VERSION"]?.trim();
+  return raw && GRAPH_VERSION_RE.test(raw) ? raw : DEFAULT_GRAPH_API_VERSION;
+}
