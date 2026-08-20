@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Clock, Star, Users, Package, Handshake } from "lucide-react";
+import { ArrowRight, Clock, Users, Package, Handshake } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
 import { HeroVisualMobile } from "./HeroVisualMobile";
 
