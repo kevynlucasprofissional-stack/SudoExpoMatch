@@ -30,7 +30,6 @@ const AUDIENCE: { label: string; Icon: typeof Users; tone: string }[] = [
   { label: "Parceiros", Icon: HandshakeIcon, tone: "var(--accent)" },
   { label: "Distribuidores", Icon: Truck, tone: "#6b57e0" },
   { label: "Prestadores de serviços", Icon: Wrench, tone: "#129cdf" },
-  { label: "Soluções", Icon: Boxes, tone: "var(--warning)" },
 ];
 
 // Preview agregado do painel público — não expõe empresas nomeadas
