@@ -39,6 +39,7 @@ export function RecoveryView() {
   const [error, setError] = useState<string | null>(null);
   const [rotatedCode, setRotatedCode] = useState<string | null>(null);
   const recoverMutation = useRecoverProfile();
+  const capability = usePhoneAuthCapability();
 
   const mountedRef = useRef(true);
   const requestVersionRef = useRef(0);
