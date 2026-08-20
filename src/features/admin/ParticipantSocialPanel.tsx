@@ -1,5 +1,14 @@
-import type { UseQueryResult } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQueryClient, type UseQueryResult } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { refreshParticipantSocial } from "@/lib/social-context.functions";
+import {
+  analysisReasonLabel,
+  computeSocialFreshness,
+  freshnessLabel,
+} from "@/features/social/cacheStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   readStringList,
@@ -21,9 +30,39 @@ function fmt(d: string | null | undefined) {
  */
 export function ParticipantSocialPanel({
   query,
+  profileId,
 }: {
   query: UseQueryResult<ParticipantSocial, unknown>;
+  profileId?: string | null;
 }) {
+  const qc = useQueryClient();
+  const refresh = useServerFn(refreshParticipantSocial);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+
+  async function onRefresh() {
+    if (!profileId || refreshing) return;
+    setRefreshing(true);
+    setRefreshMsg(null);
+    try {
+      const res = await refresh({ data: { profileId } });
+      setRefreshMsg(
+        res.ok
+          ? "Contexto atualizado."
+          : res.reason === "cooldown"
+            ? "Atualizado há pouco. Tente novamente em alguns minutos."
+            : res.reason === "no_handle"
+              ? "Este participante não informou Instagram."
+              : "Não foi possível atualizar agora.",
+      );
+      await qc.invalidateQueries({ queryKey: ["admin", "participant-social"] });
+    } catch {
+      setRefreshMsg("Não foi possível atualizar agora.");
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   if (query.isLoading) {
     return (
       <div className="space-y-3" data-testid="social-loading">
@@ -55,6 +94,7 @@ export function ParticipantSocialPanel({
   const category = readText(ctx, "category") ?? readText(pub, "category");
   const bio = readText(ctx, "bio") ?? readText(pub, "bio");
   const website = readText(ctx, "website") ?? readText(pub, "website");
+  const freshness = computeSocialFreshness(social.cache ?? null);
   const followers = (ctx as Record<string, unknown> | null)?.["followers_count"];
   const media = (ctx as Record<string, unknown> | null)?.["media_count"];
 
@@ -74,7 +114,33 @@ export function ParticipantSocialPanel({
         )}
         <Badge variant="outline">{social.cache?.provider ?? "informado pelo participante"}</Badge>
         <Badge variant="secondary">{social.cache?.last_status ?? "informed"}</Badge>
+        {profileId && (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="ml-auto"
+            onClick={onRefresh}
+            disabled={refreshing}
+            data-testid="social-refresh"
+          >
+            {refreshing ? "Atualizando…" : "Atualizar contexto"}
+          </Button>
+        )}
       </div>
+
+      <div className="flex flex-wrap items-center gap-2" data-testid="social-freshness">
+        <Badge variant={freshness.fetch === "fresh" ? "secondary" : "outline"}>
+          coleta: {freshnessLabel(freshness.fetch)}
+        </Badge>
+        <Badge variant={freshness.analysis === "fresh" ? "secondary" : "outline"}>
+          análise: {freshnessLabel(freshness.analysis)}
+        </Badge>
+        <span className="text-xs text-muted-foreground">
+          {analysisReasonLabel(freshness.analysisReason)}
+        </span>
+      </div>
+      {refreshMsg && <p className="text-xs text-muted-foreground">{refreshMsg}</p>}
 
       <dl className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
@@ -99,6 +165,10 @@ export function ParticipantSocialPanel({
         <div>
           <dt className="text-xs text-muted-foreground">Coletado em</dt>
           <dd>{fmt(social.cache?.fetched_at)}</dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Analisado em</dt>
+          <dd>{fmt(social.cache?.analyzed_at)}</dd>
         </div>
         <div>
           <dt className="text-xs text-muted-foreground">Última atualização</dt>
