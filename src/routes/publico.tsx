@@ -147,16 +147,17 @@ function PublicBoard() {
           <p className="mt-4 max-w-4xl text-base text-[#b9c6ee] md:text-xl xl:text-2xl">
             Conectando pessoas, ideias e oportunidades durante a SudoExpo.
           </p>
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <span className="inline-flex items-center gap-2.5 rounded-full border border-[#3a5bd9]/50 bg-white/[0.04] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#c9d6f5] backdrop-blur xl:text-[11px]">
+          <div className="mt-6 flex flex-nowrap items-center gap-2 sm:gap-4">
+            <span className="inline-flex min-w-0 items-center gap-2 rounded-full border border-[#3a5bd9]/50 bg-white/[0.04] px-3 py-1.5 text-[9px] font-semibold uppercase tracking-[0.14em] text-[#c9d6f5] backdrop-blur sm:gap-2.5 sm:px-4 sm:text-[10px] sm:tracking-[0.28em] xl:text-[11px]">
               <span
                 aria-hidden
-                className="pb-status-dot h-2 w-2 rounded-full bg-[#a3e635]"
+                className="pb-status-dot h-2 w-2 shrink-0 rounded-full bg-[#a3e635]"
               />
-              Dados atualizados em tempo real
+              <span className="truncate">Dados atualizados em tempo real</span>
             </span>
             <BoardClock />
           </div>
+
         </div>
 
 
