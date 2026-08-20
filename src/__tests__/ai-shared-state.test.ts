@@ -18,7 +18,7 @@ vi.mock("@tanstack/react-start", () => ({
 // Import DEPOIS dos mocks.
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
 
-const KEY = { eventId: "e1", segmentId: "tec", summary: "Resumo profissional válido" };
+const KEY = { focus: "offers" as const, eventId: "e1", segmentId: "tec", summary: "Resumo profissional válido" };
 
 function fakeResult(): AiSuggestionResult {
   return {
@@ -77,8 +77,8 @@ describe("mergeCapped — atômico e sem perda", () => {
   });
 });
 
-describe("useSharedAiAnalysis — dismiss/reopen sem nova chamada", () => {
-  it("analisar → fechar → reabrir mantém call count = 1 e result preservado", async () => {
+describe("useSharedAiAnalysis — memória por chave sem nova chamada", () => {
+  it("IMPL 22: reanalisar a MESMA chave não gasta nova chamada e preserva o resultado", async () => {
     suggestMock.mockResolvedValue(fakeResult());
     const { result } = renderHook(() => useSharedAiAnalysis());
 
@@ -87,24 +87,15 @@ describe("useSharedAiAnalysis — dismiss/reopen sem nova chamada", () => {
     });
     expect(suggestMock).toHaveBeenCalledTimes(1);
     expect(result.current.status.s).toBe("done");
+    expect(result.current.resultFor(KEY)?.offers).toHaveLength(2);
 
-    act(() => result.current.dismiss());
-    expect(result.current.status.s).toBe("dismissed");
-    // Resultado ainda deve estar preservado.
-    if (result.current.status.s === "dismissed") {
-      expect(result.current.status.result.offers).toHaveLength(2);
-    }
-
-    act(() => result.current.reopen());
-    expect(result.current.status.s).toBe("done");
-    expect(suggestMock).toHaveBeenCalledTimes(1);
-
-    // Nova chamada de analyze com a MESMA chave também não deve gastar.
+    // Voltar para a etapa (mesma chave) → zero chamada nova.
     await act(async () => {
       await result.current.analyze(KEY, []);
     });
     expect(suggestMock).toHaveBeenCalledTimes(1);
     expect(result.current.callCount()).toBe(1);
+    expect(result.current.statusFor(KEY).s).toBe("done");
   });
 
   it("mudar summary invalida resultado: match deixa de acontecer até novo analyze", async () => {
