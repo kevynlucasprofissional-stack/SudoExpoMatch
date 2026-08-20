@@ -42,7 +42,7 @@ const AGGREGATE_METRICS: { Icon: typeof Users; label: string; value: string; ton
 
 export function ProcessPanel() {
   return (
-    <section className="mx-auto max-w-[1480px] px-8 pb-4 md:px-16 md:pb-5">
+    <section className="mx-auto max-w-[1480px] px-8 pb-4 md:px-32 md:pb-5">
       <div className="relative overflow-hidden rounded-[16px] border border-secondary/40 bg-[#070d3a] p-4 text-white shadow-xl md:p-6">
         <div className="grid gap-6 lg:grid-cols-[46fr_30fr_24fr] lg:gap-0 lg:divide-x lg:divide-white/10">
           {/* Coluna 1: Como funciona */}
