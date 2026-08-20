@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { HomeHeader } from "@/components/home/HomeHeader";
 import { HomeFooter } from "@/components/home/HomeFooter";
 import { Hero } from "@/components/home/Hero";
 import { ProcessPanel } from "@/components/home/ProcessPanel";
@@ -31,7 +30,6 @@ export const Route = createFileRoute("/")({
 function Index() {
   return (
     <div className="relative flex min-h-screen flex-col bg-[#0b1252] text-white">
-      <HomeHeader />
       <main className="relative flex-1">
         {/* Fundo azul-marinho contínuo com textura pontilhada e fragmentos de papel */}
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
