@@ -1,5 +1,6 @@
 import type { BusinessSize, BusinessType, WizardDraft, WizardNeed, WizardOffer } from "./types";
 import { persistedDraftSchema, wizardDraftSchema } from "./schemas";
+import { normalizeInstagramInput } from "@/lib/social-context";
 
 export const WIZARD_DRAFT_KEY = "sudoexpo:wizard-draft:v2";
 export const LEGACY_DRAFT_KEY = "sudoexpo:draft";
@@ -22,6 +23,7 @@ export function createEmptyDraft(): WizardDraft {
     segmentId: "",
     niche: "",
     summary: "",
+    instagram: "",
     offers: [],
     needs: [],
     consent: false,
@@ -103,10 +105,18 @@ export function sanitizeWizardDraft(raw: unknown): WizardDraft {
     segmentId: typeof r.segmentId === "string" ? r.segmentId.slice(0, 60) : "",
     niche: typeof r.niche === "string" ? r.niche.slice(0, 120) : "",
     summary: typeof r.summary === "string" ? r.summary.slice(0, 500) : "",
+    instagram: normalizeDraftInstagram(r.instagram),
     offers,
     needs,
     consent: r.consent === true,
   };
+}
+
+/** Persistimos apenas o handle normalizado — nunca conteúdo raspado. */
+function normalizeDraftInstagram(raw: unknown): string {
+  if (typeof raw !== "string" || !raw.trim()) return "";
+  const norm = normalizeInstagramInput(raw);
+  return norm.ok ? `@${norm.handle}` : raw.trim().slice(0, 300);
 }
 
 function safeStorage(): Storage | null {
@@ -148,7 +158,7 @@ export function saveWizardDraft(
     storage.setItem(
       WIZARD_DRAFT_KEY,
       JSON.stringify({
-        version: 3 as const,
+        version: 4 as const,
         savedAt: new Date(now).toISOString(),
         draft: clean,
       }),
@@ -231,6 +241,7 @@ export function draftAllowedKeys(): ReadonlyArray<keyof WizardDraft> {
     "segmentId",
     "niche",
     "summary",
+    "instagram",
     "offers",
     "needs",
     "consent",

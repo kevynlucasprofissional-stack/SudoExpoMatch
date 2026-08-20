@@ -21,6 +21,7 @@ function baseDraft(overrides?: Partial<WizardDraft>): WizardDraft {
     niche: "",
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
+    instagram: "",
     offers: [
       {
         localId: "o1",

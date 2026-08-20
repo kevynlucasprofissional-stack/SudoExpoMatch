@@ -4,6 +4,8 @@ import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
+import type { SocialBusinessContext, SocialLookupResult } from "@/lib/social-context";
+
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -255,6 +257,13 @@ function ChoiceGroup<T extends string>({
   );
 }
 
+/** Estado de UI do enriquecimento por Instagram (nunca bloqueia o cadastro). */
+export interface SocialLookupUiState {
+  status: "idle" | "loading" | "done";
+  result: SocialLookupResult | null;
+  message: string;
+}
+
 export function StepWhoIAm({
   draft,
   update,
@@ -263,11 +272,16 @@ export function StepWhoIAm({
   catalog,
   manualMode = false,
   manualSegmentLabel,
+  social,
+  onAnalyzeInstagram,
 }: BaseProps & {
   catalog: EventCatalog;
   manualMode?: boolean;
   manualSegmentLabel?: string;
+  social?: SocialLookupUiState;
+  onAnalyzeInstagram?: (raw: string) => void;
 }) {
+
   const isOther = draft.segmentId === OTHER_SEGMENT_ID;
   const nicheOk = !isOther || draft.niche.trim().length >= 3;
   const canNext =
@@ -394,7 +408,58 @@ export function StepWhoIAm({
             {draft.summary.length}/500 · Mínimo 20 caracteres
           </p>
         </div>
+
+        <div>
+          <Label htmlFor="instagram">Instagram (opcional)</Label>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="instagram"
+              value={draft.instagram}
+              onChange={(e) => update("instagram", e.target.value.slice(0, 300))}
+              placeholder="@minhaempresa"
+              maxLength={300}
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!draft.instagram.trim() || social?.status === "loading"}
+              onClick={() => onAnalyzeInstagram?.(draft.instagram)}
+              className="sm:w-auto"
+            >
+              {social?.status === "loading" ? (
+                <>
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Analisando…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1 h-3 w-3" /> Analisar perfil
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Usaremos apenas informações públicas para personalizar suas sugestões.
+          </p>
+          {social && social.status !== "idle" && social.message && (
+            <p
+              aria-live="polite"
+              className={`mt-1 text-xs ${
+                social.result?.status === "ok" ? "text-success" : "text-muted-foreground"
+              }`}
+            >
+              {social.message}
+              {social.status === "done" && social.result?.status !== "ok" && (
+                <> Você pode continuar sem Instagram.</>
+              )}
+            </p>
+          )}
+        </div>
       </div>
+
 
       <div className="mt-6 flex justify-between">
         <Button variant="outline" onClick={onBack}>
@@ -419,7 +484,14 @@ export function StepOffers({
   catalog,
   eventId,
   aiAnalysis,
-}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
+  socialContext,
+}: BaseProps & {
+  catalog: EventCatalog;
+  eventId?: string;
+  aiAnalysis?: SharedAiAnalysis;
+  socialContext?: SocialBusinessContext | null;
+}) {
+
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -518,7 +590,12 @@ export function StepOffers({
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.offers.map((o) => o.label)}
+          businessSize={draft.businessSize}
+          businessType={draft.businessType}
+          niche={draft.niche}
+          socialContext={socialContext ?? null}
           analysis={aiAnalysis}
+
           onAcceptMany={(picks: AiSuggestionItem[], source) => {
             const additions: WizardOffer[] = picks.map((s) => ({
               localId: cryptoUid(),
@@ -678,7 +755,14 @@ export function StepNeeds({
   catalog,
   eventId,
   aiAnalysis,
-}: BaseProps & { catalog: EventCatalog; eventId?: string; aiAnalysis?: SharedAiAnalysis }) {
+  socialContext,
+}: BaseProps & {
+  catalog: EventCatalog;
+  eventId?: string;
+  aiAnalysis?: SharedAiAnalysis;
+  socialContext?: SocialBusinessContext | null;
+}) {
+
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
@@ -765,7 +849,12 @@ export function StepNeeds({
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.needs.map((n) => n.label)}
+          businessSize={draft.businessSize}
+          businessType={draft.businessType}
+          niche={draft.niche}
+          socialContext={socialContext ?? null}
           analysis={aiAnalysis}
+
           onAcceptMany={(picks: AiSuggestionItem[], source) => {
             const additions: WizardNeed[] = picks.map((s) => ({
               localId: cryptoUid(),

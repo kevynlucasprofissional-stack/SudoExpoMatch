@@ -1,6 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
+import { useServerFn } from "@tanstack/react-start";
+
+import { analyzeSocialProfile } from "@/lib/social-context.functions";
+import { socialLookupMessage, type SocialLookupResult } from "@/lib/social-context";
+import type { SocialLookupUiState } from "@/features/onboarding/steps";
+
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Button } from "@/components/ui/button";
@@ -182,6 +188,42 @@ function WizardPage() {
   }
 
   const aiAnalysis = useSharedAiAnalysis();
+  const analyzeSocial = useServerFn(analyzeSocialProfile);
+  const [social, setSocial] = useState<SocialLookupUiState>({
+    status: "idle",
+    result: null,
+    message: "",
+  });
+  const socialGen = useRef(0);
+
+  /**
+   * Enriquecimento opcional: qualquer falha vira mensagem informativa e o
+   * cadastro segue normalmente (nunca bloqueia o wizard).
+   */
+  const onAnalyzeInstagram = useCallback(
+    (raw: string) => {
+      const value = raw.trim();
+      if (!value) return;
+      const gen = ++socialGen.current;
+      setSocial({ status: "loading", result: null, message: "Analisando perfil público…" });
+      void (async () => {
+        let result: SocialLookupResult;
+        try {
+          result = await analyzeSocial({ data: { input: value } });
+        } catch {
+          result = { status: "unavailable", reason: "error" };
+        }
+        if (gen !== socialGen.current) return;
+        if (result.status === "ok") {
+          setDraft((d) => ({ ...d, instagram: `@${result.context.handle}` }));
+        }
+        setSocial({ status: "done", result, message: socialLookupMessage(result) });
+      })();
+    },
+    [analyzeSocial],
+  );
+
+
 
   function next() {
     setDraft((d) => ({ ...d, step: Math.min(d.step + 1, STEPS.length - 1) }));
@@ -581,6 +623,8 @@ function WizardPage() {
             catalog={catalog}
             manualMode={manualCatalogMode}
             manualSegmentLabel={fallbackSegmentId}
+            social={social}
+            onAnalyzeInstagram={onAnalyzeInstagram}
           />
         )}
 
@@ -593,6 +637,7 @@ function WizardPage() {
             catalog={catalog}
             eventId={EVENT_ID}
             aiAnalysis={aiAnalysis}
+            socialContext={social.result?.status === "ok" ? social.result.context : null}
           />
         )}
         {step === 3 && (
@@ -604,6 +649,7 @@ function WizardPage() {
             catalog={catalog}
             eventId={EVENT_ID}
             aiAnalysis={aiAnalysis}
+            socialContext={social.result?.status === "ok" ? social.result.context : null}
           />
         )}
         {step === 4 && (

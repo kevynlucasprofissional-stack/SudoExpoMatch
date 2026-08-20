@@ -7,6 +7,8 @@ import {
   AI_MODEL,
   PROMPT_VERSION,
   aiSuggestionResultSchema,
+  buildAiRunInput,
+
   coerceNeedKind,
   modelOutputSchema,
   suggestOnboardingInputSchema,
@@ -155,14 +157,8 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
         await admin.from("ai_runs").insert({
           event_id: row.eventId,
           run_kind: "onboarding_suggest",
-          input: {
-            hash: row.inputHash,
-            eventId: row.input.eventId,
-            segmentId: row.input.segmentId,
-            summaryLen: row.input.summary.length,
-            existingCount: row.input.existingLabels?.length ?? 0,
-            promptVersion: PROMPT_VERSION,
-          },
+          input: buildAiRunInput(row.input, row.inputHash),
+
           output: row.outputSummary ?? {},
           model: row.model,
           latency_ms: row.latencyMs,
@@ -220,13 +216,8 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
           .insert({
             event_id: data.eventId,
             run_kind: "onboarding_suggest",
-            input: {
-              eventId: data.eventId,
-              segmentId: data.segmentId,
-              summaryLen: data.summary.length,
-              existingCount: data.existingLabels?.length ?? 0,
-              promptVersion: PROMPT_VERSION,
-            },
+            input: buildAiRunInput(data, "catalog_unavailable"),
+
             output: {},
             model: null,
             latency_ms: 0,
