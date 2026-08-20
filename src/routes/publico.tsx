@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { memo, useEffect, useState } from "react";
 import { Clock, HeartHandshake, Sparkles, Users, Handshake } from "lucide-react";
 
 import { EVENT_ID } from "@/config/event";
@@ -65,8 +65,9 @@ const TONES: Record<
   },
 };
 
-function PublicBoard() {
-  // Relógio: 100% local, montado só após hidratação (sem mismatch, sem backend).
+/** Relógio isolado/memoizado: o tick de 1s não re-renderiza o painel inteiro. */
+const BoardClock = memo(function BoardClock() {
+  // 100% local, montado só após hidratação (sem mismatch, sem backend).
   const [now, setNow] = useState<string | null>(null);
   useEffect(() => {
     const tick = () => setNow(new Date().toLocaleTimeString("pt-BR", { hour12: false }));
@@ -75,6 +76,20 @@ function PublicBoard() {
     return () => clearInterval(id);
   }, []);
 
+  return (
+    <div
+      data-testid="public-clock"
+      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#6f7bff]/55 bg-[#0a1150]/60 px-3.5 py-2 shadow-[0_0_38px_-10px_rgba(111,123,255,0.85)] backdrop-blur sm:gap-3 sm:px-5 sm:py-2.5 xl:px-7 xl:py-3"
+    >
+      <Clock aria-hidden className="h-4 w-4 text-[#a3e635] sm:h-5 sm:w-5" />
+      <span className="font-display text-base font-semibold tabular-nums tracking-[0.12em] text-white sm:text-xl xl:text-3xl">
+        {now ?? "--:--:--"}
+      </span>
+    </div>
+  );
+});
+
+function PublicBoard() {
   // Mesma fonte de verdade de sempre: RPC event_stats via useEventStats.
   const statsQuery = useEventStats(EVENT_ID, { refetchMs: 10_000 });
   const stats = statsQuery.data;
@@ -114,7 +129,7 @@ function PublicBoard() {
     ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#02072a] text-white">
+    <div className="relative min-h-screen overflow-x-hidden bg-[#02072a] text-white xl:h-screen xl:overflow-hidden">
       {/* Fundo: marinho profundo + gradientes radiais azul/violeta/ciano */}
       <div
         aria-hidden
@@ -135,7 +150,7 @@ function PublicBoard() {
         style={{ background: "radial-gradient(80% 60% at 50% 55%, rgba(2,7,42,0.55) 0%, transparent 75%)" }}
       />
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
         {/* TOPO: identidade institucional + relógio */}
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <div className="flex min-w-0 items-center gap-3">
@@ -149,15 +164,7 @@ function PublicBoard() {
               SudoExpo 2026 · ACIRV
             </p>
           </div>
-          <div
-            data-testid="public-clock"
-            className="inline-flex shrink-0 items-center gap-3 rounded-full border border-[#6f7bff]/55 bg-[#0a1150]/60 px-5 py-2.5 shadow-[0_0_38px_-10px_rgba(111,123,255,0.85)] backdrop-blur xl:px-7 xl:py-3"
-          >
-            <Clock aria-hidden className="h-5 w-5 text-[#a3e635]" />
-            <span className="font-display text-xl font-semibold tabular-nums tracking-[0.12em] text-white xl:text-3xl">
-              {now ?? "--:--:--"}
-            </span>
-          </div>
+          <BoardClock />
         </header>
 
         {/* TÍTULO */}
@@ -171,7 +178,7 @@ function PublicBoard() {
           <span className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-[#3a5bd9]/50 bg-white/[0.04] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#c9d6f5] backdrop-blur xl:text-[11px]">
             <span
               aria-hidden
-              className="h-2 w-2 rounded-full bg-[#a3e635] shadow-[0_0_12px_2px_rgba(163,230,53,0.8)]"
+              className="pb-status-dot h-2 w-2 rounded-full bg-[#a3e635]"
             />
             Dados atualizados em tempo real
           </span>
@@ -179,8 +186,15 @@ function PublicBoard() {
 
         {/* ÁREA PRINCIPAL: 4 métricas reais */}
         <div className="mt-8 mb-12 grid flex-1 content-center gap-5 sm:grid-cols-2 xl:mt-10 xl:mb-16 xl:grid-cols-4 xl:gap-8">
-          {metrics.map((m) => (
-            <MetricCard key={m.key} label={m.label} icon={m.icon} tone={m.tone} value={m.value} />
+          {metrics.map((m, i) => (
+            <MetricCard
+              key={m.key}
+              label={m.label}
+              icon={m.icon}
+              tone={m.tone}
+              value={m.value}
+              index={i}
+            />
           ))}
         </div>
 
@@ -206,19 +220,27 @@ function MetricCard({
   icon: Icon,
   tone,
   value,
+  index,
 }: {
   label: string;
   icon: typeof Users;
   tone: Tone;
   value: string | null;
+  index: number;
 }) {
   const t = TONES[tone];
   return (
     <section
       aria-label={label}
       data-testid={`metric-card-${label}`}
-      className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[28px] border p-6 backdrop-blur-md xl:min-h-[320px] xl:p-8"
-      style={{ borderColor: t.border, background: t.wash, boxShadow: t.shadow }}
+      className="pb-card-glow relative flex min-h-[210px] flex-col overflow-hidden rounded-[28px] border p-5 backdrop-blur-md sm:min-h-[240px] sm:p-6 xl:min-h-[320px] xl:p-8"
+      style={{
+        borderColor: t.border,
+        background: t.wash,
+        boxShadow: t.shadow,
+        ["--pb-dur" as string]: `${5 + index}s`,
+        animationDelay: `${index * 0.9}s`,
+      }}
     >
       {/* brilho inferior */}
       <span
@@ -259,8 +281,9 @@ function MetricCard({
           />
         ) : (
           <p
+            key={value}
             data-testid={`metric-value-${label}`}
-            className="font-display text-6xl font-black leading-[0.85] tabular-nums text-white xl:text-8xl"
+            className="pb-value font-display text-6xl font-black leading-[0.85] tabular-nums text-white xl:text-8xl"
             style={{ textShadow: `0 0 42px ${t.hex}55` }}
           >
             {value}
