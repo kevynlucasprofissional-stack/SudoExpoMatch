@@ -637,6 +637,20 @@ function WizardPage() {
   const progress = ((step + 1) / STEPS.length) * 100;
   const validation = validateWizardForSubmit({ draft, mode, phone });
 
+  const resetAction = (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      data-testid="wizard-reset-trigger"
+      onClick={() => setShowReset(true)}
+      className="gap-2 text-sm font-medium text-foreground hover:border-destructive hover:text-destructive"
+    >
+      <RotateCcw className="h-4 w-4" aria-hidden="true" />
+      {WIZARD_RESET_COPY.trigger}
+    </Button>
+  );
+
   return (
     <PageShell>
       <section className="mx-auto max-w-2xl px-4 py-8">
@@ -687,21 +701,9 @@ function WizardPage() {
           </div>
         )}
 
-        {/* Ação secundária/perigosa: fica no cabeçalho, longe dos CTAs de
-            navegação (Avançar/Voltar/Salvar perfil) no rodapé de cada etapa. */}
-        <div className="mb-4 flex justify-end">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            data-testid="wizard-reset-trigger"
-            onClick={() => setShowReset(true)}
-            className="gap-2 text-sm font-medium text-foreground hover:border-destructive hover:text-destructive"
-          >
-            <RotateCcw className="h-4 w-4" aria-hidden="true" />
-            {WIZARD_RESET_COPY.trigger}
-          </Button>
-        </div>
+        {/* Ação secundária/perigosa: fica ao lado do "Voltar" em cada etapa;
+            na primeira etapa (sem "Voltar") permanece no cabeçalho. */}
+        {step === 0 && <div className="mb-4 flex justify-end">{resetAction}</div>}
 
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -733,6 +735,7 @@ function WizardPage() {
             manualMode={manualCatalogMode}
             manualSegmentLabel={fallbackSegmentId}
             social={social}
+            resetAction={resetAction}
           />
         )}
 
@@ -749,6 +752,7 @@ function WizardPage() {
             socialAnalysis={
               social.result?.status === "ok" ? (social.result.analysis ?? null) : null
             }
+            resetAction={resetAction}
           />
         )}
         {step === 3 && (
@@ -764,6 +768,7 @@ function WizardPage() {
             socialAnalysis={
               social.result?.status === "ok" ? (social.result.analysis ?? null) : null
             }
+            resetAction={resetAction}
           />
         )}
         {step === 4 && (
@@ -777,6 +782,7 @@ function WizardPage() {
             onGoToPanel={goToPanel}
             onGoToIdentity={goToIdentity}
             submit={submit}
+            resetAction={resetAction}
             mode={mode}
             catalog={catalog}
             validation={validation}
