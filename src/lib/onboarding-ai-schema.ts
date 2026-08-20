@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { needKindSchema } from "@/features/participant/schemas";
 import { socialBusinessContextSchema } from "./social-context";
+import { socialBusinessAnalysisSchema } from "./social-analysis";
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 
 /**
@@ -12,7 +13,7 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
  * IMPL 9: o input passou a carregar perfil de negócio (porte/tipo/nicho) e
  * contexto público de rede social (Instagram), ambos opcionais.
  */
-export const PROMPT_VERSION = "a1a2-v7-profile-social";
+export const PROMPT_VERSION = "a1a2-v8-social-analysis";
 
 
 /**
@@ -54,6 +55,8 @@ export const suggestOnboardingInputSchema = z.object({
   niche: z.string().trim().max(120).optional(),
   /** IMPL 9 — contexto público de rede social (opcional, já sanitizado). */
   socialContext: socialBusinessContextSchema.optional(),
+  /** IMPL 17 — análise estruturada do perfil público (cache-first, opcional). */
+  socialAnalysis: socialBusinessAnalysisSchema.optional(),
 });
 export type SuggestOnboardingInput = z.infer<typeof suggestOnboardingInputSchema>;
 
@@ -315,6 +318,9 @@ export function buildAiRunInput(input: SuggestOnboardingInput, cacheKey: string)
     socialProvider: input.socialContext?.provider ?? null,
     socialKeywordCount: input.socialContext?.keywords.length ?? 0,
     socialSignalCount: input.socialContext?.signals.length ?? 0,
+    socialMediaCount: input.socialContext?.recentMedia?.length ?? 0,
+    socialAnalysisConfidence: input.socialAnalysis?.confidence ?? null,
+    socialAnalysisUsed: Boolean(input.socialAnalysis),
   };
 }
 

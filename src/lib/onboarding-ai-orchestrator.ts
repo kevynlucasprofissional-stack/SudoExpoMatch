@@ -14,6 +14,7 @@ import {
   type SuggestOnboardingInput,
 } from "./onboarding-ai-schema";
 import { buildSocialContextPromptBlock, socialContextFingerprint } from "./social-context";
+import { SOCIAL_ANALYSIS_PROMPT_VERSION, buildSocialAnalysisPromptBlock } from "./social-analysis";
 import type { EventCatalog } from "@/features/participant/types";
 
 
@@ -113,6 +114,7 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
   const seg = catalog.segments.find((s) => s.id === input.segmentId);
   const profileBlock = buildBusinessProfileBlock(input);
   const socialBlock = buildSocialContextPromptBlock(input.socialContext ?? null);
+  const socialAnalysisBlock = buildSocialAnalysisPromptBlock(input.socialAnalysis ?? null);
 
   return [
     "Você é um assistente de onboarding para uma feira de negócios (SudoExpo).",
@@ -181,6 +183,9 @@ export async function buildCacheKey(
     input.businessType ?? "",
     (input.niche ?? "").trim().toLowerCase(),
     socialContextFingerprint(input.socialContext ?? null),
+    input.socialAnalysis
+      ? `${SOCIAL_ANALYSIS_PROMPT_VERSION}:${JSON.stringify(input.socialAnalysis)}`
+      : "",
     PROMPT_VERSION,
     catalogHash,
     AI_MODEL,
