@@ -16,7 +16,7 @@ import type { SocialAnalyzer, SocialCacheRecord, SocialCacheStore } from "./soci
  * Nada aqui pode ser importado pelo cliente — o arquivo é `.server.ts`.
  */
 
-const SOCIAL_ANALYSIS_TIMEOUT_MS = 12_000;
+const SOCIAL_ANALYSIS_TIMEOUT_MS = 25_000;
 
 /** Cache L2 persistente (private.social_profile_cache) via RPC autorizada. */
 export function createSupabaseSocialCacheStore(admin: {
