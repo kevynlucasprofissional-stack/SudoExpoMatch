@@ -1,8 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import {
   UserPlus,
-  Shuffle,
-  Star,
+  Heart,
   Handshake,
   ArrowRight,
   ChevronRight,
@@ -19,9 +18,9 @@ import {
 
 const STEPS = [
   { Icon: UserPlus, label: "Crie seu perfil" },
-  { Icon: Shuffle, label: "Cruzamento de interesses" },
-  { Icon: Star, label: "Avalie suas conexões" },
-  { Icon: Handshake, label: "ACIRV aproxima vocês" },
+  { Icon: Sparkles, label: "Receba matches automáticos" },
+  { Icon: Heart, label: "Marque interesse mútuo" },
+  { Icon: Handshake, label: "A ACIRV apresenta vocês" },
 ] as const;
 
 const AUDIENCE: { label: string; Icon: typeof Users; tone: string }[] = [
