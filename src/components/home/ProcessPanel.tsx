@@ -11,7 +11,7 @@ import {
   Truck,
   Wrench,
   Handshake as HandshakeIcon,
-  Boxes,
+  
   BarChart3,
   Sparkles,
   Activity,
