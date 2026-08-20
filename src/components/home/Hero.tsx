@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Users, Package, Handshake } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
 
 function Highlight({ children, bg }: { children: React.ReactNode; bg: string }) {
@@ -17,12 +17,6 @@ function Highlight({ children, bg }: { children: React.ReactNode; bg: string }) 
     </span>
   );
 }
-
-const MOBILE_CATEGORIES = [
-  { Icon: Users, label: "Clientes", tone: "var(--success)" },
-  { Icon: Package, label: "Fornecedores", tone: "var(--secondary)" },
-  { Icon: Handshake, label: "Parceiros", tone: "var(--accent)" },
-] as const;
 
 export function Hero() {
   return (
