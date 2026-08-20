@@ -1,14 +1,22 @@
 import type { WizardDraft, WizardMode } from "./types";
 import { validateWizardForSubmit } from "./validate";
 import { mapWizardToSaveProfileInput, normalizePhoneE164 } from "./mappers";
+import { buildSocialLinkPayload, type SocialLinkPayload } from "@/features/social/socialProfile";
+import type { SocialBusinessContext } from "@/lib/social-context";
 
 export interface SubmitOrchestratorDeps {
   saveOwnProfile: (input: ReturnType<typeof mapWizardToSaveProfileInput>) => Promise<unknown>;
   setOwnContact: (input: { phone_e164: string; sharing: boolean }) => Promise<unknown>;
   rotateOwnRecoveryCode: () => Promise<string>;
+  /**
+   * Persistência do @Instagram + contexto social. Opcional e NUNCA bloqueante:
+   * qualquer falha vira um evento informativo e o cadastro continua.
+   */
+  linkSocialProfile?: (payload: SocialLinkPayload) => Promise<unknown>;
   // NOTA: recomputeOwnMatches removido — `save_own_profile_v2` já dispara
   // `_recompute_matches_for_profile` transacionalmente no banco.
 }
+
 
 export type PreSubmitResult =
   | { ok: true; phoneE164: string | null; withContact: boolean }
