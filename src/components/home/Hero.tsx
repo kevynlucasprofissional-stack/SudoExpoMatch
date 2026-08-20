@@ -110,7 +110,7 @@ export function Hero() {
 
       {/* Composição visual dedicada para mobile, após CTAs e linha de tempo */}
       <div
-        className="relative mx-auto max-w-[520px] px-4 pb-4 md:hidden"
+        className="relative mx-auto max-w-[520px] px-8 pb-4 md:hidden"
         data-testid="hero-visual-mobile"
       >
         <HeroVisualMobile />
