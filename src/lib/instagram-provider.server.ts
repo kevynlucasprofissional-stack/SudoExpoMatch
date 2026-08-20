@@ -37,7 +37,30 @@ export interface InstagramProviderEnv {
   INSTAGRAM_BUSINESS_ACCOUNT_ID?: string | undefined;
   INSTAGRAM_GRAPH_API_VERSION?: string | undefined;
   INSTAGRAM_PUBLIC_READ_DISABLED?: string | undefined;
+  /** Token direto da Apify (server-only). */
   APIFY_API_TOKEN?: string | undefined;
+  /** Alternativa: conexão Apify via Connector Gateway da Lovable. */
+  APIFY_API_KEY?: string | undefined;
+  LOVABLE_API_KEY?: string | undefined;
+}
+
+/** Credenciais aceitas pelo provider gerenciado (nunca logadas). */
+export type ApifyAuth =
+  | { mode: "direct"; token: string }
+  | { mode: "gateway"; lovableApiKey: string; connectionApiKey: string };
+
+/**
+ * Resolve como falar com a Apify: token direto (`APIFY_API_TOKEN`) ou
+ * Connector Gateway (`LOVABLE_API_KEY` + `APIFY_API_KEY`). Ausência das
+ * credenciais Meta é irrelevante aqui — nunca gera erro.
+ */
+export function resolveApifyAuth(env: InstagramProviderEnv): ApifyAuth | null {
+  const direct = env.APIFY_API_TOKEN?.trim();
+  if (direct) return { mode: "direct", token: direct };
+  const conn = env.APIFY_API_KEY?.trim();
+  const lovable = env.LOVABLE_API_KEY?.trim();
+  if (conn && lovable) return { mode: "gateway", lovableApiKey: lovable, connectionApiKey: conn };
+  return null;
 }
 
 /** Códigos de diagnóstico — nunca contêm token nem resposta bruta. */
@@ -192,6 +215,7 @@ export function createGraphInstagramProvider(
 
 // ------------------------------------------------------------------ Apify
 export const APIFY_ACTOR = "apify~instagram-profile-scraper";
+export const APIFY_GATEWAY_URL = "https://connector-gateway.lovable.dev/apify";
 export const APIFY_TIMEOUT_MS = 45_000;
 
 interface ApifyItem {
@@ -245,23 +269,32 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
  * Recebe apenas o handle normalizado; nunca recebe credenciais do Instagram.
  */
 export function createApifyInstagramProvider(
-  token: string,
+  auth: ApifyAuth | string,
   fetchImpl: typeof fetch = fetch,
   timeoutMs = APIFY_TIMEOUT_MS,
 ): SocialProvider {
+  const credentials: ApifyAuth = typeof auth === "string" ? { mode: "direct", token: auth } : auth;
   return {
     id: "instagram_apify",
     async fetchProfile(handle: string): Promise<SocialLookupResult> {
+      const query = `?timeout=${Math.floor(timeoutMs / 1000)}&maxItems=1`;
+      const path = `/acts/${APIFY_ACTOR}/run-sync-get-dataset-items${query}`;
       const url =
-        `https://api.apify.com/v2/acts/${APIFY_ACTOR}/run-sync-get-dataset-items` +
-        `?token=${encodeURIComponent(token)}&timeout=${Math.floor(timeoutMs / 1000)}&maxItems=1`;
+        credentials.mode === "gateway"
+          ? `${APIFY_GATEWAY_URL}${path}`
+          : `https://api.apify.com/v2${path}&token=${encodeURIComponent(credentials.token)}`;
+      const headers: Record<string, string> = { "content-type": "application/json" };
+      if (credentials.mode === "gateway") {
+        headers["Authorization"] = `Bearer ${credentials.lovableApiKey}`;
+        headers["X-Connection-Api-Key"] = credentials.connectionApiKey;
+      }
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const res = await fetchImpl(url, {
           method: "POST",
           signal: controller.signal,
-          headers: { "content-type": "application/json" },
+          headers,
           body: JSON.stringify({ usernames: [handle], resultsLimit: 12 }),
         });
         if (res.status === 401 || res.status === 403) {
@@ -379,8 +412,12 @@ export function resolveInstagramProvider(
 ): SocialProvider {
   const token = env.INSTAGRAM_GRAPH_ACCESS_TOKEN?.trim();
   const account = env.INSTAGRAM_BUSINESS_ACCOUNT_ID?.trim();
-  const apify = env.APIFY_API_TOKEN?.trim();
+  const apify = resolveApifyAuth(env);
   const chain: SocialProvider[] = [];
+  // 1) Apify é o provider principal desta implementação.
+  if (apify) chain.push(createApifyInstagramProvider(apify, fetchImpl));
+  // 2) Meta Graph permanece como legado OPCIONAL: só entra na cadeia quando
+  //    as credenciais existem. A ausência delas nunca gera erro.
   if (token && account) {
     chain.push(
       createGraphInstagramProvider(
@@ -392,7 +429,6 @@ export function resolveInstagramProvider(
       ),
     );
   }
-  if (apify) chain.push(createApifyInstagramProvider(apify, fetchImpl));
   if (env.INSTAGRAM_PUBLIC_READ_DISABLED !== "1") {
     chain.push(createPublicInstagramProvider(fetchImpl));
   }
@@ -420,7 +456,7 @@ export async function checkInstagramProviderHealth(
 ): Promise<InstagramProviderHealth> {
   const token = env.INSTAGRAM_GRAPH_ACCESS_TOKEN?.trim();
   const account = env.INSTAGRAM_BUSINESS_ACCOUNT_ID?.trim();
-  const apify = env.APIFY_API_TOKEN?.trim();
+  const apify = resolveApifyAuth(env);
   const version = resolveGraphApiVersion(env as Record<string, string | undefined>);
   const publicEnabled = env.INSTAGRAM_PUBLIC_READ_DISABLED !== "1";
 
@@ -455,10 +491,19 @@ export async function checkInstagramProviderHealth(
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), SOCIAL_FETCH_TIMEOUT_MS);
     try {
-      const res = await fetchImpl(
-        `https://api.apify.com/v2/users/me?token=${encodeURIComponent(apify)}`,
-        { signal: controller.signal },
-      );
+      const res =
+        apify.mode === "gateway"
+          ? await fetchImpl(`${APIFY_GATEWAY_URL}/users/me`, {
+              signal: controller.signal,
+              headers: {
+                Authorization: `Bearer ${apify.lovableApiKey}`,
+                "X-Connection-Api-Key": apify.connectionApiKey,
+              },
+            })
+          : await fetchImpl(
+              `https://api.apify.com/v2/users/me?token=${encodeURIComponent(apify.token)}`,
+              { signal: controller.signal },
+            );
       if (res.ok) managedStatus = "managed_available";
       else if (res.status === 401 || res.status === 403) managedStatus = "managed_invalid_token";
       else if (res.status === 429) managedStatus = "managed_rate_limited";
@@ -474,8 +519,8 @@ export async function checkInstagramProviderHealth(
   }
 
   const chain: string[] = [];
-  if (token && account) chain.push("instagram_graph");
   if (apify) chain.push("instagram_apify");
+  if (token && account) chain.push("instagram_graph");
   if (publicEnabled) chain.push("instagram_public");
 
   return {
