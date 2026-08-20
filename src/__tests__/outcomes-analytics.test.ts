@@ -149,13 +149,18 @@ describe("outcomes comerciais — contrato", () => {
 // ================================================================= Banco
 describe("banco — RLS, grants e agregação", () => {
   dbIt("analytics_events aceita INSERT autenticado e nega leitura ao cliente", () => {
-    const grants = psql(`
-      SELECT string_agg(DISTINCT privilege_type || ':' || grantee, ',' ORDER BY privilege_type || ':' || grantee)
-        FROM information_schema.role_table_grants
-       WHERE table_schema='public' AND table_name='analytics_events'
-         AND grantee IN ('anon','authenticated');`);
-    expect(grants).toContain("INSERT:authenticated");
-    expect(grants ?? "").not.toContain("SELECT:anon");
+const insertAuth = psql(
+      `SELECT has_table_privilege('authenticated', 'public.analytics_events', 'INSERT');`,
+    );
+    const selectAuth = psql(
+      `SELECT has_table_privilege('authenticated', 'public.analytics_events', 'SELECT');`,
+    );
+    const insertAnon = psql(
+      `SELECT has_table_privilege('anon', 'public.analytics_events', 'INSERT');`,
+    );
+    expect(insertAuth).toBe("t");
+    expect(selectAuth).toBe("f");
+    expect(insertAnon).toBe("f");
   });
 
   dbIt("a política de INSERT restringe kind à allowlist do cliente", () => {
