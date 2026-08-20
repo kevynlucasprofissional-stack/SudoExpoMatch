@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { Clock, HeartHandshake, Sparkles, Users, Handshake } from "lucide-react";
 
 import { EVENT_ID } from "@/config/event";
+import { ConnectionScene } from "@/components/public/ConnectionScene";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 import { useEventStats } from "@/features/staff/useEventStats";
 
@@ -29,30 +30,38 @@ export const Route = createFileRoute("/publico")({
 
 type Tone = "cyan" | "violet" | "lime" | "orange";
 
-const TONES: Record<Tone, { ring: string; glow: string; icon: string; accent: string }> = {
+const TONES: Record<
+  Tone,
+  { hex: string; border: string; wash: string; shadow: string; iconBg: string }
+> = {
   cyan: {
-    ring: "border-secondary/40",
-    glow: "radial-gradient(120% 120% at 15% 0%, color-mix(in oklab, var(--secondary) 26%, transparent) 0%, transparent 62%)",
-    icon: "bg-secondary/20 text-secondary",
-    accent: "var(--secondary)",
+    hex: "#22d3ee",
+    border: "rgba(34,211,238,0.38)",
+    wash: "linear-gradient(160deg, rgba(34,211,238,0.20) 0%, rgba(9,20,68,0.30) 46%, rgba(3,9,44,0.55) 100%)",
+    shadow: "0 24px 70px -28px rgba(34,211,238,0.55), inset 0 -60px 90px -70px rgba(34,211,238,0.9)",
+    iconBg: "rgba(34,211,238,0.16)",
   },
   violet: {
-    ring: "border-[#6f7bff]/45",
-    glow: "radial-gradient(120% 120% at 15% 0%, rgba(111,123,255,0.28) 0%, transparent 62%)",
-    icon: "bg-[#6f7bff]/20 text-[#a8b1ff]",
-    accent: "#8f9bff",
+    hex: "#8f9bff",
+    border: "rgba(143,155,255,0.40)",
+    wash: "linear-gradient(160deg, rgba(143,155,255,0.22) 0%, rgba(11,18,82,0.32) 46%, rgba(3,9,44,0.55) 100%)",
+    shadow:
+      "0 24px 70px -28px rgba(143,155,255,0.55), inset 0 -60px 90px -70px rgba(143,155,255,0.9)",
+    iconBg: "rgba(143,155,255,0.18)",
   },
   lime: {
-    ring: "border-success/45",
-    glow: "radial-gradient(120% 120% at 15% 0%, color-mix(in oklab, var(--success) 22%, transparent) 0%, transparent 62%)",
-    icon: "bg-success/20 text-success",
-    accent: "var(--success)",
+    hex: "#a3e635",
+    border: "rgba(163,230,53,0.38)",
+    wash: "linear-gradient(160deg, rgba(163,230,53,0.18) 0%, rgba(9,26,44,0.32) 46%, rgba(3,9,44,0.55) 100%)",
+    shadow: "0 24px 70px -28px rgba(163,230,53,0.45), inset 0 -60px 90px -70px rgba(163,230,53,0.8)",
+    iconBg: "rgba(163,230,53,0.16)",
   },
   orange: {
-    ring: "border-accent/45",
-    glow: "radial-gradient(120% 120% at 15% 0%, color-mix(in oklab, var(--accent) 24%, transparent) 0%, transparent 62%)",
-    icon: "bg-accent/20 text-accent",
-    accent: "var(--accent)",
+    hex: "#ff8a3d",
+    border: "rgba(255,138,61,0.38)",
+    wash: "linear-gradient(160deg, rgba(255,138,61,0.20) 0%, rgba(30,16,48,0.32) 46%, rgba(3,9,44,0.55) 100%)",
+    shadow: "0 24px 70px -28px rgba(255,138,61,0.50), inset 0 -60px 90px -70px rgba(255,138,61,0.85)",
+    iconBg: "rgba(255,138,61,0.16)",
   },
 };
 
@@ -105,85 +114,86 @@ function PublicBoard() {
     ];
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050a2e] text-white">
-      {/* Fundo: azul-marinho profundo + gradientes radiais + pontos sutis */}
+    <div className="relative min-h-screen overflow-hidden bg-[#02072a] text-white">
+      {/* Fundo: marinho profundo + gradientes radiais azul/violeta/ciano */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            "radial-gradient(80% 60% at 18% 8%, rgba(27,38,174,0.55) 0%, transparent 60%), radial-gradient(70% 60% at 88% 12%, rgba(18,156,223,0.28) 0%, transparent 60%), radial-gradient(90% 70% at 50% 110%, rgba(111,123,255,0.22) 0%, transparent 65%)",
+            "radial-gradient(70% 55% at 12% 4%, rgba(4,17,74,0.95) 0%, transparent 62%)," +
+            "radial-gradient(60% 50% at 88% 6%, rgba(90,60,190,0.30) 0%, transparent 64%)," +
+            "radial-gradient(55% 45% at 96% 78%, rgba(34,211,238,0.14) 0%, transparent 66%)," +
+            "radial-gradient(85% 60% at 45% 112%, rgba(3,11,58,0.98) 0%, transparent 70%)",
         }}
       />
+      {/* Rede de conexões (atrás dos cards) */}
+      <ConnectionScene className="pointer-events-none absolute inset-0 h-full w-full opacity-70" />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 opacity-[0.16]"
-        style={{
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.5) 1px, transparent 1px)",
-          backgroundSize: "34px 34px",
-        }}
+        className="pointer-events-none absolute inset-0"
+        style={{ background: "radial-gradient(80% 60% at 50% 55%, rgba(2,7,42,0.55) 0%, transparent 75%)" }}
       />
-      {/* Espaço reservado para o grafismo de conexão (animações ficam para depois) */}
-      <div aria-hidden className="pointer-events-none absolute inset-0 opacity-[0.18]">
-        <NetworkGraphic className="h-full w-full" />
-      </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-8 px-6 py-8 md:px-12 md:py-10">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
         {/* TOPO: identidade institucional + relógio */}
         <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4">
           <div className="flex min-w-0 items-center gap-3">
             <span
               aria-hidden
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-secondary/40 bg-white/5"
+              className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-secondary/40 bg-white/[0.06] shadow-[0_0_28px_-8px_rgba(34,211,238,0.7)]"
             >
               <NetworkGraphic className="h-5 w-5" />
             </span>
-            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.32em] text-white/70 md:text-xs">
+            <p className="truncate text-[11px] font-semibold uppercase tracking-[0.42em] text-white/60 xl:text-[13px]">
               SudoExpo 2026 · ACIRV
             </p>
           </div>
           <div
             data-testid="public-clock"
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#6f7bff]/50 bg-[#0b1252]/70 px-4 py-2 shadow-[0_0_24px_rgba(111,123,255,0.25)] backdrop-blur"
+            className="inline-flex shrink-0 items-center gap-3 rounded-full border border-[#6f7bff]/55 bg-[#0a1150]/60 px-5 py-2.5 shadow-[0_0_38px_-10px_rgba(111,123,255,0.85)] backdrop-blur xl:px-7 xl:py-3"
           >
-            <Clock aria-hidden className="h-4 w-4 text-success" />
-            <span className="font-display text-base font-semibold tabular-nums tracking-wider text-white md:text-lg">
+            <Clock aria-hidden className="h-5 w-5 text-[#a3e635]" />
+            <span className="font-display text-xl font-semibold tabular-nums tracking-[0.12em] text-white xl:text-3xl">
               {now ?? "--:--:--"}
             </span>
           </div>
         </header>
 
         {/* TÍTULO */}
-        <div className="text-center md:text-left">
-          <h1 className="font-display text-4xl font-black leading-[1.05] md:text-6xl xl:text-7xl">
+        <div className="mt-8 xl:mt-12">
+          <h1 className="font-display text-4xl font-black leading-[1.02] tracking-tight md:text-6xl xl:text-[5.2rem]">
             Matchmaker em tempo real
           </h1>
-          <p className="mt-3 max-w-3xl text-sm text-white/70 md:mx-0 md:text-lg">
+          <p className="mt-4 max-w-4xl text-base text-[#b9c6ee] md:text-xl xl:text-2xl">
             Conectando pessoas, ideias e oportunidades durante a SudoExpo.
           </p>
-          <span className="mt-4 inline-flex items-center gap-2 rounded-full border border-secondary/40 bg-white/[0.06] px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/75 backdrop-blur md:text-[11px]">
-            <span aria-hidden className="h-2 w-2 rounded-full bg-success shadow-[0_0_10px_var(--success)]" />
+          <span className="mt-6 inline-flex items-center gap-2.5 rounded-full border border-[#3a5bd9]/50 bg-white/[0.04] px-4 py-1.5 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#c9d6f5] backdrop-blur xl:text-[11px]">
+            <span
+              aria-hidden
+              className="h-2 w-2 rounded-full bg-[#a3e635] shadow-[0_0_12px_2px_rgba(163,230,53,0.8)]"
+            />
             Dados atualizados em tempo real
           </span>
         </div>
 
         {/* ÁREA PRINCIPAL: 4 métricas reais */}
-        <div className="grid flex-1 content-center gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:gap-6">
+        <div className="mt-8 mb-12 grid flex-1 content-center gap-5 sm:grid-cols-2 xl:mt-10 xl:mb-16 xl:grid-cols-4 xl:gap-8">
           {metrics.map((m) => (
             <MetricCard key={m.key} label={m.label} icon={m.icon} tone={m.tone} value={m.value} />
           ))}
         </div>
 
         {/* RODAPÉ VISUAL (sem box) */}
-        <footer className="text-center">
-          <p className="font-display text-xl font-semibold md:text-3xl">
+        <footer className="pb-3 pt-2 text-center">
+          <p className="font-display text-2xl font-bold tracking-tight md:text-4xl xl:text-[2.6rem]">
             <span className="text-white">Aqui, ninguém cresce isolado.</span>{" "}
-            <span className="text-secondary">A gente cresce</span>{" "}
-            <span className="text-success">conectado.</span>
+            <span className="text-[#4aa8ff]">A gente cresce</span>{" "}
+            <span className="text-[#a3e635]">conectado.</span>
           </p>
           <span
             aria-hidden
-            className="mx-auto mt-2 block h-px w-40 bg-gradient-to-r from-transparent via-success to-transparent opacity-80"
+            className="mx-auto mt-3 block h-[2px] w-56 rounded-full bg-linear-to-r from-transparent via-[#4aa8ff] to-[#a3e635] opacity-90 shadow-[0_0_16px_rgba(74,168,255,0.6)]"
           />
         </footer>
       </div>
@@ -207,42 +217,51 @@ function MetricCard({
     <section
       aria-label={label}
       data-testid={`metric-card-${label}`}
-      className={`relative overflow-hidden rounded-3xl border ${t.ring} bg-white/[0.04] p-5 backdrop-blur md:p-7`}
+      className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[28px] border p-6 backdrop-blur-md xl:min-h-[320px] xl:p-8"
+      style={{ borderColor: t.border, background: t.wash, boxShadow: t.shadow }}
     >
-      <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: t.glow }} />
-      {/* símbolo gráfico abstrato, quase transparente */}
-      <svg
+      {/* brilho inferior */}
+      <span
         aria-hidden
-        viewBox="0 0 100 100"
-        className="pointer-events-none absolute -bottom-6 -right-6 h-32 w-32 opacity-[0.10] md:h-40 md:w-40"
-      >
-        <circle cx="30" cy="70" r="10" fill={t.accent} />
-        <circle cx="72" cy="34" r="16" fill="none" stroke={t.accent} strokeWidth="4" />
-        <path d="M32 66 L68 40" stroke={t.accent} strokeWidth="4" />
-      </svg>
+        className="pointer-events-none absolute inset-x-8 bottom-0 h-[2px] rounded-full opacity-80"
+        style={{ background: `linear-gradient(90deg, transparent, ${t.hex}, transparent)` }}
+      />
+      {/* ícone decorativo grande, quase transparente */}
+      <Icon
+        aria-hidden
+        className="pointer-events-none absolute -bottom-6 -right-5 h-36 w-36 opacity-[0.07] xl:h-52 xl:w-52"
+        style={{ color: t.hex }}
+        strokeWidth={1}
+      />
 
-      <div className="relative">
-        <span className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl ${t.icon}`}>
-          <Icon className="h-5 w-5" />
-        </span>
-        <p className="mt-4 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/70 md:text-xs">
-          {label}
-        </p>
-        <span
-          aria-hidden
-          className="mt-2 block h-[3px] w-10 rounded-full"
-          style={{ background: t.accent }}
-        />
+      <span
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full xl:h-12 xl:w-12"
+        style={{ background: t.iconBg, color: t.hex, boxShadow: `0 0 26px -8px ${t.hex}` }}
+      >
+        <Icon className="h-5 w-5" strokeWidth={1.7} />
+      </span>
+
+      <p className="mt-5 text-[11px] font-semibold uppercase tracking-[0.26em] text-white/75 xl:text-[13px]">
+        {label}
+      </p>
+      <span
+        aria-hidden
+        className="mt-3 block h-[3px] w-12 rounded-full"
+        style={{ background: t.hex, boxShadow: `0 0 14px ${t.hex}` }}
+      />
+
+      <div className="mt-auto pt-6">
         {value === null ? (
           <div
             data-testid={`metric-skeleton-${label}`}
             aria-label={`${label}: carregando`}
-            className="mt-3 h-[52px] w-24 animate-pulse rounded-2xl bg-white/10 md:h-[76px] md:w-36"
+            className="h-[56px] w-28 animate-pulse rounded-2xl bg-white/10 xl:h-[92px] xl:w-44"
           />
         ) : (
           <p
             data-testid={`metric-value-${label}`}
-            className="mt-3 font-display text-5xl font-black leading-none tabular-nums md:text-7xl xl:text-8xl"
+            className="font-display text-6xl font-black leading-[0.85] tabular-nums text-white xl:text-8xl"
+            style={{ textShadow: `0 0 42px ${t.hex}55` }}
           >
             {value}
           </p>
