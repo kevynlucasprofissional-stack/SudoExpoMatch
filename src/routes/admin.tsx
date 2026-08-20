@@ -195,9 +195,12 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
           <div>
             <p className="text-xs uppercase tracking-wide text-primary">Administração</p>
             <h1 className="font-display text-2xl font-bold md:text-3xl">Equipe do evento</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {email} · <Badge>admin</Badge>
-            </p>
+            {/* div (Badge) não pode ficar dentro de <p>: causava erro de hidratação. */}
+            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+              <span>{email}</span>
+              <span aria-hidden>·</span>
+              <Badge>admin</Badge>
+            </div>
           </div>
           <div className="flex flex-wrap gap-2">
             <Button asChild variant="outline" size="sm">
