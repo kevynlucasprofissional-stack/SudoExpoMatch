@@ -408,7 +408,58 @@ export function StepWhoIAm({
             {draft.summary.length}/500 · Mínimo 20 caracteres
           </p>
         </div>
+
+        <div>
+          <Label htmlFor="instagram">Instagram (opcional)</Label>
+          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+            <Input
+              id="instagram"
+              value={draft.instagram}
+              onChange={(e) => update("instagram", e.target.value.slice(0, 300))}
+              placeholder="@minhaempresa"
+              maxLength={300}
+              inputMode="text"
+              autoCapitalize="none"
+              autoCorrect="off"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              disabled={!draft.instagram.trim() || social?.status === "loading"}
+              onClick={() => onAnalyzeInstagram?.(draft.instagram)}
+              className="sm:w-auto"
+            >
+              {social?.status === "loading" ? (
+                <>
+                  <Loader2 className="mr-1 h-3 w-3 animate-spin" /> Analisando…
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-1 h-3 w-3" /> Analisar perfil
+                </>
+              )}
+            </Button>
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Usaremos apenas informações públicas para personalizar suas sugestões.
+          </p>
+          {social && social.status !== "idle" && social.message && (
+            <p
+              aria-live="polite"
+              className={`mt-1 text-xs ${
+                social.result?.status === "ok" ? "text-success" : "text-muted-foreground"
+              }`}
+            >
+              {social.message}
+              {social.status === "done" && social.result?.status !== "ok" && (
+                <> Você pode continuar sem Instagram.</>
+              )}
+            </p>
+          )}
+        </div>
       </div>
+
 
       <div className="mt-6 flex justify-between">
         <Button variant="outline" onClick={onBack}>
