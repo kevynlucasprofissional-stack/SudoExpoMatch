@@ -50,16 +50,9 @@ describe("Home mobile UX — estrutura do código", () => {
     expect(process).toMatch(/hidden grid-cols-4[\s\S]*?lg:grid/);
   });
 
-  it("HomeHeader: botão mobile com aria-label, aria-expanded, aria-controls e área 44px", () => {
-    expect(header).toContain('aria-controls="home-mobile-menu"');
-    expect(header).toMatch(/aria-label=\{open \? "Fechar menu" : "Abrir menu"\}/);
-    expect(header).toMatch(/aria-expanded=\{open\}/);
-    expect(header).toMatch(/h-11 w-11/);
-  });
-
-  it("HomeHeader: fecha o menu ao pressionar Escape", () => {
-    expect(header).toMatch(/e\.key === "Escape"/);
-    expect(header).toContain('window.addEventListener("keydown"');
+  it("Home: cabeçalho removido da página inicial", () => {
+    const index = read("src/routes/index.tsx");
+    expect(index).not.toContain("HomeHeader");
   });
 
   it("HeroVisualMobile: acessível via role=img + aria-label descritivo", () => {
