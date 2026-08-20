@@ -11,6 +11,10 @@ import {
   PARTICIPANTS_MAX_LIMIT,
   PARTICIPANTS_PAGE_SIZE,
 } from "@/features/admin/participantsUrlState";
+import {
+  participantSocialSchema,
+  type ParticipantSocial,
+} from "@/features/social/socialProfile";
 
 /**
  * IMPL 9 — wrapper de API do admin. Toda a fala com o banco fica aqui;
@@ -90,6 +94,27 @@ export function useAdminParticipantDetail(profileId: string | null, enabled: boo
 }
 
 /** Debounce simples para a busca — evita uma RPC por tecla. */
+export const participantSocialKey = (profileId: string) =>
+  ["admin", "participant-social", profileId] as const;
+
+/** IMPL 16 — contexto social (Instagram) do participante, somente admin do evento. */
+export async function fetchParticipantSocial(profileId: string): Promise<ParticipantSocial> {
+  const { data, error } = await supabase.rpc("admin_get_participant_social", {
+    _profile_id: profileId,
+  });
+  if (error) throw error;
+  return participantSocialSchema.parse(data);
+}
+
+export function useAdminParticipantSocial(profileId: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: participantSocialKey(profileId ?? "none"),
+    enabled: enabled && !!profileId,
+    staleTime: 30_000,
+    queryFn: () => fetchParticipantSocial(profileId!),
+  });
+}
+
 export function useDebouncedValue<T>(value: T, delay = 350): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {

@@ -8,7 +8,11 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useAdminParticipantDetail } from "@/features/admin/useAdminParticipants";
+import {
+  useAdminParticipantDetail,
+  useAdminParticipantSocial,
+} from "@/features/admin/useAdminParticipants";
+import { ParticipantSocialPanel } from "@/features/admin/ParticipantSocialPanel";
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
 import { DECISION_TEXT, LABEL_TEXT, matchLabelForScore } from "@/features/matching/presentation";
 import type { Decision, MatchLabel } from "@/lib/types";
@@ -29,6 +33,17 @@ function labelText(label: string | null | undefined, score: number) {
   return LABEL_TEXT[key] ?? key;
 }
 
+const BUSINESS_SIZE_TEXT: Record<string, string> = {
+  pequeno: "Pequeno",
+  medio: "Médio",
+  grande: "Grande",
+};
+const BUSINESS_TYPE_TEXT: Record<string, string> = {
+  comercio: "Comércio",
+  industria: "Indústria",
+  servico: "Serviço",
+};
+
 function decisionText(decision: string) {
   return DECISION_TEXT[decision as Decision] ?? decision;
 }
@@ -46,6 +61,7 @@ export function ParticipantDetailSheet({
   onClose: () => void;
 }) {
   const query = useAdminParticipantDetail(profileId, true);
+  const socialQuery = useAdminParticipantSocial(profileId, true);
   const d = query.data;
 
   return (
@@ -77,6 +93,7 @@ export function ParticipantDetailSheet({
           <Tabs defaultValue="perfil" className="mt-6">
             <TabsList className="mb-2 flex h-auto w-full flex-wrap justify-start gap-1">
               <TabsTrigger value="perfil">Perfil</TabsTrigger>
+              <TabsTrigger value="instagram">Instagram</TabsTrigger>
               <TabsTrigger value="ofertas">Ofertas ({d.offers.length})</TabsTrigger>
               <TabsTrigger value="necessidades">Necessidades ({d.needs.length})</TabsTrigger>
               <TabsTrigger value="matches">Matches ({d.matches.length})</TabsTrigger>
@@ -102,6 +119,18 @@ export function ParticipantDetailSheet({
                   </dd>
                 </div>
                 <div>
+                  <dt className="text-xs text-muted-foreground">Porte</dt>
+                  <dd>{BUSINESS_SIZE_TEXT[d.profile.business_size ?? ""] ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Tipo principal</dt>
+                  <dd>{BUSINESS_TYPE_TEXT[d.profile.business_type ?? ""] ?? "—"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-muted-foreground">Nicho</dt>
+                  <dd>{d.profile.niche || "—"}</dd>
+                </div>
+                <div>
                   <dt className="text-xs text-muted-foreground">Cadastro</dt>
                   <dd>{fmt(d.profile.created_at)}</dd>
                 </div>
@@ -114,6 +143,10 @@ export function ParticipantDetailSheet({
                 Dados de contato (WhatsApp e e-mail) não são exibidos nesta área. A liberação
                 continua acontecendo no fluxo de conexão da equipe.
               </p>
+            </TabsContent>
+
+            <TabsContent value="instagram" className="mt-4">
+              <ParticipantSocialPanel query={socialQuery} />
             </TabsContent>
 
             <TabsContent value="ofertas" className="mt-4">

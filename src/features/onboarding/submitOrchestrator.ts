@@ -1,14 +1,22 @@
 import type { WizardDraft, WizardMode } from "./types";
 import { validateWizardForSubmit } from "./validate";
 import { mapWizardToSaveProfileInput, normalizePhoneE164 } from "./mappers";
+import { buildSocialLinkPayload, type SocialLinkPayload } from "@/features/social/socialProfile";
+import type { SocialBusinessContext } from "@/lib/social-context";
 
 export interface SubmitOrchestratorDeps {
   saveOwnProfile: (input: ReturnType<typeof mapWizardToSaveProfileInput>) => Promise<unknown>;
   setOwnContact: (input: { phone_e164: string; sharing: boolean }) => Promise<unknown>;
   rotateOwnRecoveryCode: () => Promise<string>;
+  /**
+   * Persistência do @Instagram + contexto social. Opcional e NUNCA bloqueante:
+   * qualquer falha vira um evento informativo e o cadastro continua.
+   */
+  linkSocialProfile?: (payload: SocialLinkPayload) => Promise<unknown>;
   // NOTA: recomputeOwnMatches removido — `save_own_profile_v2` já dispara
   // `_recompute_matches_for_profile` transacionalmente no banco.
 }
+
 
 export type PreSubmitResult =
   | { ok: true; phoneE164: string | null; withContact: boolean }
@@ -40,7 +48,10 @@ export type SubmitEvent =
   | { type: "CODE_FAIL"; error: unknown }
   | { type: "MATCH_OK" }
   | { type: "MATCH_FAIL"; error: unknown }
+  | { type: "SOCIAL_OK"; status: string; handle: string | null }
+  | { type: "SOCIAL_FAIL"; error: unknown }
   | { type: "AWAIT_CODE_CONFIRMATION" };
+
 
 /**
  * Executa o pipeline até o ponto em que uma confirmação manual do usuário é
@@ -53,8 +64,11 @@ export async function runWizardSubmit(args: {
   mode: WizardMode;
   phone: string;
   eventId: string;
+  /** Contexto social já saneado na sessão do wizard, quando existir. */
+  socialContext?: SocialBusinessContext | null;
   deps: SubmitOrchestratorDeps;
 }): Promise<SubmitEvent[]> {
+
   const events: SubmitEvent[] = [];
   const pre = preSubmit(args);
   if (!pre.ok) {
@@ -80,6 +94,28 @@ export async function runWizardSubmit(args: {
       return events;
     }
   }
+
+  // Instagram/contexto social — sempre depois do perfil (precisa do profile_id
+  // resolvido pela RPC) e sempre tolerante a falha.
+  if (args.deps.linkSocialProfile) {
+    const payload = buildSocialLinkPayload({
+      eventId: args.eventId,
+      instagram: args.draft.instagram,
+      context: args.socialContext ?? null,
+    });
+    try {
+      await args.deps.linkSocialProfile(payload);
+      events.push({
+        type: "SOCIAL_OK",
+        status: payload.handle ? payload.last_status : "unlinked",
+        handle: payload.handle,
+      });
+    } catch (error) {
+      events.push({ type: "SOCIAL_FAIL", error });
+    }
+  }
+
+
 
   if (args.mode === "create") {
     try {

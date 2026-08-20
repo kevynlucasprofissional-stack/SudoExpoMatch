@@ -1269,12 +1269,17 @@ export type Database = {
         Returns: string
       }
       _connection_outcomes: { Args: { _connection_id: string }; Returns: Json }
+      _normalize_social_handle: { Args: { _raw: string }; Returns: string }
       _outcome_kinds: { Args: never; Returns: string[] }
       _recompute_matches_for_profile: {
         Args: { p_event_id: string; p_profile_id: string }
         Returns: number
       }
       _sanitize_synonyms: { Args: { _syn: string[] }; Returns: string[] }
+      _social_cache_json: {
+        Args: { _c: unknown; _with_ai: boolean }
+        Returns: Json
+      }
       _taxonomy_item_json: { Args: { _id: string }; Returns: Json }
       _taxonomy_relation_json: { Args: { _id: string }; Returns: Json }
       _taxonomy_unique_slug: {
@@ -1342,6 +1347,10 @@ export type Database = {
       admin_experience_analytics: { Args: { _event_id: string }; Returns: Json }
       admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
+      admin_get_participant_social: {
         Args: { _profile_id: string }
         Returns: Json
       }
@@ -1470,6 +1479,7 @@ export type Database = {
         }[]
       }
       get_own_profile_v2: { Args: { _event_id: string }; Returns: Json }
+      get_own_social_profile: { Args: { _event_id: string }; Returns: Json }
       has_any_event_role: {
         Args: { _event_id: string; _user_id: string }
         Returns: boolean
@@ -1492,6 +1502,7 @@ export type Database = {
       hash_phone: { Args: { _phone_e164: string }; Returns: string }
       hash_recovery_code: { Args: { _code: string }; Returns: string }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
+      link_own_social_profile: { Args: { _payload: Json }; Returns: Json }
       list_event_segments_and_taxonomy: {
         Args: { _event_id: string }
         Returns: Json
@@ -1558,6 +1569,10 @@ export type Database = {
       }
       staff_clear_participant_pin: {
         Args: { _note?: string; _profile_id: string }
+        Returns: Json
+      }
+      staff_get_participant_social: {
+        Args: { _profile_id: string }
         Returns: Json
       }
       staff_list_connection_detail: {

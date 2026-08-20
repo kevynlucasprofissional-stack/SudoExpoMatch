@@ -129,3 +129,29 @@ export async function rotateOwnRecoveryCode(): Promise<string> {
   }
   return data;
 }
+
+// ---------------------------------------------------------------- social
+/**
+ * Persiste (ou remove) o vínculo do @Instagram do participante.
+ * Nunca deve bloquear o cadastro: o chamador trata a falha como aviso.
+ */
+export async function linkOwnSocialProfile(
+  payload: import("@/features/social/socialProfile").SocialLinkPayload,
+): Promise<{ status: string; handle?: string }> {
+  await ensureParticipantSession();
+  const { data, error } = await supabase.rpc("link_own_social_profile", {
+    _payload: payload as unknown as never,
+  });
+  if (error) throw new ApiError(extractErrorCode(error.message));
+  const obj = (data ?? {}) as { status?: string; handle?: string };
+  return { status: obj.status ?? "unknown", handle: obj.handle };
+}
+
+export async function getOwnSocialProfile(eventId: string) {
+  await ensureParticipantSession();
+  const { data, error } = await supabase.rpc("get_own_social_profile", { _event_id: eventId });
+  if (error) throw new ApiError(extractErrorCode(error.message));
+  const { ownSocialProfileSchema } = await import("@/features/social/socialProfile");
+  const parsed = ownSocialProfileSchema.safeParse(data ?? null);
+  return parsed.success ? parsed.data : null;
+}
