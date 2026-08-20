@@ -51,4 +51,4 @@ describe("Home mobile UX — estrutura do código", () => {
     expect(visual).toMatch(/alt="[^"]+"/);
   });
 });
-});
+
