@@ -96,23 +96,15 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* Coluna direita — visual desktop (oculto no mobile) */}
+        {/* Ilustração do matchmaker — mesma composição em todos os tamanhos */}
         <div
-          className="relative mx-auto hidden w-full max-w-[560px] md:block lg:mx-0 lg:max-w-none"
-          data-testid="hero-visual-desktop"
+          className="relative mx-auto w-full max-w-[560px] lg:mx-0 lg:max-w-none"
+          data-testid="hero-visual"
         >
-
           <HeroVisual />
         </div>
       </div>
 
-      {/* Composição visual dedicada para mobile, após CTAs e linha de tempo */}
-      <div
-        className="relative mx-auto max-w-[520px] px-8 pb-4 md:hidden"
-        data-testid="hero-visual-mobile"
-      >
-        <HeroVisualMobile />
-      </div>
     </section>
   );
 }
