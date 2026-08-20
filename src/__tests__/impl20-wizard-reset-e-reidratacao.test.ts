@@ -343,7 +343,7 @@ describe("Posicionamento e segurança do botão de reset", () => {
   it("não colide com Avançar/Voltar/Salvar perfil — CTAs vivem nos steps", () => {
     const steps = readFileSync("src/features/onboarding/steps.tsx", "utf8");
     expect(steps).not.toContain(WIZARD_RESET_COPY.trigger);
-    expect(steps).toMatch(/Avançar/);
+    expect(steps).toMatch(/Continuar/); // CTA de avanço vive no rodapé de cada etapa
     // O gatilho está em um container próprio, alinhado à direita no topo.
     expect(page).toContain('<div className="mb-4 flex justify-end">');
   });
