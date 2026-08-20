@@ -159,3 +159,70 @@ export function useSetTaxonomyItemActive(eventId: string) {
     onSuccess: (_data, vars) => invalidate(vars.itemId),
   });
 }
+
+// ---------------------------------------------------------------------------
+// IMPL 12 — mutações de relações complementares (admin-only, auditadas)
+// ---------------------------------------------------------------------------
+
+export function useCreateTaxonomyRelation(eventId: string, itemId: string | null) {
+  const invalidate = useInvalidateTaxonomy(eventId);
+  return useMutation({
+    mutationFn: async (values: TaxonomyRelationFormValues) => {
+      if (!itemId) throw new Error("not_found");
+      const from = values.direction === "outgoing" ? itemId : values.otherItemId;
+      const to = values.direction === "outgoing" ? values.otherItemId : itemId;
+      const { data, error } = await supabase.rpc("admin_create_taxonomy_relation", {
+        _event_id: eventId,
+        _from_item_id: from,
+        _to_item_id: to,
+        _relation_type: values.relationType,
+        _weight: values.weight,
+        _rationale: values.rationale?.trim() || undefined,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => invalidate(itemId ?? undefined),
+  });
+}
+
+export function useUpdateTaxonomyRelation(eventId: string, itemId: string | null) {
+  const invalidate = useInvalidateTaxonomy(eventId);
+  return useMutation({
+    mutationFn: async ({
+      relationId,
+      values,
+    }: {
+      relationId: string;
+      values: TaxonomyRelationFormValues;
+    }) => {
+      const { data, error } = await supabase.rpc("admin_update_taxonomy_relation", {
+        _event_id: eventId,
+        _relation_id: relationId,
+        _relation_type: values.relationType,
+        _weight: values.weight,
+        _rationale: values.rationale?.trim() || undefined,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => invalidate(itemId ?? undefined),
+  });
+}
+
+export function useSetTaxonomyRelationActive(eventId: string, itemId: string | null) {
+  const invalidate = useInvalidateTaxonomy(eventId);
+  return useMutation({
+    mutationFn: async ({ relationId, active }: { relationId: string; active: boolean }) => {
+      const { data, error } = await supabase.rpc("admin_set_taxonomy_relation_active", {
+        _event_id: eventId,
+        _relation_id: relationId,
+        _active: active,
+      });
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => invalidate(itemId ?? undefined),
+  });
+}
+
