@@ -4,7 +4,8 @@ import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
 
 import { analyzeSocialProfile } from "@/lib/social-context.functions";
-import { socialLookupMessage, type SocialLookupResult } from "@/lib/social-context";
+import { socialLookupMessage } from "@/lib/social-context";
+import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialLookupUiState } from "@/features/onboarding/steps";
 
 
@@ -209,7 +210,7 @@ function WizardPage() {
       const gen = ++socialGen.current;
       setSocial({ status: "loading", result: null, message: "Analisando perfil público…" });
       void (async () => {
-        let result: SocialLookupResult;
+        let result: SocialEnrichmentResult;
         try {
           result = await analyzeSocial({ data: { input: value } });
         } catch {
