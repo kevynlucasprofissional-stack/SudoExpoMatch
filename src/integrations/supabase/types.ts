@@ -1397,6 +1397,13 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_profile_by_verified_phone: {
+        Args: { _event_id: string }
+        Returns: {
+          claimed: boolean
+          profile_id: string
+        }[]
+      }
       event_operational_stats: { Args: { _event_id: string }; Returns: Json }
       event_stats: {
         Args: { _event_id: string }
