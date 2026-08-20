@@ -243,6 +243,7 @@ describe("pipeline UI → payload de submit", () => {
       niche: "",
       segmentId: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
+      instagram: "",
       offers: [
         {
           localId: "o1",

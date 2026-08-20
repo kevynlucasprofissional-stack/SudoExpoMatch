@@ -21,6 +21,7 @@ function baseDraft(overrides?: Partial<WizardDraft>): WizardDraft {
     niche: "",
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
+    instagram: "",
     offers: [
       {
         localId: "o1",
@@ -152,6 +153,7 @@ describe("suggestions: catálogo vazio (modo manual)", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "servicos",
       summary: "qualquer",
+      instagram: "",
       catalog: { segments: [], taxonomy: [] },
     });
     expect(r.items).toEqual([]);

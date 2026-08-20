@@ -141,6 +141,7 @@ describe("heurística (fallback) também usa o segmento do item", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "alimentacao",
       summary: "restaurante com buffet",
+      instagram: "",
       catalog,
     });
     for (const item of r.items) {
@@ -154,6 +155,7 @@ describe("heurística (fallback) também usa o segmento do item", () => {
     const r = await heuristicSuggestionProvider.suggest({
       segmentId: "alimentacao",
       summary: "restaurante",
+      instagram: "",
       catalog,
     });
     const semSeg = r.items.find((i) => i.label === "Item sem segmento");
@@ -201,6 +203,7 @@ function draftWith(offers: WizardOffer[], needs: WizardNeed[]): WizardDraft {
     niche: "",
     segmentId: "alimentacao",
     summary: "Restaurante familiar com buffet corporativo diário.",
+    instagram: "",
     offers,
     needs,
     consent: true,
@@ -261,6 +264,7 @@ describe("aceitar sugestão na UI preserva o segmento da taxonomia", () => {
       niche: null,
       segment_id: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
+      instagram: "",
       consent: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
