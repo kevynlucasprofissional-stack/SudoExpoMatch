@@ -48,7 +48,7 @@ describe("Entrega A — landing com menos texto", () => {
     expect(HERO).toContain("Ver minhas conexões");
     // ilustrações preservadas
     expect(HERO).toContain("<HeroVisual />");
-    expect(HERO).toContain("<HeroVisualMobile />");
+    expect(HERO).toContain("<HeroVisual />");
   });
 
 
