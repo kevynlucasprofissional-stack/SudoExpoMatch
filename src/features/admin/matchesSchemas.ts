@@ -43,6 +43,10 @@ export const matchRowSchema = z.object({
   mutual: z.boolean(),
   connection_id: z.string().uuid().nullable(),
   connection_status: z.string().nullable(),
+  /** Governança humana (IMPL 15): revisão administrativa, alheia ao matcher. */
+  reviewed: z.boolean().default(false),
+  reviewed_at: z.string().nullish(),
+  reviewed_by: z.string().uuid().nullish(),
   generated_at: z.string(),
   updated_at: z.string(),
 });
@@ -55,6 +59,7 @@ export const matchesPageSchema = z.object({
   offset: nonNegInt,
   score_side: z.string().nullish(),
   sort: z.string().nullish(),
+  reviewed_filter: z.boolean().nullish(),
 });
 export type MatchesPage = z.infer<typeof matchesPageSchema>;
 
