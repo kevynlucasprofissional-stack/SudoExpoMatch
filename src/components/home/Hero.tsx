@@ -33,7 +33,7 @@ export function Hero() {
 
           <h1
             className="mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
-            style={{ fontSize: "clamp(1.35rem, 5.7vw, 3.25rem)" }}
+            style={{ fontSize: "clamp(1.45rem, 6.2vw, 3.25rem)" }}
           >
             Encontre{" "}
             <span className="whitespace-nowrap">
