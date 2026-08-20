@@ -69,9 +69,24 @@ const queueResponseSchema = z.object({
   counts_by_scope: z.record(z.string(), z.number().int().nonnegative()).default({}),
 });
 
-export type QueueScope = "all" | "mine" | "unassigned" | "pending" | "closed";
+export type QueueScope =
+  | "all"
+  | "mine"
+  | "unassigned"
+  | "pending"
+  | "closed"
+  | "map_pending"
+  | "mapped";
 export type QueueSort = "priority" | "waiting" | "updated" | "created";
-export const QUEUE_SCOPES: QueueScope[] = ["all", "mine", "unassigned", "pending", "closed"];
+export const QUEUE_SCOPES: QueueScope[] = [
+  "all",
+  "mine",
+  "unassigned",
+  "pending",
+  "closed",
+  "map_pending",
+  "mapped",
+];
 export const QUEUE_SORTS: QueueSort[] = ["priority", "waiting", "updated", "created"];
 export const QUEUE_SORT_LABEL: Record<QueueSort, string> = {
   priority: "Prioridade",
