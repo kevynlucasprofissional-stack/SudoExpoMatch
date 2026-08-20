@@ -38,6 +38,8 @@ async function buildEnrichmentDeps() {
       INSTAGRAM_GRAPH_API_VERSION: process.env["INSTAGRAM_GRAPH_API_VERSION"],
       INSTAGRAM_PUBLIC_READ_DISABLED: process.env["INSTAGRAM_PUBLIC_READ_DISABLED"],
       APIFY_API_TOKEN: process.env["APIFY_API_TOKEN"],
+      APIFY_API_KEY: process.env["APIFY_API_KEY"],
+      LOVABLE_API_KEY: process.env["LOVABLE_API_KEY"],
     }),
     memory: socialMemory(),
     store: createSupabaseSocialCacheStore(
@@ -138,6 +140,8 @@ export const instagramProviderHealth = createServerFn({ method: "POST" })
       INSTAGRAM_GRAPH_API_VERSION: process.env["INSTAGRAM_GRAPH_API_VERSION"],
       INSTAGRAM_PUBLIC_READ_DISABLED: process.env["INSTAGRAM_PUBLIC_READ_DISABLED"],
       APIFY_API_TOKEN: process.env["APIFY_API_TOKEN"],
+      APIFY_API_KEY: process.env["APIFY_API_KEY"],
+      LOVABLE_API_KEY: process.env["LOVABLE_API_KEY"],
     });
     return { ok: true as const, health };
   });

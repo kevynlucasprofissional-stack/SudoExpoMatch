@@ -157,16 +157,44 @@ describe("provider Graph (Business Discovery)", () => {
     expect(provider.id).toBe("instagram_public");
   });
 
-  it("é o primeiro da cadeia quando configurado", () => {
-    const provider = resolveInstagramProvider(
+  it("entra na cadeia apenas como legado opcional, depois da Apify", async () => {
+    const { resolveApifyAuth } = await import("@/lib/instagram-provider.server");
+    expect(resolveApifyAuth({})).toBeNull();
+    const health = await checkInstagramProviderHealth(
       {
         INSTAGRAM_GRAPH_ACCESS_TOKEN: TOKEN,
         INSTAGRAM_BUSINESS_ACCOUNT_ID: ACCOUNT,
         APIFY_API_TOKEN: "apify",
       },
-      (async () => new Response("")) as never,
+      (async () => jsonResponse(GRAPH_OK)) as never,
     );
-    expect(provider.id).toBe("chain");
+    expect(health.chain).toEqual(["instagram_apify", "instagram_graph", "instagram_public"]);
+  });
+
+  it("a ausência das credenciais Meta nunca quebra o enriquecimento", async () => {
+    const provider = resolveInstagramProvider(
+      { APIFY_API_TOKEN: "apify", INSTAGRAM_PUBLIC_READ_DISABLED: "1" },
+      (async () => jsonResponse([{ username: "loja_local", biography: "materiais" }])) as never,
+    );
+    expect(provider.id).toBe("instagram_apify");
+    expect((await provider.fetchProfile("loja_local")).status).toBe("ok");
+  });
+
+  it("aceita credenciais via Connector Gateway sem token direto", async () => {
+    const seen: { url?: string; headers?: Headers } = {};
+    const provider = resolveInstagramProvider(
+      { APIFY_API_KEY: "conn-key", LOVABLE_API_KEY: "lovable-key" },
+      (async (url: string, init?: RequestInit) => {
+        seen.url = String(url);
+        seen.headers = new Headers(init?.headers);
+        return jsonResponse([{ username: "loja_local", biography: "materiais" }]);
+      }) as never,
+    );
+    const res = await provider.fetchProfile("loja_local");
+    expect(res.status).toBe("ok");
+    expect(seen.url).toContain("connector-gateway.lovable.dev/apify");
+    expect(seen.url).not.toContain("token=");
+    expect(seen.headers?.get("x-connection-api-key")).toBe("conn-key");
   });
 });
 
