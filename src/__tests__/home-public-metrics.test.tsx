@@ -50,17 +50,17 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
   it("mapeia cada card para a métrica correspondente do painel público", () => {
     setStats({ totalProfiles: 12, totalMatches: 34, mutualMatches: 7 });
     render(<ProcessPanel />);
-    expect(screen.getByTestId("metric-value-Participantes")).toHaveTextContent("+12");
-    expect(screen.getByTestId("metric-value-Matches gerados")).toHaveTextContent("+34");
-    expect(screen.getByTestId("metric-value-Interesses mútuos")).toHaveTextContent("+7");
+    expect(screen.getByTestId("metric-value-Participantes").textContent).toMatch("+12");
+    expect(screen.getByTestId("metric-value-Matches gerados").textContent).toMatch("+34");
+    expect(screen.getByTestId("metric-value-Interesses mútuos").textContent).toMatch("+7");
   });
 
   it("reflete valores diferentes do backend", () => {
     setStats({ totalProfiles: 999, totalMatches: 1, mutualMatches: 250 });
     render(<ProcessPanel />);
-    expect(screen.getByTestId("metric-value-Participantes")).toHaveTextContent("+999");
-    expect(screen.getByTestId("metric-value-Matches gerados")).toHaveTextContent("+1");
-    expect(screen.getByTestId("metric-value-Interesses mútuos")).toHaveTextContent("+250");
+    expect(screen.getByTestId("metric-value-Participantes").textContent).toMatch("+999");
+    expect(screen.getByTestId("metric-value-Matches gerados").textContent).toMatch("+1");
+    expect(screen.getByTestId("metric-value-Interesses mútuos").textContent).toMatch("+250");
   });
 
   it("zero aparece como 0 (nunca +0)", () => {
@@ -68,7 +68,7 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
     setStats({ totalProfiles: 0, totalMatches: 0, mutualMatches: 0 });
     render(<ProcessPanel />);
     for (const label of LABELS) {
-      expect(screen.getByTestId(`metric-value-${label}`)).toHaveTextContent(/^0$/);
+      expect(screen.getByTestId(`metric-value-${label}`).textContent).toMatch(/^0$/);
     }
   });
 
@@ -87,7 +87,7 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
     expect(() => render(<ProcessPanel />)).not.toThrow();
     expect(screen.getByText("DADOS DO SUDOEXPO MATCH")).toBeTruthy();
     for (const label of LABELS) {
-      expect(screen.getByTestId(`metric-value-${label}`)).toHaveTextContent("—");
+      expect(screen.getByTestId(`metric-value-${label}`).textContent).toMatch("—");
     }
   });
 });
