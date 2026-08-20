@@ -593,7 +593,10 @@ describe("busca estática: /participar e wizard não consomem catálogo mockado"
   });
   it("o adaptador antigo de IA (src/domains/ai/mock.ts) não existe mais", () => {
     expect(existsSync("src/domains/ai/mock.ts")).toBe(false);
-    const out = execSync('grep -rnE "domains/ai/mock" src || true', { encoding: "utf8" });
+    const out = execSync(
+      'grep -rnE "domains/ai/mock" src --exclude-dir=__tests__ || true',
+      { encoding: "utf8" },
+    );
     expect(out.trim()).toBe("");
   });
 });
