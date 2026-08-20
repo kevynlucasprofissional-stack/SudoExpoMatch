@@ -35,8 +35,8 @@ function mkResult(label: string): AiSuggestionResult {
   };
 }
 
-const KEY_A = { eventId: "e1", segmentId: "tec", summary: "Resumo A" };
-const KEY_B = { eventId: "e1", segmentId: "tec", summary: "Resumo B totalmente diferente" };
+const KEY_A = { focus: "offers" as const, eventId: "e1", segmentId: "tec", summary: "Resumo A" };
+const KEY_B = { focus: "offers" as const, eventId: "e1", segmentId: "tec", summary: "Resumo B totalmente diferente" };
 
 beforeEach(() => suggestMock.mockReset());
 

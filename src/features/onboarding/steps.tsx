@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
-import { AiAssistantPanel } from "./AiAssistantPanel";
-import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
+import { AI_SUGGESTION_BADGE, buildSuggestionFeed, type FeedSuggestion } from "./suggestionFeed";
+import { useAutoAiSuggestions } from "./useAutoAiSuggestions";
+import { normalizeConfirmedOffers } from "./aiAnalysisState";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
 import type { SocialBusinessContext } from "@/lib/social-context";
 import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
-
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -281,7 +281,6 @@ export function StepWhoIAm({
   manualSegmentLabel?: string;
   social?: SocialLookupUiState;
 }) {
-
   const isOther = draft.segmentId === OTHER_SEGMENT_ID;
   const nicheOk = !isOther || draft.niche.trim().length >= 3;
   const canNext =
@@ -380,9 +379,7 @@ export function StepWhoIAm({
             value={draft.niche}
             onChange={(e) => update("niche", e.target.value.slice(0, 120))}
             placeholder={
-              isOther
-                ? "Ex.: Manutenção de equipamentos agrícolas"
-                : "Ex.: Panificação artesanal"
+              isOther ? "Ex.: Manutenção de equipamentos agrícolas" : "Ex.: Panificação artesanal"
             }
             className="mt-1"
             maxLength={120}
@@ -438,7 +435,6 @@ export function StepWhoIAm({
         </div>
       </div>
 
-
       <div className="mt-6 flex justify-between">
         <Button variant="outline" onClick={onBack}>
           Voltar
@@ -481,7 +477,6 @@ export function StepOffers({
   socialContext?: SocialBusinessContext | null;
   socialAnalysis?: SocialBusinessAnalysis | null;
 }) {
-
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -515,6 +510,48 @@ export function StepOffers({
       cancelled = true;
     };
   }, [draft.segmentId, draft.summary, catalog]);
+
+  // IMPL 22 — IA automática: roda uma única vez por contexto semântico, em
+  // paralelo às heurísticas (que já estão clicáveis). Sem botão manual.
+  const { items: aiItems, loading: aiLoading } = useAutoAiSuggestions({
+    focus: "offers",
+    enabled: Boolean(eventId && aiAnalysis),
+    eventId,
+    segmentId: draft.segmentId,
+    summary: draft.summary,
+    businessSize: draft.businessSize,
+    businessType: draft.businessType,
+    niche: draft.niche,
+    socialContext: socialContext ?? null,
+    socialAnalysis: socialAnalysis ?? null,
+    existingLabels: draft.offers.map((o) => o.label),
+    analysis: aiAnalysis,
+  });
+
+  // Lista ÚNICA: heurística + IA, sem duplicatas, com proveniência.
+  const feed = useMemo(
+    () =>
+      buildSuggestionFeed({
+        kind: "offer",
+        heuristic: suggestions,
+        ai: aiItems,
+        existing: draft.offers,
+      }),
+    [suggestions, aiItems, draft.offers],
+  );
+
+  /** IA sugere, usuário confirma — nada é adicionado automaticamente. */
+  function addFromFeed(s: FeedSuggestion) {
+    addFromSuggestion(
+      {
+        taxonomyItemId: s.taxonomyItemId,
+        segmentId: s.segmentId,
+        label: s.label,
+        kind: "offer",
+      },
+      s.source,
+    );
+  }
 
   function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
@@ -573,68 +610,46 @@ export function StepOffers({
         <Sparkles className="h-5 w-5 shrink-0 text-accent animate-float-slow" />
       </div>
 
-      {eventId && aiAnalysis && draft.summary.trim().length >= 10 && (
-        <AiAssistantPanel
-          kind="offer"
-          eventId={eventId}
-          segmentId={draft.segmentId}
-          summary={draft.summary}
-          existingLabels={draft.offers.map((o) => o.label)}
-          businessSize={draft.businessSize}
-          businessType={draft.businessType}
-          niche={draft.niche}
-          socialContext={socialContext ?? null}
-          socialAnalysis={socialAnalysis ?? null}
-          analysis={aiAnalysis}
-
-          onAcceptMany={(picks: AiSuggestionItem[], source) => {
-            const additions: WizardOffer[] = picks.map((s) => ({
-              localId: cryptoUid(),
-              label: s.label,
-              // IMPL 7: segmento autoritativo da taxonomia (cross-segment ok).
-              segmentId: s.segmentId ?? draft.segmentId,
-              taxonomyItemId: s.taxonomyItemId,
-              source,
-            }));
-            update("offers", mergeCapped(draft.offers, additions, 5));
-          }}
-          disabled={draft.offers.length >= 5}
-        />
-      )}
-
       {loading && (
         <div className="mt-4 flex items-center gap-2 rounded-lg bg-muted p-3 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" /> Analisando seu resumo…
         </div>
       )}
 
-      {!loading && suggestions.length > 0 && (
+      {!loading && feed.length > 0 && (
         <div className="mt-5">
-          <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Sugeridos para você (confirme os que fazem sentido)
-          </p>
+          <div className="mb-2 flex items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Sugeridos para você (confirme os que fazem sentido)
+            </p>
+            {aiLoading && (
+              <span
+                data-testid="ai-personalizing"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" /> Personalizando sugestões…
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap gap-2">
-            {suggestions.map((s) => {
-              const added = draft.offers.some(
-                (o) => o.label.toLowerCase() === s.label.toLowerCase(),
-              );
-              return (
-                <button
-                  key={s.label + (s.taxonomyItemId ?? "")}
-                  type="button"
-                  onClick={() => (added ? null : addFromSuggestion(s))}
-                  disabled={added || draft.offers.length >= 5}
-                  className={`rounded-full border px-3 py-1.5 text-sm transition-all disabled:opacity-50 ${
-                    added
-                      ? "border-success bg-success/10"
-                      : "hover:border-primary hover:bg-primary/5"
-                  }`}
-                >
-                  {added ? "✓ " : "+ "}
-                  {s.label}
-                </button>
-              );
-            })}
+            {feed.map((s) => (
+              <button
+                key={s.identity}
+                type="button"
+                data-testid="suggestion-chip"
+                data-source={s.source}
+                onClick={() => addFromFeed(s)}
+                disabled={draft.offers.length >= 5}
+                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+              >
+                + {s.label}
+                {s.fromAi && (
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                    {AI_SUGGESTION_BADGE}
+                  </Badge>
+                )}
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -755,7 +770,6 @@ export function StepNeeds({
   socialContext?: SocialBusinessContext | null;
   socialAnalysis?: SocialBusinessAnalysis | null;
 }) {
-
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
@@ -766,6 +780,74 @@ export function StepNeeds({
         .slice(0, 10),
     [catalog, draft.segmentId],
   );
+
+  // Heurísticas — aparecem imediatamente, sem esperar a IA.
+  const [heuristicNeeds, setHeuristicNeeds] = useState<SuggestionItem[]>([]);
+  useEffect(() => {
+    let cancelled = false;
+    if (catalog.taxonomy.length === 0) {
+      setHeuristicNeeds([]);
+      return;
+    }
+    heuristicSuggestionProvider
+      .suggest({ segmentId: draft.segmentId, summary: draft.summary, catalog })
+      .then((r) => {
+        if (!cancelled) setHeuristicNeeds(r.items.filter((i) => i.kind === "need"));
+      })
+      .catch(() => {
+        if (!cancelled) setHeuristicNeeds([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [draft.segmentId, draft.summary, catalog]);
+
+  // IMPL 22 — a análise da Etapa 4 é semanticamente diferente: considera as
+  // ofertas CONFIRMADAS na Etapa 3. Trocar uma oferta invalida a análise;
+  // não mexer nelas reaproveita a anterior (zero chamada).
+  const confirmedOffers = useMemo(() => normalizeConfirmedOffers(draft.offers), [draft.offers]);
+  const { items: aiItems, loading: aiLoading } = useAutoAiSuggestions({
+    focus: "needs",
+    enabled: Boolean(eventId && aiAnalysis),
+    eventId,
+    segmentId: draft.segmentId,
+    summary: draft.summary,
+    businessSize: draft.businessSize,
+    businessType: draft.businessType,
+    niche: draft.niche,
+    socialContext: socialContext ?? null,
+    socialAnalysis: socialAnalysis ?? null,
+    existingLabels: draft.needs.map((n) => n.label),
+    confirmedOffers,
+    analysis: aiAnalysis,
+  });
+
+  const feed = useMemo(
+    () =>
+      buildSuggestionFeed({
+        kind: "need",
+        heuristic: heuristicNeeds,
+        ai: aiItems,
+        existing: draft.needs,
+      }),
+    [heuristicNeeds, aiItems, draft.needs],
+  );
+
+  /** IA sugere, usuário confirma. `needKind` vem do item, nunca do seletor. */
+  function addFromFeed(s: FeedSuggestion) {
+    if (draft.needs.length >= 5) return;
+    if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
+    const need: WizardNeed = {
+      localId: cryptoUid(),
+      label: s.label,
+      segmentId: s.segmentId ?? draft.segmentId,
+      taxonomyItemId: s.taxonomyItemId,
+      needKind: s.needKind ?? (s.fromAi ? "outro" : kind),
+      isPriority: false,
+      source: s.source,
+    };
+    update("needs", [...draft.needs, need]);
+  }
 
   function addFromCatalog(t: CatalogTaxonomyItem) {
     if (draft.needs.length >= 5) return;
@@ -835,36 +917,42 @@ export function StepNeeds({
         Adicione o que faria diferença na sua visita à feira (até 5).
       </p>
 
-      {eventId && aiAnalysis && draft.summary.trim().length >= 10 && (
-        <AiAssistantPanel
-          kind="need"
-          eventId={eventId}
-          segmentId={draft.segmentId}
-          summary={draft.summary}
-          existingLabels={draft.needs.map((n) => n.label)}
-          businessSize={draft.businessSize}
-          businessType={draft.businessType}
-          niche={draft.niche}
-          socialContext={socialContext ?? null}
-          socialAnalysis={socialAnalysis ?? null}
-          analysis={aiAnalysis}
-
-          onAcceptMany={(picks: AiSuggestionItem[], source) => {
-            const additions: WizardNeed[] = picks.map((s) => ({
-              localId: cryptoUid(),
-              label: s.label,
-              // IMPL 7: segmento autoritativo da taxonomia (cross-segment ok).
-              segmentId: s.segmentId ?? draft.segmentId,
-              taxonomyItemId: s.taxonomyItemId,
-              // IMPL 6: o tipo vem da sugestão, NUNCA do seletor visual.
-              needKind: s.needKind ?? "outro",
-              isPriority: false,
-              source,
-            }));
-            update("needs", mergeCapped(draft.needs, additions, 5));
-          }}
-          disabled={draft.needs.length >= 5}
-        />
+      {feed.length > 0 && (
+        <div className="mt-5">
+          <div className="mb-2 flex items-center gap-2">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Sugeridos para você (confirme os que fazem sentido)
+            </p>
+            {aiLoading && (
+              <span
+                data-testid="ai-personalizing"
+                className="inline-flex items-center gap-1 text-xs text-muted-foreground"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" /> Personalizando sugestões…
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {feed.map((s) => (
+              <button
+                key={s.identity}
+                type="button"
+                data-testid="suggestion-chip"
+                data-source={s.source}
+                onClick={() => addFromFeed(s)}
+                disabled={draft.needs.length >= 5}
+                className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-all hover:border-primary hover:bg-primary/5 disabled:opacity-50"
+              >
+                + {s.label}
+                {s.fromAi && (
+                  <Badge variant="secondary" className="px-1.5 py-0 text-[10px]">
+                    {AI_SUGGESTION_BADGE}
+                  </Badge>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
 
       <div className="mt-6 space-y-4">
@@ -996,7 +1084,6 @@ export function StepNeeds({
 
 // A antiga etapa "Prioridade" foi integrada em StepNeeds (etapa "O que eu
 // procuro"). O Matcher v2.3 continua consumindo `is_priority` normalmente.
-
 
 // ============================================================================
 // StepReview
