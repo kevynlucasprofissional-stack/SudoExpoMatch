@@ -178,14 +178,14 @@ function PublicBoard() {
         </div>
 
         {/* ÁREA PRINCIPAL: 4 métricas reais */}
-        <div className="my-8 grid flex-1 content-center gap-5 sm:grid-cols-2 xl:my-10 xl:grid-cols-4 xl:gap-8">
+        <div className="mt-8 mb-12 grid flex-1 content-center gap-5 sm:grid-cols-2 xl:mt-10 xl:mb-16 xl:grid-cols-4 xl:gap-8">
           {metrics.map((m) => (
             <MetricCard key={m.key} label={m.label} icon={m.icon} tone={m.tone} value={m.value} />
           ))}
         </div>
 
         {/* RODAPÉ VISUAL (sem box) */}
-        <footer className="pb-2 text-center">
+        <footer className="pb-3 pt-2 text-center">
           <p className="font-display text-2xl font-bold tracking-tight md:text-4xl xl:text-[2.6rem]">
             <span className="text-white">Aqui, ninguém cresce isolado.</span>{" "}
             <span className="text-[#4aa8ff]">A gente cresce</span>{" "}
@@ -217,7 +217,7 @@ function MetricCard({
     <section
       aria-label={label}
       data-testid={`metric-card-${label}`}
-      className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[28px] border p-6 backdrop-blur-md xl:min-h-[340px] xl:p-8"
+      className="relative flex min-h-[240px] flex-col overflow-hidden rounded-[28px] border p-6 backdrop-blur-md xl:min-h-[320px] xl:p-8"
       style={{ borderColor: t.border, background: t.wash, boxShadow: t.shadow }}
     >
       {/* brilho inferior */}
@@ -229,7 +229,7 @@ function MetricCard({
       {/* ícone decorativo grande, quase transparente */}
       <Icon
         aria-hidden
-        className="pointer-events-none absolute -bottom-6 -right-5 h-36 w-36 opacity-[0.09] xl:h-52 xl:w-52"
+        className="pointer-events-none absolute -bottom-6 -right-5 h-36 w-36 opacity-[0.07] xl:h-52 xl:w-52"
         style={{ color: t.hex }}
         strokeWidth={1}
       />

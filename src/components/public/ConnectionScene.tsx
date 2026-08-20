@@ -5,8 +5,8 @@ const NODES = [
   { x: 8, y: 46, r: 2.6, color: "#22d3ee" }, // ciano à esquerda
   { x: 82, y: 12, r: 2.2, color: "#8f9bff" }, // violeta superior direito
   { x: 52, y: 8, r: 1.8, color: "#a3e635" }, // verde centro superior
-  { x: 14, y: 88, r: 2.4, color: "#a3e635" }, // verde inferior esquerdo
-  { x: 90, y: 84, r: 2.2, color: "#ff8a3d" }, // laranja inferior direito
+  { x: 5, y: 74, r: 2.0, color: "#a3e635" }, // verde inferior esquerdo
+  { x: 95, y: 70, r: 2.0, color: "#ff8a3d" }, // laranja inferior direito
   { x: 66, y: 62, r: 1.6, color: "#3b82f6" }, // azul central
 ];
 
