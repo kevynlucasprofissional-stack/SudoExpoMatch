@@ -35,6 +35,10 @@ export function ProcessPanel() {
   const statsQuery = useEventStats(EVENT_ID);
   const stats = statsQuery.data;
   const ready = Boolean(stats) && !statsQuery.isError;
+  // Erro: nada de número inventado — placeholder neutro, bloco intacto.
+  const render = (v: number | undefined) =>
+    statsQuery.isError ? "—" : ready ? formatAggregateMetric(v ?? 0) : null;
+
 
   const metrics: {
     Icon: typeof Users;
