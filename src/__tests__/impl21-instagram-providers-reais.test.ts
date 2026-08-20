@@ -383,7 +383,22 @@ describe("cache L1/L2 com a nova cadeia", () => {
   const analyzer = {
     model: "test-model",
     promptVersion: "v1",
-    analyze: vi.fn(async () => ({ summary: "resumo", keywords: [], offers: [], needs: [] }) as never),
+    analyze: vi.fn(
+      async () =>
+        ({
+          businessSummary: "Consultoria contábil para pequenas indústrias.",
+          mainActivities: ["contabilidade"],
+          productsServices: ["folha de pagamento"],
+          targetAudiences: ["restaurantes"],
+          commercialSignals: ["atende B2B"],
+          differentiators: ["atendimento local"],
+          keywords: ["contabilidade"],
+          likelyOffers: ["serviços contábeis"],
+          likelyNeeds: ["indicação de clientes"],
+          confidence: 0.7,
+          evidences: ["bio"],
+        }) as never,
+    ),
   };
 
   it("primeira consulta chama provider+IA; segunda não chama nada", async () => {
