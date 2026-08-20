@@ -39,7 +39,7 @@ const TONES: Record<
     border: "rgba(34,211,238,0.38)",
     wash: "linear-gradient(160deg, rgba(34,211,238,0.30) 0%, rgba(9,20,68,0.30) 46%, rgba(3,9,44,0.55) 100%)",
     shadow: "0 24px 70px -28px rgba(34,211,238,0.55), inset 0 -60px 90px -70px rgba(34,211,238,0.9)",
-    iconBg: "rgba(34,211,238,0.16)",
+    iconBg: "rgba(34,211,238,0.24)",
   },
   violet: {
     hex: "#8f9bff",
@@ -47,21 +47,21 @@ const TONES: Record<
     wash: "linear-gradient(160deg, rgba(143,155,255,0.32) 0%, rgba(11,18,82,0.32) 46%, rgba(3,9,44,0.55) 100%)",
     shadow:
       "0 24px 70px -28px rgba(143,155,255,0.55), inset 0 -60px 90px -70px rgba(143,155,255,0.9)",
-    iconBg: "rgba(143,155,255,0.18)",
+    iconBg: "rgba(143,155,255,0.26)",
   },
   lime: {
     hex: "#a3e635",
     border: "rgba(163,230,53,0.38)",
     wash: "linear-gradient(160deg, rgba(163,230,53,0.26) 0%, rgba(9,26,44,0.32) 46%, rgba(3,9,44,0.55) 100%)",
     shadow: "0 24px 70px -28px rgba(163,230,53,0.45), inset 0 -60px 90px -70px rgba(163,230,53,0.8)",
-    iconBg: "rgba(163,230,53,0.16)",
+    iconBg: "rgba(163,230,53,0.22)",
   },
   orange: {
     hex: "#ff8a3d",
     border: "rgba(255,138,61,0.38)",
     wash: "linear-gradient(160deg, rgba(255,138,61,0.30) 0%, rgba(30,16,48,0.32) 46%, rgba(3,9,44,0.55) 100%)",
     shadow: "0 24px 70px -28px rgba(255,138,61,0.50), inset 0 -60px 90px -70px rgba(255,138,61,0.85)",
-    iconBg: "rgba(255,138,61,0.16)",
+    iconBg: "rgba(255,138,61,0.24)",
   },
 };
 
