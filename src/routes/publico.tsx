@@ -139,9 +139,9 @@ function PublicBoard() {
         <CornerLines className="absolute -left-6 bottom-6 hidden h-40 w-40 opacity-70 md:block" />
       </div>
 
-      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
+      <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-5 sm:px-10 xl:px-20 xl:py-8">
         {/* TÍTULO */}
-        <div className="mt-8 xl:mt-12">
+        <div className="mt-0">
           <h1 className="bg-linear-to-r from-[#ffd53d] via-[#ffa93d] to-[#ff7a1a] bg-clip-text font-display text-4xl font-black leading-[1.02] tracking-tight text-transparent md:text-6xl xl:text-[5.2rem]">
             Matchmaker em tempo real
           </h1>
