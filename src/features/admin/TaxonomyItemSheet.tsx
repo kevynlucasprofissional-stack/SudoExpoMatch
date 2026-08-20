@@ -153,6 +153,9 @@ export function TaxonomyItemSheet({
         if (!v) {
           setEditing(false);
           setConfirmOff(false);
+          setCreating(false);
+          setEditingRelation(null);
+          setConfirmRelationOff(null);
         }
         onOpenChange(v);
       }}
