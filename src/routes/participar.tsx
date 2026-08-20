@@ -293,10 +293,12 @@ function WizardPage() {
         mode,
         phone,
         eventId: EVENT_ID,
+        socialContext: social.result?.status === "ok" ? social.result.context : null,
         deps: {
           saveOwnProfile,
           setOwnContact,
           rotateOwnRecoveryCode,
+          linkSocialProfile: linkOwnSocialProfile,
         },
       });
       for (const evt of events) {
