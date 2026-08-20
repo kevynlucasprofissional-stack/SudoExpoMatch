@@ -152,14 +152,16 @@ describe("banco — RLS, grants e agregação", () => {
 const insertAuth = psql(
       `SELECT has_table_privilege('authenticated', 'public.analytics_events', 'INSERT');`,
     );
-    const selectAuth = psql(
-      `SELECT has_table_privilege('authenticated', 'public.analytics_events', 'SELECT');`,
+    const selectPolicies = psql(
+      `SELECT count(*) FROM pg_policy
+        WHERE polrelid='public.analytics_events'::regclass AND polcmd IN ('r','*');`,
     );
     const insertAnon = psql(
       `SELECT has_table_privilege('anon', 'public.analytics_events', 'INSERT');`,
     );
     expect(insertAuth).toBe("t");
-    expect(selectAuth).toBe("f");
+    // Sem política de SELECT => leitura negada ao cliente mesmo com grant.
+    expect(selectPolicies).toBe("0");
     expect(insertAnon).toBe("f");
   });
 
