@@ -108,7 +108,12 @@ export function isAllowedInstagramHost(hostname: string): boolean {
 }
 
 // ------------------------------------------------------------------ schema
-export const socialProviderSchema = z.enum(["instagram_graph", "instagram_public", "mock"]);
+export const socialProviderSchema = z.enum([
+  "instagram_graph",
+  "instagram_apify",
+  "instagram_public",
+  "mock",
+]);
 
 export const socialMediaItemSchema = z.object({
   mediaType: z.enum(["IMAGE", "VIDEO", "CAROUSEL_ALBUM", "OTHER"]),
@@ -129,6 +134,7 @@ export const socialBusinessContextSchema = z.object({
   /** Campos oficiais adicionais (Graph/business_discovery), quando houver. */
   website: z.string().max(300).optional(),
   followersCount: z.number().int().nonnegative().max(1_000_000_000).optional(),
+  followsCount: z.number().int().nonnegative().max(1_000_000_000).optional(),
   mediaCount: z.number().int().nonnegative().max(10_000_000).optional(),
   profilePictureUrl: z.string().max(600).optional(),
   recentMedia: z.array(socialMediaItemSchema).max(MAX_RECENT_MEDIA).optional(),
@@ -195,6 +201,7 @@ export function sanitizeSocialBusinessContext(raw: unknown): SocialBusinessConte
     signals: clampList(r.signals, MAX_SIGNALS, MAX_SIGNAL_CHARS),
     website: clampText(r.website, 300),
     followersCount: intOrUndefined(r.followersCount),
+    followsCount: intOrUndefined(r.followsCount),
     mediaCount: intOrUndefined(r.mediaCount),
     profilePictureUrl: clampText(r.profilePictureUrl, 600),
     recentMedia: sanitizeRecentMedia(r.recentMedia),
