@@ -3,7 +3,7 @@
 
 const NODES: { x: number; y: number; r: number; color: string; dur: number; ring?: boolean }[] = [
   { x: 8, y: 46, r: 2.6, color: "#22d3ee", dur: 5, ring: true }, // ciano à esquerda
-  { x: 82, y: 12, r: 2.2, color: "#8f9bff", dur: 7 }, // violeta superior direito
+  { x: 73, y: 15, r: 2.2, color: "#8f9bff", dur: 7 }, // violeta superior direito
   { x: 52, y: 8, r: 1.8, color: "#a3e635", dur: 6, ring: true }, // verde centro superior
   { x: 5, y: 74, r: 2.0, color: "#a3e635", dur: 4 }, // verde inferior esquerdo
   { x: 95, y: 70, r: 2.0, color: "#ff8a3d", dur: 6.5, ring: true }, // laranja inferior direito
