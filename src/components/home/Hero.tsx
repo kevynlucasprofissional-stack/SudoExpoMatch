@@ -97,7 +97,11 @@ export function Hero() {
         </div>
 
         {/* Coluna direita — visual desktop (oculto no mobile) */}
-        <div className="relative hidden md:block" data-testid="hero-visual-desktop">
+        <div
+          className="relative mx-auto hidden w-full max-w-[560px] md:block lg:mx-0 lg:max-w-none"
+          data-testid="hero-visual-desktop"
+        >
+
           <HeroVisual />
         </div>
       </div>
