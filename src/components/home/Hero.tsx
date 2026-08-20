@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Clock, Users, Package, Handshake } from "lucide-react";
+import { ArrowRight, Users, Package, Handshake } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
 import { HeroVisualMobile } from "./HeroVisualMobile";
 
@@ -69,9 +69,6 @@ export function Hero() {
             </Link>
           </div>
 
-          <p className="mt-3 flex items-center gap-2 text-xs text-white/70">
-            <Clock className="h-3.5 w-3.5" /> Cadastro gratuito · 3 minutos
-          </p>
 
           {/* Categorias compactas — só mobile */}
           <ul
