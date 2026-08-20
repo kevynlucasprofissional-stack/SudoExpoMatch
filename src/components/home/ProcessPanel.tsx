@@ -18,12 +18,13 @@ const STEPS = [
   { Icon: Handshake, label: "A ACIRV apresenta vocês" },
 ] as const;
 
-// Preview agregado do painel público — não expõe empresas nomeadas
-const AGGREGATE_METRICS: { Icon: typeof Users; label: string; value: string; tone: string }[] = [
-  { Icon: Users, label: "Participantes", value: "+120", tone: "var(--success)" },
-  { Icon: Sparkles, label: "Matches gerados", value: "+380", tone: "var(--secondary)" },
-  { Icon: Activity, label: "Interesses mútuos", value: "+65", tone: "var(--accent)" },
-];
+// Preview agregado do painel público — MESMA fonte de verdade (RPC event_stats
+// via useEventStats), sem números hardcoded e sem regra de contagem própria.
+export function formatAggregateMetric(value: number): string {
+  if (!Number.isFinite(value) || value <= 0) return "0";
+  return `+${value}`;
+}
+
 
 export function ProcessPanel() {
   return (
