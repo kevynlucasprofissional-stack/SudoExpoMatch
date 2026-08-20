@@ -705,8 +705,6 @@ export type Database = {
           algorithm_version: string
           b_profile_id: string
           created_at: string
-          decision_a: Database["public"]["Enums"]["decision"]
-          decision_b: Database["public"]["Enums"]["decision"]
           event_id: string
           expires_at: string | null
           generated_at: string
@@ -725,8 +723,6 @@ export type Database = {
           algorithm_version?: string
           b_profile_id: string
           created_at?: string
-          decision_a?: Database["public"]["Enums"]["decision"]
-          decision_b?: Database["public"]["Enums"]["decision"]
           event_id: string
           expires_at?: string | null
           generated_at?: string
@@ -745,8 +741,6 @@ export type Database = {
           algorithm_version?: string
           b_profile_id?: string
           created_at?: string
-          decision_a?: Database["public"]["Enums"]["decision"]
-          decision_b?: Database["public"]["Enums"]["decision"]
           event_id?: string
           expires_at?: string | null
           generated_at?: string
@@ -993,68 +987,53 @@ export type Database = {
         Row: {
           city: string
           company: string
-          consent: boolean
           created_at: string
           event_id: string
           id: string
           is_demo: boolean
           name: string
-          needs: Json
           neighborhood: string | null
-          offers: Json
           owner_id: string | null
           pin_code: string | null
           pin_placed_at: string | null
           pin_placed_by: string | null
-          recovery_code: string
           segment_id: string
           summary: string
           updated_at: string
-          whatsapp: string
         }
         Insert: {
           city: string
           company: string
-          consent?: boolean
           created_at?: string
           event_id: string
           id?: string
           is_demo?: boolean
           name: string
-          needs?: Json
           neighborhood?: string | null
-          offers?: Json
           owner_id?: string | null
           pin_code?: string | null
           pin_placed_at?: string | null
           pin_placed_by?: string | null
-          recovery_code: string
           segment_id: string
           summary: string
           updated_at?: string
-          whatsapp: string
         }
         Update: {
           city?: string
           company?: string
-          consent?: boolean
           created_at?: string
           event_id?: string
           id?: string
           is_demo?: boolean
           name?: string
-          needs?: Json
           neighborhood?: string | null
-          offers?: Json
           owner_id?: string | null
           pin_code?: string | null
           pin_placed_at?: string | null
           pin_placed_by?: string | null
-          recovery_code?: string
           segment_id?: string
           summary?: string
           updated_at?: string
-          whatsapp?: string
         }
         Relationships: [
           {
