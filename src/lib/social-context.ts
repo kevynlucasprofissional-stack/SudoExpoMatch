@@ -461,7 +461,7 @@ export type SocialLookupFailure =
 export type SocialLookupResult = { status: "ok"; context: SocialBusinessContext } | SocialLookupFailure;
 
 export interface SocialProvider {
-  id: SocialBusinessContext["provider"] | "unconfigured";
+  id: SocialBusinessContext["provider"] | "unconfigured" | "chain";
   fetchProfile(handle: string): Promise<SocialLookupResult>;
 }
 
@@ -637,6 +637,10 @@ export function socialLookupMessage(res: SocialLookupResult | null): string {
     case "rate_limited":
       return "Muitas tentativas seguidas. Tente novamente em alguns minutos.";
     case "unavailable":
+      if (res.reason === "not_professional") {
+        return "Esse perfil não é uma conta profissional do Instagram. Você pode continuar sem ele.";
+      }
+      return "Não foi possível analisar o Instagram agora. Você pode continuar sem ele.";
     default:
       return "Não foi possível analisar o Instagram agora. Você pode continuar sem ele.";
   }
