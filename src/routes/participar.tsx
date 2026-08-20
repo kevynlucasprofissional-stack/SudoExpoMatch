@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 
 import { analyzeSocialProfile } from "@/lib/social-context.functions";
 import { socialLookupMessage } from "@/lib/social-context";
+import { shouldRunSocialEnrichment } from "@/features/onboarding/socialContinue";
 import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialLookupUiState } from "@/features/onboarding/steps";
 
