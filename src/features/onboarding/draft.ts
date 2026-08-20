@@ -158,7 +158,7 @@ export function saveWizardDraft(
     storage.setItem(
       WIZARD_DRAFT_KEY,
       JSON.stringify({
-        version: 3 as const,
+        version: 4 as const,
         savedAt: new Date(now).toISOString(),
         draft: clean,
       }),
