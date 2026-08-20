@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
 import {
   AI_SUGGESTION_BADGE,
@@ -281,8 +281,10 @@ export function StepWhoIAm({
   manualMode = false,
   manualSegmentLabel,
   social,
+  resetAction,
 }: BaseProps & {
   catalog: EventCatalog;
+  resetAction?: ReactNode;
   manualMode?: boolean;
   manualSegmentLabel?: string;
   social?: SocialLookupUiState;
@@ -442,9 +444,12 @@ export function StepWhoIAm({
       </div>
 
       <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={onBack}>
+            Voltar
+          </Button>
+          {resetAction}
+        </div>
         <Button
           onClick={onNext}
           disabled={!canNext || social?.status === "loading"}
@@ -476,8 +481,10 @@ export function StepOffers({
   aiAnalysis,
   socialContext,
   socialAnalysis,
+  resetAction,
 }: BaseProps & {
   catalog: EventCatalog;
+  resetAction?: ReactNode;
   eventId?: string;
   aiAnalysis?: SharedAiAnalysis;
   socialContext?: SocialBusinessContext | null;
@@ -750,9 +757,12 @@ export function StepOffers({
       </div>
 
       <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={onBack}>
+            Voltar
+          </Button>
+          {resetAction}
+        </div>
         <Button onClick={onNext} disabled={draft.offers.length === 0}>
           Continuar
         </Button>
@@ -774,8 +784,10 @@ export function StepNeeds({
   aiAnalysis,
   socialContext,
   socialAnalysis,
+  resetAction,
 }: BaseProps & {
   catalog: EventCatalog;
+  resetAction?: ReactNode;
   eventId?: string;
   aiAnalysis?: SharedAiAnalysis;
   socialContext?: SocialBusinessContext | null;
@@ -1099,9 +1111,12 @@ export function StepNeeds({
       </div>
 
       <div className="mt-6 flex justify-between">
-        <Button variant="outline" onClick={onBack}>
-          Voltar
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={onBack}>
+            Voltar
+          </Button>
+          {resetAction}
+        </div>
         <Button onClick={onNext} disabled={draft.needs.length === 0 || !priorityId}>
           Continuar
         </Button>
@@ -1130,8 +1145,10 @@ export function StepReview({
   catalog,
   validation,
   catalogFallback,
+  resetAction,
 }: {
   draft: WizardDraft;
+  resetAction?: ReactNode;
   onBack: () => void;
   onSubmit: () => void;
   onRetryContact: () => void;
@@ -1273,9 +1290,12 @@ export function StepReview({
         )}
 
         <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
-          <Button variant="outline" onClick={onBack} disabled={submitting}>
-            Voltar e editar
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="outline" onClick={onBack} disabled={submitting}>
+              Voltar e editar
+            </Button>
+            {resetAction}
+          </div>
           <Button
             size="lg"
             onClick={onSubmit}
