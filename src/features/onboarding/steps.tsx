@@ -275,13 +275,11 @@ export function StepWhoIAm({
   manualMode = false,
   manualSegmentLabel,
   social,
-  onAnalyzeInstagram,
 }: BaseProps & {
   catalog: EventCatalog;
   manualMode?: boolean;
   manualSegmentLabel?: string;
   social?: SocialLookupUiState;
-  onAnalyzeInstagram?: (raw: string) => void;
 }) {
 
   const isOther = draft.segmentId === OTHER_SEGMENT_ID;

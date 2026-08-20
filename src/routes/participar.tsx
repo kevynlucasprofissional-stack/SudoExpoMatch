@@ -209,28 +209,53 @@ function WizardPage() {
    * Enriquecimento opcional: qualquer falha vira mensagem informativa e o
    * cadastro segue normalmente (nunca bloqueia o wizard).
    */
-  const onAnalyzeInstagram = useCallback(
-    (raw: string) => {
+  const runSocialEnrich = useCallback(
+    async (raw: string): Promise<void> => {
       const value = raw.trim();
       if (!value) return;
       const gen = ++socialGen.current;
-      setSocial({ status: "loading", result: null, message: "Analisando perfil público…" });
-      void (async () => {
-        let result: SocialEnrichmentResult;
-        try {
-          result = await analyzeSocial({ data: { input: value } });
-        } catch {
-          result = { status: "unavailable", reason: "error" };
-        }
-        if (gen !== socialGen.current) return;
-        if (result.status === "ok") {
-          setDraft((d) => ({ ...d, instagram: `@${result.context.handle}` }));
-        }
-        setSocial({ status: "done", result, message: socialLookupMessage(result) });
-      })();
+      setSocial({ status: "loading", result: null, message: "Preparando suas sugestões…" });
+      let result: SocialEnrichmentResult;
+      try {
+        result = await analyzeSocial({ data: { input: value } });
+      } catch {
+        result = { status: "unavailable", reason: "error" };
+      }
+      if (gen !== socialGen.current) return;
+      if (result.status === "ok") {
+        setDraft((d) => ({ ...d, instagram: `@${result.context.handle}` }));
+      }
+      setSocial({ status: "done", result, message: socialLookupMessage(result) });
     },
     [analyzeSocial],
   );
+
+  /**
+   * "Continuar" da etapa 2: se houver `@`, o enriquecimento roda de forma
+   * transparente antes de avançar. Nenhuma falha bloqueia o cadastro e o
+   * mesmo `@` já resolvido não dispara nova consulta (cache local + L1/L2).
+   */
+  const socialBusy = useRef(false);
+  const continueFromWhoIAm = useCallback(async () => {
+    if (socialBusy.current) return; // anti double-click
+    const raw = draft.instagram?.trim() ?? "";
+    const current =
+      social.status === "done" && social.result?.status === "ok"
+        ? `@${social.result.context.handle}`
+        : null;
+    const normalizedRaw = raw.replace(/^@+/, "").toLowerCase();
+    const alreadyDone =
+      !!current && current.slice(1).toLowerCase() === normalizedRaw.replace(/\/$/, "");
+    if (raw && !alreadyDone) {
+      socialBusy.current = true;
+      try {
+        await runSocialEnrich(raw);
+      } finally {
+        socialBusy.current = false;
+      }
+    }
+    next();
+  }, [draft.instagram, runSocialEnrich, social]);
 
 
 
@@ -702,13 +727,12 @@ function WizardPage() {
           <StepWhoIAm
             draft={draft}
             update={update}
-            onNext={next}
+            onNext={() => void continueFromWhoIAm()}
             onBack={back}
             catalog={catalog}
             manualMode={manualCatalogMode}
             manualSegmentLabel={fallbackSegmentId}
             social={social}
-            onAnalyzeInstagram={onAnalyzeInstagram}
           />
         )}
 
