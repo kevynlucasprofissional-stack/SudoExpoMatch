@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { UserCircle2, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export function FinalCta() {
   return (
