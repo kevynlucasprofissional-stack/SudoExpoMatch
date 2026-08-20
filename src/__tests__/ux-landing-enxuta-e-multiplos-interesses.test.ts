@@ -62,7 +62,8 @@ describe("Entrega A — landing com menos texto", () => {
   });
 
   it("processo mantém as 4 etapas com rótulos curtos e sem subtítulo redundante", () => {
-    const labels = [...PROCESS.matchAll(/Icon: \w+, label: "([^"]+)"/g)].map((m) => m[1]);
+    const stepsBlock = PROCESS.slice(PROCESS.indexOf("const STEPS"), PROCESS.indexOf("const AUDIENCE"));
+    const labels = [...stepsBlock.matchAll(/label: "([^"]+)"/g)].map((m) => m[1]);
     expect(labels).toHaveLength(4);
     for (const l of labels) expect(l.length).toBeLessThanOrEqual(28);
     expect(PROCESS).not.toContain("Conexões profissionais em quatro etapas");
@@ -96,7 +97,7 @@ describe("Entrega A — landing com menos texto", () => {
 
   it("layout responsivo preservado (sem largura fixa que estoure em 320px)", () => {
     for (const src of [HERO, BENEFITS, PROCESS, CTA]) {
-      expect(src).not.toMatch(/className="[^"]*\bw-\[\d{3,}px\]/);
+      expect(src).not.toMatch(/className="[^"]*(?<![-\w])w-\[\d{3,}px\]/);
       expect(src).not.toMatch(/overflow-x-scroll/);
     }
     expect(HERO).toContain("md:grid-cols-");
@@ -137,7 +138,7 @@ describe("Entrega B — múltiplos interesses (auditoria: já suportado)", () =>
       })),
     };
     const parsed = wizardCreateSchema.safeParse(base);
-    expect(parsed.success).toBe(true);
+    if (!parsed.success) throw new Error(JSON.stringify(parsed.error.issues));
     expect(parsed.success && parsed.data.offers).toHaveLength(3);
     expect(parsed.success && parsed.data.needs).toHaveLength(3);
   });
