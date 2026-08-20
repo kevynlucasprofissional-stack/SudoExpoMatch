@@ -1232,6 +1232,8 @@ export type Database = {
         Args: { _event_id: string }
         Returns: string
       }
+      _connection_outcomes: { Args: { _connection_id: string }; Returns: Json }
+      _outcome_kinds: { Args: never; Returns: string[] }
       _recompute_matches_for_profile: {
         Args: { p_event_id: string; p_profile_id: string }
         Returns: number
@@ -1301,6 +1303,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_experience_analytics: { Args: { _event_id: string }; Returns: Json }
       admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
         Args: { _profile_id: string }
@@ -1540,9 +1543,17 @@ export type Database = {
         Args: { _connection_id: string; _note?: string }
         Returns: Json
       }
+      staff_record_connection_outcome: {
+        Args: { _connection_id: string; _kind: string; _note?: string }
+        Returns: Json
+      }
       staff_release_connection: {
         Args: { _connection_id: string; _note?: string }
         Returns: undefined
+      }
+      staff_remove_connection_outcome: {
+        Args: { _connection_id: string; _kind: string }
+        Returns: Json
       }
       staff_reveal_contact_for_match: {
         Args: { _match_id: string; _override_reason?: string }
