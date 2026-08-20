@@ -72,7 +72,6 @@ const INTERNAL_ONLY = [
 
 const TRIGGER_FUNCTIONS = [
   "public.set_updated_at()",
-  "public.auto_create_connection()",
   "public.analytics_events_set_actor()",
 ];
 
@@ -85,6 +84,7 @@ const LEGACY_DROPPED = [
   "public.segment_distribution(text)",
   "public.store_computed_matches(jsonb)",
   "public.list_staff_connections(text)",
+  "public.auto_create_connection()",
 ];
 
 describe("seg-2: matriz de EXECUTE de RPCs privilegiadas", () => {
