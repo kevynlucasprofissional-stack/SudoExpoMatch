@@ -139,7 +139,7 @@ describe("Entrega B — múltiplos interesses (auditoria: já suportado)", () =>
         label: `Necessidade ${i}`,
         segmentId: "alimentacao",
         taxonomyItemId: null,
-        needKind: "produto" as const,
+        needKind: "produtos" as const,
         isPriority: i === 1,
       })),
     };
