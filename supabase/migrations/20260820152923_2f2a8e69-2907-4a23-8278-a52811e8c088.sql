@@ -1,0 +1,1 @@
+DROP INDEX IF EXISTS public.taxonomy_relations_unique_pair;
