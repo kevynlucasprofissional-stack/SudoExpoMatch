@@ -53,6 +53,8 @@ export interface SharedAiAnalysis {
   dismiss: () => void;
   /** Reabre o painel: restaura `done` com o mesmo resultado, sem nova chamada. */
   reopen: () => void;
+  /** Zera completamente o estado temporário da IA (reset do formulário). */
+  reset: () => void;
   /** Debug/tests: contagem de chamadas ao server function. */
   callCount: () => number;
 }
@@ -151,11 +153,18 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
     );
   }, []);
 
+  const reset = useCallback(() => {
+    activeGen.current += 1;
+    inFlight.current.clear();
+    setStatus({ s: "idle" });
+  }, []);
+
   return {
     status,
     analyze,
     dismiss,
     reopen,
+    reset,
     callCount: () => callCountRef.current,
   };
 }

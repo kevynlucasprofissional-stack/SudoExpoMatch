@@ -53,6 +53,33 @@ export async function ensureParticipantSession(): Promise<User> {
   }
 }
 
+/**
+ * Encerra a sessão anônima atual e abre uma nova, em branco.
+ *
+ * Usado pelo "Resetar formulário": impede que o perfil já salvo pela pessoa
+ * anterior reapareça para quem for usar o mesmo dispositivo em seguida. O
+ * perfil permanece no backend (recuperável por código/WhatsApp) — apenas o
+ * vínculo local é descartado. Sessões permanentes (equipe/admin) NÃO são
+ * encerradas.
+ */
+export async function resetParticipantSession(): Promise<void> {
+  inflight = null;
+  try {
+    const { data } = await supabase.auth.getSession();
+    const user = data.session?.user;
+    const anonymous = (user as unknown as { is_anonymous?: boolean } | undefined)?.is_anonymous;
+    if (user && anonymous === false) return; // staff/admin: preserva sessão
+    if (user) await supabase.auth.signOut();
+  } catch {
+    /* sessão inconsistente nunca bloqueia o reset local */
+  }
+  try {
+    await ensureParticipantSession();
+  } catch {
+    /* nova sessão é reestabelecida pelo hook no próximo render */
+  }
+}
+
 export type ParticipantSessionStatus = "loading" | "ready" | "error";
 
 export interface UseParticipantSession {

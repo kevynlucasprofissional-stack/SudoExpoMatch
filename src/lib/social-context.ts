@@ -437,7 +437,14 @@ export type SocialLookupFailure =
   | { status: "rate_limited" }
   | {
       status: "unavailable";
-      reason: "provider_unconfigured" | "blocked" | "timeout" | "empty" | "error";
+      reason:
+        | "provider_unconfigured"
+        | "blocked"
+        | "timeout"
+        | "empty"
+        | "error"
+        /** Consulta restrita ao cache persistente e nada havia guardado. */
+        | "cache_miss";
     };
 
 export type SocialLookupResult = { status: "ok"; context: SocialBusinessContext } | SocialLookupFailure;
