@@ -78,13 +78,14 @@ const BoardClock = memo(function BoardClock() {
   return (
     <div
       data-testid="public-clock"
-      className="inline-flex shrink-0 items-center gap-2 rounded-full border border-[#6f7bff]/55 bg-[#0a1150]/60 px-3.5 py-2 shadow-[0_0_38px_-10px_rgba(111,123,255,0.85)] backdrop-blur sm:gap-3 sm:px-5 sm:py-2.5 xl:px-7 xl:py-3"
+      className="inline-flex shrink-0 items-center gap-2.5 rounded-full border border-[#6f7bff]/55 bg-[#0a1150]/60 px-4 py-1.5 shadow-[0_0_38px_-10px_rgba(111,123,255,0.85)] backdrop-blur"
     >
-      <Clock aria-hidden className="h-4 w-4 text-[#a3e635] sm:h-5 sm:w-5" />
-      <span className="font-display text-base font-semibold tabular-nums tracking-[0.12em] text-white sm:text-xl xl:text-3xl">
+      <Clock aria-hidden className="h-3 w-3 text-[#a3e635]" />
+      <span className="text-[10px] font-semibold tabular-nums uppercase tracking-[0.28em] text-white xl:text-[11px]">
         {now ?? "--:--:--"}
       </span>
     </div>
+
   );
 });
 
