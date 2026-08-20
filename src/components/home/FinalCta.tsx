@@ -14,8 +14,8 @@ export function FinalCta() {
         <svg
           aria-hidden
           viewBox="0 0 260 120"
-          className="pointer-events-none absolute right-0 top-0 hidden h-full w-[240px] opacity-45 md:block"
-          preserveAspectRatio="xMaxYMid slice"
+          className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[220px] opacity-40 lg:block"
+          preserveAspectRatio="xMaxYMax slice"
         >
           <g fill="rgba(255,255,255,0.16)">
             <circle cx="70" cy="45" r="18" />
@@ -27,26 +27,24 @@ export function FinalCta() {
           </g>
         </svg>
 
-        <div className="relative flex flex-col items-center gap-3 text-center md:flex-row md:text-left md:items-center md:justify-between md:pr-[260px]">
-          <div className="flex items-center gap-3">
-
-            <div className="min-w-0">
-              <h3 className="font-display text-lg font-black text-white md:text-xl">
-                Já criou seu perfil?
-              </h3>
-              <p className="mt-0.5 text-xs text-white/80 md:text-sm">
-                Veja quem tem interesse em você.
-              </p>
-            </div>
+        <div className="relative flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left lg:pr-[240px]">
+          <div className="min-w-0">
+            <h3 className="font-display text-lg font-black text-white md:text-xl">
+              Já criou seu perfil?
+            </h3>
+            <p className="mt-0.5 text-xs text-white/80 md:text-sm">
+              Veja quem tem interesse em você.
+            </p>
           </div>
 
           <Link
             to="/participante"
-            className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-success px-5 font-semibold text-[#0b1252] shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] md:w-auto"
+            className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-md bg-success px-5 font-semibold text-[#0b1252] shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] sm:w-auto"
           >
             Acessar minhas conexões <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
+
       </div>
     </section>
   );
