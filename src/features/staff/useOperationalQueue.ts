@@ -197,6 +197,9 @@ const detailSchema = z.object({
   created_at: z.string(),
   updated_at: z.string(),
   notes_summary: z.string().nullable(),
+  mapped_at: z.string().nullable().default(null),
+  mapped_by: z.string().nullable().default(null),
+  mapped_by_email: z.string().nullable().default(null),
   a: z.object({
     id: z.string(),
     name: z.string(),
@@ -204,6 +207,8 @@ const detailSchema = z.object({
     city: z.string().nullable().default(""),
     segment_id: z.string().nullable(),
     summary: z.string().nullable().default(""),
+    pin_code: z.string().nullable().default(null),
+    pin_placed_at: z.string().nullable().default(null),
   }),
   b: z.object({
     id: z.string(),
@@ -212,6 +217,8 @@ const detailSchema = z.object({
     city: z.string().nullable().default(""),
     segment_id: z.string().nullable(),
     summary: z.string().nullable().default(""),
+    pin_code: z.string().nullable().default(null),
+    pin_placed_at: z.string().nullable().default(null),
   }),
   reasons: z.array(
     z.object({
