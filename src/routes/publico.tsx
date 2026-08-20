@@ -142,7 +142,7 @@ function PublicBoard() {
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
         {/* TÍTULO */}
         <div className="mt-8 xl:mt-12">
-          <h1 className="font-display text-4xl font-black leading-[1.02] tracking-tight md:text-6xl xl:text-[5.2rem]">
+          <h1 className="bg-linear-to-r from-[#ffd53d] via-[#ffa93d] to-[#ff7a1a] bg-clip-text font-display text-4xl font-black leading-[1.02] tracking-tight text-transparent md:text-6xl xl:text-[5.2rem]">
             Matchmaker em tempo real
           </h1>
           <p className="mt-4 max-w-4xl text-base text-[#b9c6ee] md:text-xl xl:text-2xl">
