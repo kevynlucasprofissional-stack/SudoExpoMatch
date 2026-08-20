@@ -86,6 +86,14 @@ export function translateOperationalError(err: unknown): string {
   if (msg.includes("no_connection")) return "Ainda não existe conexão para este match.";
   if (msg.includes("not_mutual")) return "Ainda não houve interesse mútuo entre as duas partes.";
   if (msg.includes("connection_not_found")) return "Conexão não encontrada. Atualize a fila.";
+  if (msg.includes("map_requires_presented"))
+    return "Registre no mapa somente depois que as duas pessoas forem apresentadas.";
+  if (msg.includes("pin_code_taken"))
+    return "Esta identificação de pin já está em uso por outro participante deste evento.";
+  if (msg.includes("pin_code_too_long"))
+    return "A identificação do pin pode ter no máximo 24 caracteres.";
+  if (msg.includes("profile_not_found")) return "Participante não encontrado. Atualize a lista.";
+  if (msg.includes("note_too_long")) return "A observação não pode passar de 500 caracteres.";
   if (msg.includes("match_not_found")) return "Match não encontrado. Atualize a fila.";
   if (msg.includes("forbidden")) return "Acesso negado.";
   if (msg.includes("not_authenticated")) return "Sessão expirada. Entre novamente.";

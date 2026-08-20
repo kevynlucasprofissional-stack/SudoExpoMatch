@@ -51,3 +51,15 @@ export function translateStaffRevealError(err: unknown): string {
   if (msg.includes("match_not_found")) return "Match não encontrado. Atualize a fila.";
   return "Não foi possível carregar os contatos.";
 }
+
+/**
+ * Código do pin físico colocado no mapa da SudoExpo.
+ * Espelha `staff_set_participant_pin` (máx. 24 caracteres, único por evento).
+ */
+export const pinCodeSchema = z
+  .string()
+  .trim()
+  .min(1, "Informe a identificação do pin.")
+  .max(24, "A identificação do pin pode ter no máximo 24 caracteres.");
+
+export type PinCodeInput = z.infer<typeof pinCodeSchema>;
