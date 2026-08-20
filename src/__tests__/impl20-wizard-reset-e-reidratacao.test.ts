@@ -330,14 +330,27 @@ describe("Posicionamento e segurança do botão de reset", () => {
     expect(triggerAt).toBeLessThan(firstStepAt);
   });
 
-  it("usa tratamento secundário/perigoso, nunca CTA primário", () => {
+  it("usa tratamento secundário legível (outline), nunca CTA primário", () => {
     const trigger = page.slice(
       page.indexOf('data-testid="wizard-reset-trigger"') - 200,
-      page.indexOf('data-testid="wizard-reset-trigger"') + 260,
+      page.indexOf('data-testid="wizard-reset-trigger"') + 300,
     );
-    expect(trigger).toContain('variant="ghost"');
+    expect(trigger).toContain('variant="outline"');
     expect(trigger).toContain('size="sm"');
     expect(trigger).toContain("hover:text-destructive");
+    expect(trigger).not.toContain('variant="ghost"');
+    expect(trigger).not.toContain("text-xs");
+    expect(trigger).toContain("text-sm");
+    expect(trigger).toContain("RotateCcw");
+  });
+
+  it("é renderizado fora dos blocos de etapa (aparece nas 5 etapas)", () => {
+    const triggerAt = page.indexOf('data-testid="wizard-reset-trigger"');
+    for (const s of [0, 1, 2, 3, 4]) {
+      const stepAt = page.indexOf(`{step === ${s} &&`);
+      expect(stepAt).toBeGreaterThan(0);
+      expect(triggerAt).toBeLessThan(stepAt);
+    }
   });
 
   it("não colide com Avançar/Voltar/Salvar perfil — CTAs vivem nos steps", () => {

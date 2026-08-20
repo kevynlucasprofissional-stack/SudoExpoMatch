@@ -2,6 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
+import { RotateCcw } from "lucide-react";
 
 import { analyzeSocialProfile } from "@/lib/social-context.functions";
 import { socialLookupMessage } from "@/lib/social-context";
@@ -691,12 +692,13 @@ function WizardPage() {
         <div className="mb-4 flex justify-end">
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             data-testid="wizard-reset-trigger"
             onClick={() => setShowReset(true)}
-            className="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+            className="gap-2 text-sm font-medium text-foreground hover:border-destructive hover:text-destructive"
           >
+            <RotateCcw className="h-4 w-4" aria-hidden="true" />
             {WIZARD_RESET_COPY.trigger}
           </Button>
         </div>

@@ -289,7 +289,7 @@ export function StepWhoIAm({
     !!draft.businessSize &&
     !!draft.businessType &&
     nicheOk &&
-    draft.summary.trim().length >= 20;
+    draft.summary.trim().length > 0;
 
   function handleSelect(segmentId: string) {
     if (draft.segmentId && draft.segmentId !== segmentId) {
@@ -405,7 +405,7 @@ export function StepWhoIAm({
             maxLength={500}
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            {draft.summary.length}/500 · Mínimo 20 caracteres
+            {draft.summary.length}/500 · Pode ser bem curto (ex.: "Loja")
           </p>
         </div>
 
