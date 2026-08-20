@@ -257,6 +257,13 @@ function ChoiceGroup<T extends string>({
   );
 }
 
+/** Estado de UI do enriquecimento por Instagram (nunca bloqueia o cadastro). */
+export interface SocialLookupUiState {
+  status: "idle" | "loading" | "done";
+  result: SocialLookupResult | null;
+  message: string;
+}
+
 export function StepWhoIAm({
   draft,
   update,
@@ -265,11 +272,16 @@ export function StepWhoIAm({
   catalog,
   manualMode = false,
   manualSegmentLabel,
+  social,
+  onAnalyzeInstagram,
 }: BaseProps & {
   catalog: EventCatalog;
   manualMode?: boolean;
   manualSegmentLabel?: string;
+  social?: SocialLookupUiState;
+  onAnalyzeInstagram?: (raw: string) => void;
 }) {
+
   const isOther = draft.segmentId === OTHER_SEGMENT_ID;
   const nicheOk = !isOther || draft.niche.trim().length >= 3;
   const canNext =
