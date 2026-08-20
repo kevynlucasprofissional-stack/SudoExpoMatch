@@ -154,7 +154,7 @@ function PublicBoard() {
                 aria-hidden
                 className="pb-status-dot h-2 w-2 shrink-0 rounded-full bg-[#a3e635]"
               />
-              <span className="truncate">Dados atualizados em tempo real</span>
+              <span className="truncate">DADOS EM TEMPO REAL</span>
             </span>
             <BoardClock />
           </div>
