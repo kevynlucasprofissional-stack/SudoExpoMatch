@@ -14,7 +14,7 @@ export function FinalCta() {
         <svg
           aria-hidden
           viewBox="0 0 260 120"
-          className="pointer-events-none absolute inset-y-0 right-0 hidden h-full w-[220px] opacity-40 lg:block"
+          className="pointer-events-none absolute inset-y-0 right-0 z-0 hidden h-full w-[220px] opacity-25 lg:block"
           preserveAspectRatio="xMaxYMax slice"
         >
           <g fill="rgba(255,255,255,0.16)">
