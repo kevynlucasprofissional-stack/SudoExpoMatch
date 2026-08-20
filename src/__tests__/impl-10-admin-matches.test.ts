@@ -288,7 +288,9 @@ describe("Impl 10 — contratos de código", () => {
     // Impl 10 era read-only; IMPL 15 adicionou apenas o "match revisado".
     expect(API.match(/useMutation\(/g) ?? []).toHaveLength(1);
     expect(API).toMatch(/admin_set_match_reviewed/);
-    expect(API).not.toMatch(/score_for_|algorithm_version|reasons_for_/);
+    // a única RPC de escrita é a de revisão administrativa
+    expect(API.match(/supabase\.rpc\("[a-z_]+"/g) ?? []).toContain('supabase.rpc("admin_set_match_reviewed"');
+    expect(API).not.toMatch(/\.update\(|\.insert\(|\.delete\(/);
     expect(API).toMatch(/admin_list_matches/);
     expect(API).toMatch(/admin_get_match_detail/);
   });
