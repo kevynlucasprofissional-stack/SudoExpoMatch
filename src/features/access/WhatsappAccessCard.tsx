@@ -16,7 +16,9 @@ import {
   verifyPhoneOtp,
 } from "./api";
 import {
+  channelLabel,
   createAttemptLimiter,
+  fallbackChannel,
   limiterKey,
   maskPhone,
   normalizePhoneToE164,
@@ -25,8 +27,12 @@ import {
   OTP_RESEND_COOLDOWN_SEC,
   OTP_VERIFY_MAX,
   OTP_VERIFY_WINDOW_MS,
+  resolveChannel,
+  shouldOfferChannelSwitch,
   translatePhoneAuthError,
+  type OtpChannel,
   type PhoneAuthCapability,
+  type PhoneAuthErrorCode,
 } from "@/lib/phone-auth";
 
 /**
@@ -51,7 +57,13 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [cooldown, setCooldown] = useState(0);
+  const [channel, setChannel] = useState<OtpChannel>(
+    () => resolveChannel(capability, null) ?? "sms",
+  );
+  const [sentChannel, setSentChannel] = useState<OtpChannel | null>(null);
+  const [offerSwitch, setOfferSwitch] = useState(false);
   const mounted = useRef(true);
+  const altChannel = fallbackChannel(capability, channel);
 
   useEffect(() => {
     mounted.current = true;
@@ -71,8 +83,15 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
     return n.ok ? limiterKey(n.e164) : "invalid";
   }, [phone]);
 
-  const send = useCallback(async () => {
+  const send = useCallback(async (requested?: OtpChannel) => {
+    const target = resolveChannel(capability, requested ?? channel);
+    if (!target) {
+      setError(translatePhoneAuthError("otp_unavailable"));
+      return;
+    }
     setError(null);
+    setOfferSwitch(false);
+    setChannel(target);
     const norm = normalizePhoneToE164(phone);
     if (!norm.ok) {
       setError(translatePhoneAuthError("invalid_phone"));
@@ -85,22 +104,27 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
     }
     setBusy(true);
     try {
-      const res = await requestPhoneOtp(phone, capability.channels[0] ?? "sms");
+      const res = await requestPhoneOtp(phone, target, {
+        createUser: capability.createUserOnRequest,
+      });
       requestLimiter.record(key);
       if (!mounted.current) return;
       setNotice(res.message);
+      setSentChannel(res.channel);
       setPhase("code");
       setCooldown(OTP_RESEND_COOLDOWN_SEC);
     } catch (err) {
       requestLimiter.record(key);
       if (!mounted.current) return;
-      setError(
-        translatePhoneAuthError(err instanceof PhoneAuthError ? err.code : "unknown"),
-      );
+      const code: PhoneAuthErrorCode = err instanceof PhoneAuthError ? err.code : "unknown";
+      setError(translatePhoneAuthError(code));
+      // Falha imediata do provedor: oferecemos o outro canal explicitamente,
+      // sem trocar sozinho (o usuário precisa saber onde procurar o código).
+      setOfferSwitch(shouldOfferChannelSwitch(code) && fallbackChannel(capability, target) !== null);
     } finally {
       if (mounted.current) setBusy(false);
     }
-  }, [phone, key, capability.channels]);
+  }, [phone, key, channel, capability]);
 
   const confirm = useCallback(async () => {
     setError(null);
@@ -155,6 +179,27 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
             inputMode="tel"
             autoComplete="tel"
           />
+          {capability.channels.length > 1 && (
+            <div className="mt-3">
+              <p className="mb-1.5 text-sm font-medium">Como quer receber seu código?</p>
+              <div className="flex flex-wrap gap-2">
+                {capability.channels.map((c) => (
+                  <Button
+                    key={c}
+                    type="button"
+                    size="sm"
+                    variant={channel === c ? "default" : "outline"}
+                    aria-pressed={channel === c}
+                    onClick={() => setChannel(c)}
+                    data-testid={`otp-channel-${c}`}
+                  >
+                    {channelLabel(c)}
+                    {c === capability.preferredChannel ? " — recomendado" : ""}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         <div>
@@ -169,7 +214,8 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
             className="font-mono tracking-widest"
           />
           <p className="mt-1 text-xs text-muted-foreground">
-            Enviado para {maskPhone(phone)}.
+            Código enviado {sentChannel === "whatsapp" ? "pelo WhatsApp" : "por SMS"} para{" "}
+            {maskPhone(phone)}.
           </p>
         </div>
       )}
@@ -189,10 +235,23 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
       )}
 
       {phase === "phone" ? (
-        <Button className="w-full" onClick={() => void send()} disabled={!phone || busy} aria-busy={busy}>
-          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-          Receber código
-        </Button>
+        <div className="space-y-2">
+          <Button className="w-full" onClick={() => void send()} disabled={!phone || busy} aria-busy={busy}>
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Receber código por {channelLabel(channel)}
+          </Button>
+          {offerSwitch && altChannel && (
+            <Button
+              variant="outline"
+              className="w-full"
+              data-testid="otp-try-other-channel"
+              onClick={() => void send(altChannel)}
+              disabled={busy}
+            >
+              Tentar por {channelLabel(altChannel)}
+            </Button>
+          )}
+        </div>
       ) : (
         <div className="space-y-2">
           <Button
@@ -210,8 +269,23 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
             onClick={() => void send()}
             disabled={busy || cooldown > 0}
           >
-            {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar código"}
+            {cooldown > 0
+              ? `Reenviar em ${cooldown}s`
+              : `Reenviar por ${channelLabel(channel)}`}
           </Button>
+          {altChannel && (
+            <Button
+              variant="ghost"
+              className="w-full"
+              data-testid="otp-resend-other-channel"
+              onClick={() => void send(altChannel)}
+              disabled={busy || cooldown > 0}
+            >
+              {cooldown > 0
+                ? `Trocar para ${channelLabel(altChannel)} em ${cooldown}s`
+                : `Receber por ${channelLabel(altChannel)}`}
+            </Button>
+          )}
         </div>
       )}
     </div>
