@@ -95,7 +95,7 @@ export function ProcessPanel() {
                 <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
                 <span className="h-1.5 w-1.5 rounded-full bg-white/30" />
                 <span className="ml-2 inline-flex items-center gap-1 text-[9px] font-semibold uppercase tracking-widest text-white/60">
-                  <BarChart3 className="h-3 w-3" /> DADOS DO ACIRV MATCH
+                  <BarChart3 className="h-3 w-3" /> DADOS DO SUDOEXPO MATCH
                 </span>
               </div>
               <ul className="grid grid-cols-3 gap-1.5 p-1.5">
