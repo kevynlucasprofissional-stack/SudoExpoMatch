@@ -11,6 +11,10 @@ import {
   Activity,
 } from "lucide-react";
 
+import { EVENT_ID } from "@/config/event";
+import { useEventStats } from "@/features/staff/useEventStats";
+
+
 const STEPS = [
   { Icon: UserPlus, label: "Crie seu perfil" },
   { Icon: Sparkles, label: "Receba matches automáticos" },
