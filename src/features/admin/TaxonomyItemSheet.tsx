@@ -28,8 +28,11 @@ import {
 
 import {
   useAdminTaxonomyDetail,
+  useCreateTaxonomyRelation,
   useSetTaxonomyItemActive,
+  useSetTaxonomyRelationActive,
   useUpdateTaxonomyItem,
+  useUpdateTaxonomyRelation,
 } from "@/features/admin/useAdminTaxonomy";
 import {
   kindText,
@@ -37,7 +40,9 @@ import {
   type TaxonomyRelation,
 } from "@/features/admin/taxonomySchemas";
 import { TaxonomyItemForm } from "@/features/admin/TaxonomyItemForm";
+import { TaxonomyRelationForm } from "@/features/admin/TaxonomyRelationForm";
 import type { Segment } from "@/lib/types";
+
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
