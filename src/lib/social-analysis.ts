@@ -33,6 +33,26 @@ export const socialBusinessAnalysisSchema = z.object({
 });
 export type SocialBusinessAnalysis = z.infer<typeof socialBusinessAnalysisSchema>;
 
+/**
+ * Schema usado na GERAÇÃO com o modelo. É propositalmente permissivo: limites
+ * de tamanho/quantidade fazem o provedor rejeitar a resposta inteira
+ * ("No object generated"). Os tetos são aplicados depois por
+ * `sanitizeSocialAnalysis`, que é a fonte de verdade defensiva.
+ */
+export const socialAnalysisGenerationSchema = z.object({
+  businessSummary: z.string(),
+  mainActivities: z.array(z.string()),
+  productsServices: z.array(z.string()),
+  targetAudiences: z.array(z.string()),
+  commercialSignals: z.array(z.string()),
+  differentiators: z.array(z.string()),
+  keywords: z.array(z.string()),
+  likelyOffers: z.array(z.string()),
+  likelyNeeds: z.array(z.string()),
+  confidence: z.number(),
+  evidences: z.array(z.string()),
+});
+
 function clampList(raw: unknown, maxItems: number, maxChars: number): string[] {
   if (!Array.isArray(raw)) return [];
   const seen = new Set<string>();

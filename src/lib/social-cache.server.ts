@@ -5,7 +5,7 @@ import {
   SOCIAL_ANALYSIS_PROMPT_VERSION,
   buildSocialAnalysisPrompt,
   sanitizeSocialAnalysis,
-  socialBusinessAnalysisSchema,
+  socialAnalysisGenerationSchema,
 } from "./social-analysis";
 import type { SocialAnalyzer, SocialCacheRecord, SocialCacheStore } from "./social-enrichment";
 
@@ -16,7 +16,7 @@ import type { SocialAnalyzer, SocialCacheRecord, SocialCacheStore } from "./soci
  * Nada aqui pode ser importado pelo cliente — o arquivo é `.server.ts`.
  */
 
-const SOCIAL_ANALYSIS_TIMEOUT_MS = 12_000;
+const SOCIAL_ANALYSIS_TIMEOUT_MS = 25_000;
 
 /** Cache L2 persistente (private.social_profile_cache) via RPC autorizada. */
 export function createSupabaseSocialCacheStore(admin: {
@@ -32,23 +32,28 @@ export function createSupabaseSocialCacheStore(admin: {
       return data as SocialCacheRecord;
     },
     async write(record) {
-      await admin.rpc("social_cache_store", {
-        _network: record.network,
-        _handle: record.normalized_handle,
-        _canonical_url: record.canonical_url,
-        _provider: record.provider,
-        _public_profile: record.public_profile ?? {},
-        _extracted_context: record.extracted_context ?? {},
-        _ai_analysis: record.ai_analysis,
-        _content_fingerprint: record.content_fingerprint,
-        _ai_prompt_version: record.ai_prompt_version,
-        _ai_model: record.ai_model,
-        _fetched_at: record.fetched_at,
-        _analyzed_at: record.analyzed_at,
-        _expires_at: record.expires_at,
-        _last_status: record.last_status ?? "ok",
-        _last_error_code: record.last_error_code,
+      // A RPC recebe UM único argumento jsonb (`_payload`).
+      const { error } = await admin.rpc("social_cache_store", {
+        _payload: {
+          network: record.network,
+          normalized_handle: record.normalized_handle,
+          canonical_url: record.canonical_url,
+          provider: record.provider,
+          provider_version: record.provider_version,
+          public_profile: record.public_profile ?? null,
+          extracted_context: record.extracted_context ?? null,
+          ai_analysis: record.ai_analysis,
+          content_fingerprint: record.content_fingerprint,
+          ai_prompt_version: record.ai_prompt_version,
+          ai_model: record.ai_model,
+          fetched_at: record.fetched_at,
+          analyzed_at: record.analyzed_at,
+          expires_at: record.expires_at,
+          last_status: record.last_status ?? "ok",
+          last_error_code: record.last_error_code,
+        },
       });
+      if (error) console.warn("[social-cache] falha ao gravar L2");
     },
   };
 }
@@ -64,7 +69,7 @@ export function createSocialAnalyzer(apiKey: string | undefined): SocialAnalyzer
       const gateway = createLovableAiGatewayProvider(apiKey);
       const call = generateText({
         model: gateway(AI_MODEL),
-        output: Output.object({ schema: socialBusinessAnalysisSchema }),
+        output: Output.object({ schema: socialAnalysisGenerationSchema }),
         prompt: buildSocialAnalysisPrompt(ctx),
       });
       let timer: ReturnType<typeof setTimeout> | null = null;

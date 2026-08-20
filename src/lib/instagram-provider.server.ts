@@ -223,7 +223,9 @@ interface ApifyItem {
   fullName?: unknown;
   biography?: unknown;
   externalUrl?: unknown;
+  externalUrls?: unknown;
   website?: unknown;
+  private?: unknown;
   businessCategoryName?: unknown;
   followersCount?: unknown;
   followsCount?: unknown;
@@ -232,6 +234,19 @@ interface ApifyItem {
   profilePicUrlHD?: unknown;
   error?: unknown;
   latestPosts?: unknown;
+}
+
+/** A Apify entrega o site ora em `externalUrl`, ora em `externalUrls[]`. */
+function pickApifyWebsite(it: ApifyItem): unknown {
+  if (typeof it.externalUrl === "string" && it.externalUrl) return it.externalUrl;
+  if (Array.isArray(it.externalUrls)) {
+    for (const entry of it.externalUrls) {
+      if (typeof entry === "string" && entry) return entry;
+      const url = (entry as { url?: unknown } | null)?.url;
+      if (typeof url === "string" && url) return url;
+    }
+  }
+  return it.website;
 }
 
 /** Mapeia o payload do Apify para o nosso domínio — nada bruto é guardado. */
@@ -255,7 +270,7 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
     displayName: it.fullName,
     bio: it.biography,
     category: it.businessCategoryName,
-    website: it.externalUrl ?? it.website,
+    website: pickApifyWebsite(it),
     followersCount: it.followersCount,
     followsCount: it.followsCount,
     mediaCount: it.postsCount,
