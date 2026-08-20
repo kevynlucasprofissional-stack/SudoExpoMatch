@@ -11,7 +11,7 @@ import {
   Truck,
   Wrench,
   Handshake as HandshakeIcon,
-  Boxes,
+  
   BarChart3,
   Sparkles,
   Activity,
@@ -30,7 +30,6 @@ const AUDIENCE: { label: string; Icon: typeof Users; tone: string }[] = [
   { label: "Parceiros", Icon: HandshakeIcon, tone: "var(--accent)" },
   { label: "Distribuidores", Icon: Truck, tone: "#6b57e0" },
   { label: "Prestadores de serviços", Icon: Wrench, tone: "#129cdf" },
-  { label: "Soluções", Icon: Boxes, tone: "var(--warning)" },
 ];
 
 // Preview agregado do painel público — não expõe empresas nomeadas
@@ -105,10 +104,14 @@ export function ProcessPanel() {
               className="mt-3 grid grid-cols-1 gap-1.5 min-[390px]:grid-cols-2"
               data-testid="audience-chips"
             >
-              {AUDIENCE.map(({ label, Icon, tone }) => (
+              {AUDIENCE.map(({ label, Icon, tone }, i) => (
                 <span
                   key={label}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-2.5 text-[12px] font-semibold text-[#0b1252] shadow-sm"
+                  className={`inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-2.5 text-[12px] font-semibold text-[#0b1252] shadow-sm${
+                    i === AUDIENCE.length - 1
+                      ? " min-[390px]:col-span-2 min-[390px]:justify-center"
+                      : ""
+                  }`}
                 >
                   <span
                     aria-hidden
