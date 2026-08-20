@@ -49,19 +49,19 @@ export function ProcessPanel() {
     {
       Icon: Users,
       label: "Participantes",
-      value: ready ? formatAggregateMetric(stats!.totalProfiles) : null,
+      value: render(stats?.totalProfiles),
       tone: "var(--success)",
     },
     {
       Icon: Sparkles,
       label: "Matches gerados",
-      value: ready ? formatAggregateMetric(stats!.totalMatches) : null,
+      value: render(stats?.totalMatches),
       tone: "var(--secondary)",
     },
     {
       Icon: Activity,
       label: "Interesses mútuos",
-      value: ready ? formatAggregateMetric(stats!.mutualMatches) : null,
+      value: render(stats?.mutualMatches),
       tone: "var(--accent)",
     },
   ];
