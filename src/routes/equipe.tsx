@@ -578,7 +578,13 @@ function StaffDashboard({
                 c={c}
                 userId={userId}
                 isAdmin={isAdmin}
-                busy={assume.isPending || release.isPending || advance.isPending}
+                busy={
+                  assume.isPending ||
+                  release.isPending ||
+                  advance.isPending ||
+                  markMapped.isPending ||
+                  unmarkMapped.isPending
+                }
                 onAssume={() => handleAssume(c)}
                 onRelease={() => {
                   setReleaseTarget(c);
@@ -590,6 +596,7 @@ function StaffDashboard({
                   setCancelNote("");
                 }}
                 onReveal={() => setRevealTarget(c)}
+                onToggleMapped={() => handleToggleMapped(c)}
                 onDetail={() => setDetailId(c.id)}
               />
             ))}
@@ -622,6 +629,8 @@ function StaffDashboard({
           </div>
         )}
       </section>
+
+      <PinsDialog open={pinsOpen} onClose={() => setPinsOpen(false)} />
 
       <RevealContactDialog
         target={revealTarget}
@@ -791,6 +800,11 @@ function SegmentsFilter({
   );
 }
 
+/** O mapa físico só aceita conexões cujas partes já foram apresentadas. */
+function canMapConnection(status: ConnectionStatus): boolean {
+  return status === "apresentados" || status === "contato_trocado" || status === "concluido";
+}
+
 // ---------------------------------------------------------------- ConnectionCard
 function ConnectionCard({
   c,
@@ -802,6 +816,7 @@ function ConnectionCard({
   onAdvance,
   onCancel,
   onReveal,
+  onToggleMapped,
   onDetail,
 }: {
   c: QueueItem;
@@ -813,6 +828,7 @@ function ConnectionCard({
   onAdvance: (c: QueueItem, next: ConnectionStatus) => void;
   onCancel: () => void;
   onReveal: () => void;
+  onToggleMapped: () => void;
   onDetail: () => void;
 }) {
   const nextStatus = NEXT_CONNECTION_STATUS[c.status];
@@ -842,6 +858,21 @@ function ConnectionCard({
                 Livre
               </Badge>
             )}
+            {c.mapped_at ? (
+              <Badge
+                variant="outline"
+                className="border-emerald-500/40 text-xs text-emerald-700"
+                title={`Registrada no mapa em ${new Date(c.mapped_at).toLocaleString("pt-BR")}${
+                  c.mapped_by_email ? ` por ${c.mapped_by_email}` : ""
+                }`}
+              >
+                <MapPin className="mr-1 h-3 w-3" /> No mapa
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="text-xs text-muted-foreground">
+                <MapPinOff className="mr-1 h-3 w-3" /> Fora do mapa
+              </Badge>
+            )}
             <span className="text-xs text-muted-foreground">
               Criada {new Date(c.created_at).toLocaleString("pt-BR")}
             </span>
@@ -859,6 +890,10 @@ function ConnectionCard({
           </p>
           <p className="text-xs text-muted-foreground">
             {c.a_city ?? "—"} · {c.b_city ?? "—"}
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Pin {c.a_name}: {c.a_pin_code ?? (c.a_pin_placed_at ? "sem código" : "sem pin")} · Pin{" "}
+            {c.b_name}: {c.b_pin_code ?? (c.b_pin_placed_at ? "sem código" : "sem pin")}
           </p>
           {c.notes && (
             <p className="mt-2 rounded-md bg-muted/40 p-2 text-xs italic text-muted-foreground">
@@ -896,6 +931,19 @@ function ConnectionCard({
               title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
             >
               {getOperationalCta(c.status)}
+            </Button>
+          )}
+          {canOp && canMapConnection(c.status) && (
+            <Button size="sm" variant="outline" onClick={onToggleMapped} disabled={busy}>
+              {c.mapped_at ? (
+                <>
+                  <MapPinOff className="mr-1 h-4 w-4" /> Desfazer mapa
+                </>
+              ) : (
+                <>
+                  <MapPin className="mr-1 h-4 w-4" /> Registrar no mapa
+                </>
+              )}
             </Button>
           )}
           {!isTerminalStatus(c.status) && canOp && (
