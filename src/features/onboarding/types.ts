@@ -35,6 +35,9 @@ export interface WizardDraft {
   segmentId: string;
   niche: string;
   summary: string;
+  /** Handle/URL do Instagram informado (opcional; guardado normalizado). */
+  instagram: string;
+
   offers: WizardOffer[];
   needs: WizardNeed[];
   consent: boolean;
