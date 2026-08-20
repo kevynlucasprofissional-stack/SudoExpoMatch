@@ -67,3 +67,29 @@ um serviço de envio próprio (mais superfície de abuso e de custo) sem ganho.
   "Tentar por SMS/WhatsApp".
 - Mensagens idênticas para número cadastrado e não cadastrado; nenhum telefone
   ou OTP em log, URL ou storage.
+
+## Auditoria de capability — 2026-08-20 (cutover BLOQUEADO)
+
+Leitura real da configuração pública de auth (`/auth/v1/settings`) + inventário
+de flags/segredos do servidor:
+
+| Item | Estado real |
+| --- | --- |
+| Phone provider (`external.phone`) | **enabled** |
+| `sms_provider` | **twilio** |
+| `phone_autoconfirm` | true |
+| Canal WhatsApp | **unavailable** (sem remetente/flag) |
+| Canal SMS | available (depende das credenciais Twilio no provedor de auth) |
+| `preferredChannel` derivado | `sms` |
+| `PHONE_OTP_WHATSAPP_ENABLED` | missing |
+| `PHONE_OTP_WHATSAPP_SENDER` / `TWILIO_WHATSAPP_FROM` | missing |
+| `PHONE_OTP_SMS_ENABLED` | missing (default: habilitado) |
+| `PHONE_OTP_PREFERRED_CHANNEL` | missing |
+| `PHONE_OTP_CHANNELS` / `PHONE_OTP_ALLOW_SIMULTANEOUS` / `PHONE_OTP_SHOULD_CREATE_USER` | missing (defaults) |
+
+Consequência: o canal principal do produto (WhatsApp) **não está operacional**,
+não houve E2E real e, portanto, o fallback por código pessoal permanente
+**permanece ativo**. `private.profile_recovery`, `recover_profile_v2`,
+`RecoveryCodeDialog` e os estados `generating_code` /
+`awaiting_code_confirmation` / `code_failed` seguem em produção até o gate
+passar.
