@@ -144,10 +144,12 @@ export function TaxonomyRelationForm({
           </div>
         </>
       ) : (
-        <p className="text-xs text-muted-foreground">
-          Relação com <Badge variant="outline">{initial?.otherLabel ?? "outro item"}</Badge>. Para
-          mudar os itens, desative esta relação e crie outra.
-        </p>
+        <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <span>Relação com</span>
+          <Badge variant="outline">{initial?.otherLabel ?? "outro item"}</Badge>
+          <span>. Para mudar os itens, desative esta relação e crie outra.</span>
+        </div>
+
       )}
 
       <div className="space-y-1.5">
