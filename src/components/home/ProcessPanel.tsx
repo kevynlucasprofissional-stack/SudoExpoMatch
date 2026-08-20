@@ -104,10 +104,14 @@ export function ProcessPanel() {
               className="mt-3 grid grid-cols-1 gap-1.5 min-[390px]:grid-cols-2"
               data-testid="audience-chips"
             >
-              {AUDIENCE.map(({ label, Icon, tone }) => (
+              {AUDIENCE.map(({ label, Icon, tone }, i) => (
                 <span
                   key={label}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-2.5 text-[12px] font-semibold text-[#0b1252] shadow-sm"
+                  className={`inline-flex min-h-10 items-center gap-2 rounded-md bg-white px-2.5 text-[12px] font-semibold text-[#0b1252] shadow-sm${
+                    i === AUDIENCE.length - 1
+                      ? " min-[390px]:col-span-2 min-[390px]:justify-center"
+                      : ""
+                  }`}
                 >
                   <span
                     aria-hidden
