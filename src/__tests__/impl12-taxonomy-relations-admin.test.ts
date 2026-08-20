@@ -17,9 +17,9 @@ import {
   translateTaxonomyError,
 } from "@/features/admin/taxonomySchemas";
 
-const createMutate = vi.fn(async () => ({}));
-const updateMutate = vi.fn(async () => ({}));
-const toggleMutate = vi.fn(async () => ({}));
+const createMutate = vi.fn(async (_vars: Record<string, unknown>) => ({}));
+const updateMutate = vi.fn(async (_vars: Record<string, unknown>) => ({}));
+const toggleMutate = vi.fn(async (_vars: Record<string, unknown>) => ({}));
 const detail = { data: undefined as unknown, isLoading: false, isError: false, error: null };
 
 vi.mock("@/features/admin/useAdminTaxonomy", () => ({
