@@ -1223,6 +1223,7 @@ export type Database = {
       }
       _sanitize_synonyms: { Args: { _syn: string[] }; Returns: string[] }
       _taxonomy_item_json: { Args: { _id: string }; Returns: Json }
+      _taxonomy_relation_json: { Args: { _id: string }; Returns: Json }
       _taxonomy_unique_slug: {
         Args: { _kind: string; _label: string; _segment_id: string }
         Returns: string
@@ -1234,6 +1235,16 @@ export type Database = {
           _kind: string
           _label: string
           _segment_id: string
+        }
+        Returns: undefined
+      }
+      _validate_taxonomy_relation_payload: {
+        Args: {
+          _from: string
+          _rationale: string
+          _relation_type: string
+          _to: string
+          _weight: number
         }
         Returns: undefined
       }
@@ -1263,6 +1274,17 @@ export type Database = {
           _synonyms?: string[]
         }
         Returns: string
+      }
+      admin_create_taxonomy_relation: {
+        Args: {
+          _event_id: string
+          _from_item_id: string
+          _rationale?: string
+          _relation_type?: string
+          _to_item_id: string
+          _weight?: number
+        }
+        Returns: Json
       }
       admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
@@ -1343,6 +1365,10 @@ export type Database = {
         Args: { _active: boolean; _event_id: string; _item_id: string }
         Returns: Json
       }
+      admin_set_taxonomy_relation_active: {
+        Args: { _active: boolean; _event_id: string; _relation_id: string }
+        Returns: Json
+      }
       admin_update_taxonomy_item: {
         Args: {
           _description?: string
@@ -1352,6 +1378,16 @@ export type Database = {
           _label: string
           _segment_id: string
           _synonyms?: string[]
+        }
+        Returns: Json
+      }
+      admin_update_taxonomy_relation: {
+        Args: {
+          _event_id: string
+          _rationale?: string
+          _relation_id: string
+          _relation_type?: string
+          _weight?: number
         }
         Returns: Json
       }
