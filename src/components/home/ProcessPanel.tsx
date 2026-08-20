@@ -122,6 +122,13 @@ export function ProcessPanel() {
                 ))}
               </ul>
             </div>
+
+            <Link
+              to="/publico"
+              className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#070d3a]"
+            >
+              Acompanhar painel público <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </div>
         </div>
       </div>
