@@ -13,9 +13,13 @@ const mutateAsync = vi.fn(async (_vars: { itemId: string; active: boolean }) => 
 const detail = { data: undefined as unknown, isLoading: false, isError: false, error: null };
 
 vi.mock("@/features/admin/useAdminTaxonomy", () => ({
+  useAdminTaxonomy: () => ({ data: { items: [], total: 0 }, isLoading: false }),
   useAdminTaxonomyDetail: () => detail,
   useUpdateTaxonomyItem: () => ({ mutateAsync: vi.fn(), isPending: false }),
   useSetTaxonomyItemActive: () => ({ mutateAsync, isPending: false }),
+  useCreateTaxonomyRelation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useUpdateTaxonomyRelation: () => ({ mutateAsync: vi.fn(), isPending: false }),
+  useSetTaxonomyRelationActive: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }));

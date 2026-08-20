@@ -163,6 +163,43 @@ export function parseSynonymsInput(raw: string): string[] {
   return sanitizeSynonyms(raw.split(","));
 }
 
+// ---------------------------------------------------------------------------
+// IMPL 12 — relações complementares editáveis
+// ---------------------------------------------------------------------------
+
+export const TAXONOMY_RELATION_TYPES = ["complements"] as const;
+export type TaxonomyRelationType = (typeof TAXONOMY_RELATION_TYPES)[number];
+
+export const MAX_RATIONALE_LENGTH = 500;
+export const MIN_RELATION_WEIGHT = 1;
+export const MAX_RELATION_WEIGHT = 100;
+/** Peso mínimo considerado pelo matcher v2.3 (abaixo disso a relação não pontua). */
+export const MATCHER_MIN_RELATION_WEIGHT = 40;
+
+export type RelationDirection = "outgoing" | "incoming";
+export const RELATION_DIRECTION_TEXT: Record<RelationDirection, string> = {
+  outgoing: "Este item complementa o outro",
+  incoming: "O outro item complementa este",
+};
+
+export const relationFormSchema = z.object({
+  direction: z.enum(["outgoing", "incoming"]),
+  otherItemId: z.string().uuid("Escolha o item relacionado."),
+  relationType: z.enum(TAXONOMY_RELATION_TYPES).default("complements"),
+  weight: z.coerce
+    .number()
+    .int("Use um número inteiro.")
+    .min(MIN_RELATION_WEIGHT, `Peso mínimo ${MIN_RELATION_WEIGHT}.`)
+    .max(MAX_RELATION_WEIGHT, `Peso máximo ${MAX_RELATION_WEIGHT}.`),
+  rationale: z
+    .string()
+    .trim()
+    .max(MAX_RATIONALE_LENGTH, `Máximo de ${MAX_RATIONALE_LENGTH} caracteres.`)
+    .optional()
+    .default(""),
+});
+export type TaxonomyRelationFormValues = z.infer<typeof relationFormSchema>;
+
 export function translateTaxonomyError(err: unknown): string {
   const msg = err instanceof Error ? err.message : String(err ?? "");
   if (msg.includes("not_authenticated")) return "Sessão expirada. Entre novamente.";
@@ -176,8 +213,20 @@ export function translateTaxonomyError(err: unknown): string {
   if (msg.includes("too_many_synonyms")) return SYNONYM_ERRORS.many;
   if (msg.includes("synonym_too_long")) return SYNONYM_ERRORS.long;
   if (msg.includes("slug_collision")) return "Não foi possível gerar um identificador único.";
+  if (msg.includes("duplicate_relation"))
+    return "Já existe uma relação desse tipo entre esses dois itens.";
+  if (msg.includes("self_relation")) return "Um item não pode se relacionar com ele mesmo.";
+  if (msg.includes("invalid_relation_type")) return "Tipo de relação inválido.";
+  if (msg.includes("invalid_relation_items")) return "Escolha os dois itens da relação.";
+  if (msg.includes("from_item_not_found") || msg.includes("to_item_not_found"))
+    return "Item da relação não encontrado.";
+  if (msg.includes("invalid_weight"))
+    return `O peso deve ficar entre ${MIN_RELATION_WEIGHT} e ${MAX_RELATION_WEIGHT}.`;
+  if (msg.includes("invalid_rationale"))
+    return `A justificativa excede ${MAX_RATIONALE_LENGTH} caracteres.`;
   return "Não foi possível concluir a operação na taxonomia.";
 }
+
 
 // ---------------------------------------------------------------------------
 // Estado de URL

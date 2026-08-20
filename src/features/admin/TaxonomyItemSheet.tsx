@@ -28,8 +28,11 @@ import {
 
 import {
   useAdminTaxonomyDetail,
+  useCreateTaxonomyRelation,
   useSetTaxonomyItemActive,
+  useSetTaxonomyRelationActive,
   useUpdateTaxonomyItem,
+  useUpdateTaxonomyRelation,
 } from "@/features/admin/useAdminTaxonomy";
 import {
   kindText,
@@ -37,7 +40,9 @@ import {
   type TaxonomyRelation,
 } from "@/features/admin/taxonomySchemas";
 import { TaxonomyItemForm } from "@/features/admin/TaxonomyItemForm";
+import { TaxonomyRelationForm } from "@/features/admin/TaxonomyRelationForm";
 import type { Segment } from "@/lib/types";
+
 
 function fmt(iso: string | null): string {
   if (!iso) return "—";
@@ -47,7 +52,8 @@ function fmt(iso: string | null): string {
 
 function RelationItem({ r }: { r: TaxonomyRelation }) {
   return (
-    <li className="rounded-md border p-3 text-sm" data-testid="relation-item">
+    <div className="rounded-md border p-3 text-sm" data-testid="relation-item">
+
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {r.direction === "outgoing" ? (
           <>
@@ -72,7 +78,8 @@ function RelationItem({ r }: { r: TaxonomyRelation }) {
       {r.rationale ? (
         <p className="mt-1 text-xs text-muted-foreground">Justificativa: {r.rationale}</p>
       ) : null}
-    </li>
+    </div>
+
   );
 }
 
@@ -95,8 +102,14 @@ export function TaxonomyItemSheet({
   const detail = useAdminTaxonomyDetail(eventId, itemId, open);
   const update = useUpdateTaxonomyItem(eventId);
   const toggle = useSetTaxonomyItemActive(eventId);
+  const createRelation = useCreateTaxonomyRelation(eventId, itemId);
+  const updateRelation = useUpdateTaxonomyRelation(eventId, itemId);
+  const toggleRelation = useSetTaxonomyRelationActive(eventId, itemId);
   const [editing, setEditing] = useState(false);
   const [confirmOff, setConfirmOff] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [editingRelation, setEditingRelation] = useState<string | null>(null);
+  const [confirmRelationOff, setConfirmRelationOff] = useState<TaxonomyRelation | null>(null);
 
   const item = detail.data?.item;
   const relations = detail.data?.relations ?? [];
@@ -122,6 +135,19 @@ export function TaxonomyItemSheet({
     }
   }
 
+  /** Relações também nunca são apagadas: desativar exige confirmação. */
+  async function applyRelationActive(relationId: string, next: boolean) {
+    try {
+      await toggleRelation.mutateAsync({ relationId, active: next });
+      toast.success(next ? "Relação reativada." : "Relação desativada (histórico preservado).");
+    } catch (err) {
+      toast.error(translateTaxonomyError(err));
+    } finally {
+      setConfirmRelationOff(null);
+    }
+  }
+
+
   return (
     <Sheet
       open={open}
@@ -129,6 +155,9 @@ export function TaxonomyItemSheet({
         if (!v) {
           setEditing(false);
           setConfirmOff(false);
+          setCreating(false);
+          setEditingRelation(null);
+          setConfirmRelationOff(null);
         }
         onOpenChange(v);
       }}
@@ -259,9 +288,39 @@ export function TaxonomyItemSheet({
             </TabsContent>
 
             <TabsContent value="relacoes" className="mt-4 space-y-3">
-              <p className="text-xs text-muted-foreground">
-                Visão somente leitura das relações complementares usadas pelo matcher.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs text-muted-foreground">
+                  Relações complementares usadas pelo matcher. Nada é apagado: relações são
+                  desativadas.
+                </p>
+                {!creating ? (
+                  <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
+                    Nova relação
+                  </Button>
+                ) : null}
+              </div>
+
+              {creating ? (
+                <div className="rounded-md border p-3">
+                  <TaxonomyRelationForm
+                    eventId={eventId}
+                    currentItemId={item.id}
+                    mode="create"
+                    pending={createRelation.isPending}
+                    onCancel={() => setCreating(false)}
+                    onSubmit={async (values) => {
+                      try {
+                        await createRelation.mutateAsync(values);
+                        toast.success("Relação criada.");
+                        setCreating(false);
+                      } catch (err) {
+                        toast.error(translateTaxonomyError(err));
+                      }
+                    }}
+                  />
+                </div>
+              ) : null}
+
               {relations.length === 0 ? (
                 <p className="text-sm text-muted-foreground">
                   Nenhuma relação complementar cadastrada para este item.
@@ -269,11 +328,66 @@ export function TaxonomyItemSheet({
               ) : (
                 <ul className="space-y-2">
                   {relations.map((r) => (
-                    <RelationItem key={`${r.direction}-${r.id}`} r={r} />
+                    <li key={`${r.direction}-${r.id}`}>
+                      <RelationItem r={r} />
+                      {editingRelation === r.id ? (
+                        <div className="mt-2 rounded-md border p-3">
+                          <TaxonomyRelationForm
+                            eventId={eventId}
+                            currentItemId={item.id}
+                            mode="edit"
+                            pending={updateRelation.isPending}
+                            initial={{
+                              direction: r.direction,
+                              otherItemId: r.other_id,
+                              relationType: "complements",
+                              weight: r.weight,
+                              rationale: r.rationale ?? "",
+                              otherLabel: r.other_label,
+                            }}
+                            onCancel={() => setEditingRelation(null)}
+                            onSubmit={async (values) => {
+                              try {
+                                await updateRelation.mutateAsync({ relationId: r.id, values });
+                                toast.success("Relação atualizada.");
+                                setEditingRelation(null);
+                              } catch (err) {
+                                toast.error(translateTaxonomyError(err));
+                              }
+                            }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="mt-1 flex flex-wrap gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setEditingRelation(r.id)}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            disabled={toggleRelation.isPending}
+                            onClick={() => {
+                              if (r.active) {
+                                setConfirmRelationOff(r);
+                                return;
+                              }
+                              void applyRelationActive(r.id, true);
+                            }}
+                          >
+                            {r.active ? "Desativar" : "Reativar"}
+                          </Button>
+                        </div>
+                      )}
+                    </li>
                   ))}
                 </ul>
               )}
             </TabsContent>
+
           </Tabs>
         ) : null}
       </SheetContent>
@@ -307,6 +421,38 @@ export function TaxonomyItemSheet({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AlertDialog
+        open={!!confirmRelationOff}
+        onOpenChange={(v) => {
+          if (!v) setConfirmRelationOff(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              Desativar relação com “{confirmRelationOff?.other_label ?? "outro item"}”?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              O matcher deixa de usar esta relação em novos cálculos. Os motivos de match já
+              registrados permanecem intactos e nada é apagado. Você pode reativar depois.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={toggleRelation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={toggleRelation.isPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (confirmRelationOff) void applyRelationActive(confirmRelationOff.id, false);
+              }}
+            >
+              {toggleRelation.isPending ? "Desativando…" : "Desativar relação"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Sheet>
+
   );
 }
