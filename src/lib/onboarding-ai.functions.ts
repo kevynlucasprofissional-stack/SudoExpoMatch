@@ -68,9 +68,6 @@ async function fallbackToHeuristic(
  */
 async function buildProductionDeps(apiKey: string | undefined): Promise<OrchestratorDeps> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  // Private schema não é tipado (não faz parte do Data API). Cast controlado.
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const priv: any = (supabaseAdmin as any).schema("private");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const admin: any = supabaseAdmin;
 
