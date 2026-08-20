@@ -1459,6 +1459,24 @@ export type Database = {
         }
         Returns: Json
       }
+      ai_cache_lookup: {
+        Args: { _key: string; _model: string; _prompt_version: string }
+        Returns: Json
+      }
+      ai_cache_store: {
+        Args: {
+          _key: string
+          _model: string
+          _prompt_version: string
+          _result: Json
+          _ttl_sec: number
+        }
+        Returns: undefined
+      }
+      ai_rate_limit_consume: {
+        Args: { _actor: string; _max_calls: number; _window_sec: number }
+        Returns: boolean
+      }
       claim_profile_by_verified_phone: {
         Args: { _event_id: string }
         Returns: {
