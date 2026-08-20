@@ -250,7 +250,6 @@ describe("Instagram adversarial", () => {
   const badInputs = [
     "@@@",
     "javascript:alert(1)",
-    "http://instagram.com/x",
     "https://localhost/x",
     "http://127.0.0.1/admin",
     "https://169.254.169.254/latest/meta-data",
@@ -264,6 +263,12 @@ describe("Instagram adversarial", () => {
     for (const raw of badInputs) {
       expect(normalizeInstagramInput(raw).ok, raw).toBe(false);
     }
+  });
+
+  it("URL http do Instagram é promovida a https na allowlist (nunca http)", () => {
+    const r = normalizeInstagramInput("http://instagram.com/x");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.url).toBe("https://www.instagram.com/x/");
   });
 
   it("guardedFetch bloqueia host fora da allowlist, HTTP e IP privado", async () => {
@@ -357,8 +362,10 @@ describe("Instagram adversarial", () => {
 
     const prompt = buildSocialAnalysisPrompt(poisoned);
     // O fence do prompt continua íntegro: exatamente uma abertura e um fechamento.
-    expect(prompt.match(/<<<DADOS/g)?.length).toBe(1);
-    expect(prompt.match(/DADOS>>>/g)?.length).toBe(1);
+    // Uma única cerca de dados (a outra ocorrência é a própria regra de
+    // segurança citando o delimitador).
+    expect(prompt.match(/\n<<<DADOS\n/g)?.length).toBe(1);
+    expect(prompt.match(/\nDADOS>>>\n/g)?.length).toBe(1);
     expect(prompt).toContain("NÃO CONFIÁVEL");
 
     const block = buildSocialContextPromptBlock(poisoned);
