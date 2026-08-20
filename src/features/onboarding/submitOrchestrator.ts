@@ -92,6 +92,28 @@ export async function runWizardSubmit(args: {
     }
   }
 
+  // Instagram/contexto social — sempre depois do perfil (precisa do profile_id
+  // resolvido pela RPC) e sempre tolerante a falha.
+  if (args.deps.linkSocialProfile) {
+    const payload = buildSocialLinkPayload({
+      eventId: args.eventId,
+      instagram: args.draft.instagram,
+      context: args.socialContext ?? null,
+    });
+    try {
+      await args.deps.linkSocialProfile(payload);
+      events.push({
+        type: "SOCIAL_OK",
+        status: payload.handle ? payload.last_status : "unlinked",
+        handle: payload.handle,
+      });
+    } catch (error) {
+      events.push({ type: "SOCIAL_FAIL", error });
+    }
+  }
+
+
+
   if (args.mode === "create") {
     try {
       const code = await args.deps.rotateOwnRecoveryCode();
