@@ -27,7 +27,8 @@ const PRESENT = read("src/features/admin/matchesPresentation.ts");
 const API = read("src/features/admin/useAdminMatches.ts");
 const ADMIN = read("src/routes/admin.tsx");
 
-const U = (n: string) => `${n.repeat(8)}-${n.repeat(4)}-4${n.repeat(3)}-8${n.repeat(3)}-${n.repeat(12)}`;
+const U = (n: string) =>
+  `${n.repeat(8)}-${n.repeat(4)}-4${n.repeat(3)}-8${n.repeat(3)}-${n.repeat(12)}`;
 const MID = U("1");
 const PA = U("2");
 const PB = U("3");

@@ -30,8 +30,7 @@ export const CONNECTION_STATUS_TONE: Record<ConnectionStatus, string> = {
   aguardando: "bg-warning/15 text-warning-foreground border-warning/40",
   em_atendimento: "bg-accent/15 text-accent-foreground border-accent/40",
   apresentados: "bg-primary/15 text-primary border-primary/30",
-  contato_trocado:
-    "bg-secondary/15 text-secondary-foreground border-secondary/40",
+  contato_trocado: "bg-secondary/15 text-secondary-foreground border-secondary/40",
   concluido: "bg-success/15 text-success-foreground border-success/40",
   cancelado: "bg-muted text-muted-foreground border-muted",
 };
@@ -55,9 +54,7 @@ export function humanizeSlug(slug: string): string {
  * autoritativa (isso é responsabilidade exclusiva do wizard). Recebemos
  * apenas o slug/id retornado pela RPC v2 e humanizamos.
  */
-export function formatSegmentLabel(
-  segmentId: string | null | undefined,
-): string {
+export function formatSegmentLabel(segmentId: string | null | undefined): string {
   if (!segmentId) return "";
   return humanizeSlug(segmentId);
 }
@@ -67,40 +64,26 @@ export function formatSegmentLabel(
 // ---------------------------------------------------------------------------
 
 export function isMatchMutual(match: OwnMatchDTO): boolean {
-  return (
-    match.my_decision === "interesse" && match.other_decision === "interesse"
-  );
+  return match.my_decision === "interesse" && match.other_decision === "interesse";
 }
 
 export function filterInterests(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter((m) => m.my_decision === "interesse");
 }
 
-export function filterActiveConnections(
-  matches: OwnMatchDTO[],
-): OwnMatchDTO[] {
+export function filterActiveConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter(
-    (m) =>
-      isMatchMutual(m) &&
-      m.connection != null &&
-      m.connection.status !== "cancelado",
+    (m) => isMatchMutual(m) && m.connection != null && m.connection.status !== "cancelado",
   );
 }
 
-export function filterCancelledConnections(
-  matches: OwnMatchDTO[],
-): OwnMatchDTO[] {
+export function filterCancelledConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter(
-    (m) =>
-      isMatchMutual(m) &&
-      m.connection != null &&
-      m.connection.status === "cancelado",
+    (m) => isMatchMutual(m) && m.connection != null && m.connection.status === "cancelado",
   );
 }
 
-export function filterPendingConnections(
-  matches: OwnMatchDTO[],
-): OwnMatchDTO[] {
+export function filterPendingConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter((m) => isMatchMutual(m) && m.connection == null);
 }
 
@@ -108,11 +91,7 @@ export function canRevealForMatch(match: OwnMatchDTO): boolean {
   if (!isMatchMutual(match)) return false;
   const c = match.connection;
   if (!c) return false;
-  return (
-    c.status === "apresentados" ||
-    c.status === "contato_trocado" ||
-    c.status === "concluido"
-  );
+  return c.status === "apresentados" || c.status === "contato_trocado" || c.status === "concluido";
 }
 
 /**
@@ -171,11 +150,7 @@ export function translateRevealErrorCode(code: ErrorCode): string {
  * refazer login, etc).
  */
 export function isRevealRetriable(code: ErrorCode): boolean {
-  return (
-    code === "network" ||
-    code === "unknown" ||
-    code === "contact_unavailable"
-  );
+  return code === "network" || code === "unknown" || code === "contact_unavailable";
 }
 
 export function translateDecideErrorCode(code: ErrorCode): string {

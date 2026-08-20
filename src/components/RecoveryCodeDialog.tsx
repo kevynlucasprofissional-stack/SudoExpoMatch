@@ -24,9 +24,11 @@ interface Props {
  * Não fecha sozinho: o usuário precisa marcar "Já salvei" e confirmar.
  */
 export function RecoveryCodeDialog({
-  open, code, onConfirm,
+  open,
+  code,
+  onConfirm,
   title = "Guarde seu código de recuperação",
-  description = "Esse código é a única forma de recuperar seu perfil em outro aparelho. Ele não será exibido novamente."
+  description = "Esse código é a única forma de recuperar seu perfil em outro aparelho. Ele não será exibido novamente.",
 }: Props) {
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -68,12 +70,8 @@ export function RecoveryCodeDialog({
         </DialogHeader>
 
         <div className="my-4 rounded-lg border-2 border-dashed border-primary/40 bg-primary/5 p-6 text-center">
-          <p className="text-xs uppercase tracking-widest text-muted-foreground">
-            Seu código
-          </p>
-          <p className="mt-2 font-mono text-3xl font-bold tracking-widest">
-            {code ?? "…"}
-          </p>
+          <p className="text-xs uppercase tracking-widest text-muted-foreground">Seu código</p>
+          <p className="mt-2 font-mono text-3xl font-bold tracking-widest">{code ?? "…"}</p>
           <Button
             type="button"
             size="sm"
@@ -83,9 +81,13 @@ export function RecoveryCodeDialog({
             disabled={!code}
           >
             {copied ? (
-              <><Check className="mr-1 h-4 w-4" /> Copiado</>
+              <>
+                <Check className="mr-1 h-4 w-4" /> Copiado
+              </>
             ) : (
-              <><Copy className="mr-1 h-4 w-4" /> Copiar código</>
+              <>
+                <Copy className="mr-1 h-4 w-4" /> Copiar código
+              </>
             )}
           </Button>
         </div>
@@ -102,11 +104,7 @@ export function RecoveryCodeDialog({
         </label>
 
         <DialogFooter>
-          <Button
-            className="w-full"
-            disabled={!saved || !code}
-            onClick={onConfirm}
-          >
+          <Button className="w-full" disabled={!saved || !code} onClick={onConfirm}>
             Já salvei — continuar
           </Button>
         </DialogFooter>

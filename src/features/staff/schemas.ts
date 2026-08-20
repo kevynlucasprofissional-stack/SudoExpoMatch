@@ -39,8 +39,7 @@ export function translateStaffRevealError(err: unknown): string {
   if (msg.includes("not_authenticated")) return "Sessão expirada. Entre novamente.";
   if (msg.includes("forbidden"))
     return "Acesso negado. Apenas a equipe deste evento pode ver os contatos.";
-  if (msg.includes("not_mutual"))
-    return "Ainda não houve interesse mútuo entre as duas partes.";
+  if (msg.includes("not_mutual")) return "Ainda não houve interesse mútuo entre as duas partes.";
   if (msg.includes("no_connection"))
     return "Ainda não existe uma conexão registrada para este match.";
   if (msg.includes("connection_cancelled"))
@@ -49,7 +48,6 @@ export function translateStaffRevealError(err: unknown): string {
     return "Contatos só ficam liberados a partir de 'apresentados'. Peça a um administrador para justificar antes disso.";
   if (msg.includes("override_reason_required"))
     return "Justificativa obrigatória para liberar contatos antes de apresentados.";
-  if (msg.includes("match_not_found"))
-    return "Match não encontrado. Atualize a fila.";
+  if (msg.includes("match_not_found")) return "Match não encontrado. Atualize a fila.";
   return "Não foi possível carregar os contatos.";
 }

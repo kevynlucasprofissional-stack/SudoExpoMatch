@@ -226,4 +226,3 @@ export function useSetTaxonomyRelationActive(eventId: string, itemId: string | n
     onSuccess: () => invalidate(itemId ?? undefined),
   });
 }
-

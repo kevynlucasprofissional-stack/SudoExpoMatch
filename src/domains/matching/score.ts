@@ -1,10 +1,4 @@
-import type {
-  Match,
-  MatchKind,
-  MatchLabel,
-  MatchReason,
-  Profile,
-} from "@/lib/types";
+import type { Match, MatchKind, MatchLabel, MatchReason, Profile } from "@/lib/types";
 
 // Pesos oficiais da especificação:
 // 55 outro oferece o que procuro | 25 outro procura o que ofereço
@@ -71,18 +65,13 @@ export function scorePerspective(me: Profile, other: Profile): PerspectiveScore 
     reasons.push({
       code: "outro_procura_o_que_ofereco",
       weight: WEIGHTS.needsWhatIOffer,
-      detail: `Procura o que você oferece: ${otherNeedsWhatIOffer.matched
-        .slice(0, 3)
-        .join(", ")}`,
+      detail: `Procura o que você oferece: ${otherNeedsWhatIOffer.matched.slice(0, 3).join(", ")}`,
     });
   }
 
   // Prioridade: se algum item de necessidade prioritário meu é coberto
   const myPriority = me.needs.filter((n) => n.isPriority);
-  if (
-    myPriority.length > 0 &&
-    overlapCount(other.offers, myPriority).count > 0
-  ) {
+  if (myPriority.length > 0 && overlapCount(other.offers, myPriority).count > 0) {
     total += WEIGHTS.priority;
     reasons.push({
       code: "prioridade",
@@ -127,10 +116,7 @@ export function scorePerspective(me: Profile, other: Profile): PerspectiveScore 
   return { total, reasons };
 }
 
-export function classifyKind(
-  me: Profile,
-  other: Profile,
-): { kind: MatchKind; hasSignal: boolean } {
+export function classifyKind(me: Profile, other: Profile): { kind: MatchKind; hasSignal: boolean } {
   const otherOffersWhatINeed = overlapCount(other.offers, me.needs).count > 0;
   const otherNeedsWhatIOffer = overlapCount(me.offers, other.needs).count > 0;
   const differentSegment = me.segmentId !== other.segmentId;

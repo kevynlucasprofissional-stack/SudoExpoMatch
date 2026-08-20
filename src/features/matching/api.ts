@@ -51,9 +51,7 @@ export async function recomputeOwnMatches(eventId: string): Promise<number> {
   return parsed.data;
 }
 
-export async function revealContactForMatch(
-  matchId: string,
-): Promise<RevealedContactDTO> {
+export async function revealContactForMatch(matchId: string): Promise<RevealedContactDTO> {
   await ensureParticipantSession();
   const { data, error } = await supabase.rpc("reveal_contact_for_match", {
     _match_id: matchId,

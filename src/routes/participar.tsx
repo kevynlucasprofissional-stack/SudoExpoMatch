@@ -148,13 +148,7 @@ function WizardPage() {
     setDraft(createEmptyDraft());
     setMode("create");
     setHydrated(true);
-  }, [
-    session.isReady,
-    profileQuery.isPending,
-    profileQuery.isError,
-    profileQuery.data,
-    hydrated,
-  ]);
+  }, [session.isReady, profileQuery.isPending, profileQuery.isError, profileQuery.data, hydrated]);
 
   // Persistência: apenas depois de hidratado e antes de completar.
   useEffect(() => {
@@ -203,11 +197,9 @@ function WizardPage() {
   });
   const effectiveCatalog: EventCatalog | null =
     catalogAvailability.kind === "ready" ? catalogAvailability.catalog : null;
-  const manualCatalogMode =
-    catalogAvailability.kind === "ready" && catalogAvailability.manualMode;
+  const manualCatalogMode = catalogAvailability.kind === "ready" && catalogAvailability.manualMode;
   const catalogRefreshFailed =
     catalogAvailability.kind === "ready" && catalogAvailability.refreshFailed;
-
 
   const runRecompute = useCallback(async () => {
     try {
@@ -215,15 +207,11 @@ function WizardPage() {
       qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
       dispatch({ type: "MATCH_OK" });
       clearWizardDraft();
-      toast.success(
-        mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
-      );
+      toast.success(mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…");
       navigate({ to: "/participante" });
     } catch (err) {
       dispatch({ type: "MATCH_FAIL" });
-      toast.error(
-        errorToUserMessage(err, "Não conseguimos calcular seus matches agora."),
-      );
+      toast.error(errorToUserMessage(err, "Não conseguimos calcular seus matches agora."));
     }
   }, [mode, navigate, qc]);
 
@@ -236,8 +224,7 @@ function WizardPage() {
     if (runningRef.current) return;
     runningRef.current = true;
     try {
-      const withContactUpfront =
-        mode === "create" ? true : !!phone.trim();
+      const withContactUpfront = mode === "create" ? true : !!phone.trim();
       dispatch({ type: "START", mode, withContact: withContactUpfront });
       const events = await runWizardSubmit({
         draft,
@@ -297,7 +284,6 @@ function WizardPage() {
       runningRef.current = false;
     }
   }, [draft, mode, phone, qc, navigate, goToIdentity]);
-
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -379,7 +365,6 @@ function WizardPage() {
     }
   }, [qc, navigate]);
 
-
   const goToPanel = useCallback(() => {
     clearWizardDraft();
     navigate({ to: "/participante" });
@@ -390,16 +375,8 @@ function WizardPage() {
   // ------------------------------------------------------------------
   const pageState = resolveWizardPageState({
     session:
-      session.status === "error"
-        ? "error"
-        : session.status === "loading"
-          ? "loading"
-          : "ready",
-    profile: profileQuery.isError
-      ? "error"
-      : profileQuery.isPending
-        ? "pending"
-        : "success",
+      session.status === "error" ? "error" : session.status === "loading" ? "loading" : "ready",
+    profile: profileQuery.isError ? "error" : profileQuery.isPending ? "pending" : "success",
     hydrated,
   });
 
@@ -435,12 +412,10 @@ function WizardPage() {
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold">
-              Não foi possível carregar seu perfil
-            </h2>
+            <h2 className="text-lg font-semibold">Não foi possível carregar seu perfil</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Não conseguimos verificar se você já tem um perfil neste evento.
-              Sem essa verificação, o wizard não pode continuar com segurança.
+              Não conseguimos verificar se você já tem um perfil neste evento. Sem essa verificação,
+              o wizard não pode continuar com segurança.
             </p>
             <Button
               className="mt-4"
@@ -485,8 +460,8 @@ function WizardPage() {
           <Card className="p-6">
             <h2 className="text-lg font-semibold">Catálogo indisponível</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Não conseguimos carregar segmentos e taxonomia do evento. Para
-              criar um perfil novo é necessário que o catálogo esteja disponível.
+              Não conseguimos carregar segmentos e taxonomia do evento. Para criar um perfil novo é
+              necessário que o catálogo esteja disponível.
             </p>
             <Button
               className="mt-4"
@@ -520,8 +495,8 @@ function WizardPage() {
           <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
             <p className="font-medium">Catálogo indisponível — modo manual</p>
             <p className="mt-1 text-muted-foreground">
-              Segmento atual: <span className="font-medium">{fallbackSegmentId}</span>.
-              Você pode continuar editando; novos itens serão salvos como "Outro".
+              Segmento atual: <span className="font-medium">{fallbackSegmentId}</span>. Você pode
+              continuar editando; novos itens serão salvos como "Outro".
             </p>
             <div className="mt-2">
               <Button
@@ -531,9 +506,7 @@ function WizardPage() {
                 disabled={catalogQuery.isFetching}
                 aria-busy={catalogQuery.isFetching}
               >
-                {catalogQuery.isFetching
-                  ? "Tentando…"
-                  : "Tentar carregar catálogo novamente"}
+                {catalogQuery.isFetching ? "Tentando…" : "Tentar carregar catálogo novamente"}
               </Button>
             </div>
           </div>
@@ -541,9 +514,7 @@ function WizardPage() {
 
         {catalogRefreshFailed && (
           <div className="mb-4 rounded-lg border border-warning/40 bg-warning/5 p-3 text-sm">
-            <p className="font-medium">
-              Não foi possível atualizar o catálogo.
-            </p>
+            <p className="font-medium">Não foi possível atualizar o catálogo.</p>
             <p className="mt-1 text-muted-foreground">
               Você está usando a última versão carregada.
             </p>
@@ -560,7 +531,6 @@ function WizardPage() {
             </div>
           </div>
         )}
-
 
         <div className="mb-6">
           <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
@@ -616,14 +586,7 @@ function WizardPage() {
             aiAnalysis={aiAnalysis}
           />
         )}
-        {step === 4 && (
-          <StepPriority
-            draft={draft}
-            update={update}
-            onNext={next}
-            onBack={back}
-          />
-        )}
+        {step === 4 && <StepPriority draft={draft} update={update} onNext={next} onBack={back} />}
         {step === 5 && (
           <StepReview
             draft={draft}
@@ -658,12 +621,8 @@ function WizardPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={continueDraft}>
-              Continuar rascunho
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={loadServerProfile}>
-              Carregar meu perfil
-            </AlertDialogAction>
+            <AlertDialogCancel onClick={continueDraft}>Continuar rascunho</AlertDialogCancel>
+            <AlertDialogAction onClick={loadServerProfile}>Carregar meu perfil</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -700,8 +659,7 @@ function errorToUserMessage(err: unknown, fallback: string): string {
     }
   }
   if (err instanceof WizardMappingError) {
-    if (err.code === "single_priority_required")
-      return "Marque exatamente uma prioridade.";
+    if (err.code === "single_priority_required") return "Marque exatamente uma prioridade.";
     return "Revise os campos do formulário.";
   }
   return fallback;

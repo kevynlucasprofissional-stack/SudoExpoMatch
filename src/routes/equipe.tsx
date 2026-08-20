@@ -46,11 +46,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 
 import { EVENT_ID } from "@/lib/mock-data";
@@ -74,11 +70,7 @@ import {
   type EquipeSearch,
   type NormalizedEquipeSearch,
 } from "@/features/staff/urlState";
-import {
-  signInWithPassword,
-  signOut,
-  loginSchema,
-} from "@/features/auth/actions";
+import { signInWithPassword, signOut, loginSchema } from "@/features/auth/actions";
 import {
   useOperationalQueue,
   useAssumeConnection,
@@ -103,16 +95,13 @@ import {
   isTerminalStatus,
   translateOperationalError,
 } from "@/features/connections/domain";
-import {
-  secondsSince,
-} from "@/features/connections/time";
+import { secondsSince } from "@/features/connections/time";
 import {
   canAddInternalNote,
   eligibleReassignees,
   formatElapsedSeconds,
   getOperationalCta,
 } from "@/features/staff/operationalUi";
-
 
 export const Route = createFileRoute("/equipe")({
   head: () => ({
@@ -131,7 +120,6 @@ export const Route = createFileRoute("/equipe")({
 });
 
 const PAGE_SIZE = 25;
-
 
 function StaffPage() {
   const { user, isAuthenticated, isLoading: sessionLoading } = useSession();
@@ -166,18 +154,12 @@ function StaffPage() {
         <section className="mx-auto max-w-md px-4 py-12">
           <Card className="p-6 text-center">
             <ShieldCheck className="mx-auto h-10 w-10 text-muted-foreground" />
-            <h1 className="mt-3 font-display text-xl font-semibold">
-              Sem acesso à equipe
-            </h1>
+            <h1 className="mt-3 font-display text-xl font-semibold">Sem acesso à equipe</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sua conta <strong>{user?.email}</strong> não tem papel na equipe
-              deste evento. Fale com um administrador da ACIRV.
+              Sua conta <strong>{user?.email}</strong> não tem papel na equipe deste evento. Fale
+              com um administrador da ACIRV.
             </p>
-            <Button
-              variant="outline"
-              className="mt-4"
-              onClick={() => signOut()}
-            >
+            <Button variant="outline" className="mt-4" onClick={() => signOut()}>
               <LogOut className="mr-1 h-4 w-4" /> Sair
             </Button>
           </Card>
@@ -186,13 +168,7 @@ function StaffPage() {
     );
   }
 
-  return (
-    <StaffDashboard
-      email={user?.email ?? ""}
-      userId={user?.id ?? ""}
-      role={roleQuery.data}
-    />
-  );
+  return <StaffDashboard email={user?.email ?? ""} userId={user?.id ?? ""} role={roleQuery.data} />;
 }
 
 // ---------------------------------------------------------------- Login
@@ -218,9 +194,7 @@ function LoginCard() {
       toast.success("Bem-vindo(a)!");
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha no login";
-      toast.error(
-        msg.includes("Invalid") ? "E-mail ou senha incorretos." : msg,
-      );
+      toast.error(msg.includes("Invalid") ? "E-mail ou senha incorretos." : msg);
     } finally {
       setLoading(false);
     }
@@ -248,9 +222,7 @@ function LoginCard() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="voce@acirv.com.br"
               />
-              {errors.email && (
-                <p className="mt-1 text-xs text-destructive">{errors.email}</p>
-              )}
+              {errors.email && <p className="mt-1 text-xs text-destructive">{errors.email}</p>}
             </div>
             <div>
               <Label htmlFor="password">Senha</Label>
@@ -262,9 +234,7 @@ function LoginCard() {
                 onChange={(e) => setPassword(e.target.value)}
               />
               {errors.password && (
-                <p className="mt-1 text-xs text-destructive">
-                  {errors.password}
-                </p>
+                <p className="mt-1 text-xs text-destructive">{errors.password}</p>
               )}
             </div>
             <Button type="submit" className="w-full" disabled={loading}>
@@ -435,12 +405,9 @@ function StaffDashboard({
             <p className="text-xs uppercase tracking-wide text-primary">
               Central operacional · SudoExpo 2026
             </p>
-            <h1 className="font-display text-2xl font-bold md:text-3xl">
-              Fila de conexões
-            </h1>
+            <h1 className="font-display text-2xl font-bold md:text-3xl">Fila de conexões</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              {email} ·{" "}
-              <Badge variant={isAdmin ? "default" : "secondary"}>{role}</Badge>
+              {email} · <Badge variant={isAdmin ? "default" : "secondary"}>{role}</Badge>
             </p>
           </div>
           <div className="flex gap-2">
@@ -483,27 +450,21 @@ function StaffDashboard({
                   onClick={() => updateSearch({ scope: s, page: 1 })}
                 >
                   {label}
-                  <span className="ml-1 text-xs opacity-70">
-                    {counts[s] ?? 0}
-                  </span>
+                  <span className="ml-1 text-xs opacity-70">{counts[s] ?? 0}</span>
                 </Button>
               ))}
             </div>
 
             <Select
               value={search.status}
-              onValueChange={(v) =>
-                updateSearch({ status: v, page: 1 })
-              }
+              onValueChange={(v) => updateSearch({ status: v, page: 1 })}
             >
               <SelectTrigger className="h-8 w-44">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Qualquer status</SelectItem>
-                {(
-                  Object.keys(CONNECTION_STATUS_LABEL) as ConnectionStatus[]
-                ).map((s) => (
+                {(Object.keys(CONNECTION_STATUS_LABEL) as ConnectionStatus[]).map((s) => (
                   <SelectItem key={s} value={s}>
                     {CONNECTION_STATUS_LABEL[s]}
                   </SelectItem>
@@ -530,9 +491,7 @@ function StaffDashboard({
             <SegmentsFilter
               value={search.segments}
               options={segmentsQuery.data ?? []}
-              onChange={(ids) =>
-                updateSearch({ segments: segmentsToParam(ids), page: 1 })
-              }
+              onChange={(ids) => updateSearch({ segments: segmentsToParam(ids), page: 1 })}
             />
 
             <div className="relative ml-auto flex-1 min-w-[200px]">
@@ -551,9 +510,7 @@ function StaffDashboard({
               onClick={() => queueQuery.refetch()}
               aria-label="Atualizar"
             >
-              <RefreshCw
-                className={`h-4 w-4 ${queueQuery.isFetching ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`h-4 w-4 ${queueQuery.isFetching ? "animate-spin" : ""}`} />
             </Button>
           </div>
         </Card>
@@ -589,9 +546,7 @@ function StaffDashboard({
                 c={c}
                 userId={userId}
                 isAdmin={isAdmin}
-                busy={
-                  assume.isPending || release.isPending || advance.isPending
-                }
+                busy={assume.isPending || release.isPending || advance.isPending}
                 onAssume={() => handleAssume(c)}
                 onRelease={() => {
                   setReleaseTarget(c);
@@ -612,16 +567,13 @@ function StaffDashboard({
         {total > PAGE_SIZE && (
           <div className="mt-4 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">
-              Página {search.page} de {Math.ceil(total / PAGE_SIZE)} · {total}{" "}
-              no total
+              Página {search.page} de {Math.ceil(total / PAGE_SIZE)} · {total} no total
             </span>
             <div className="flex gap-2">
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() =>
-                  updateSearch({ page: Math.max(1, search.page - 1) })
-                }
+                onClick={() => updateSearch({ page: Math.max(1, search.page - 1) })}
                 disabled={search.page === 1 || queueQuery.isFetching}
               >
                 Anterior
@@ -630,9 +582,7 @@ function StaffDashboard({
                 size="sm"
                 variant="outline"
                 onClick={() => updateSearch({ page: search.page + 1 })}
-                disabled={
-                  search.page * PAGE_SIZE >= total || queueQuery.isFetching
-                }
+                disabled={search.page * PAGE_SIZE >= total || queueQuery.isFetching}
               >
                 Próxima
               </Button>
@@ -667,8 +617,7 @@ function StaffDashboard({
           <DialogHeader>
             <DialogTitle>Cancelar conexão</DialogTitle>
             <DialogDescription>
-              Explique brevemente o motivo (3 a 500 caracteres). Fica
-              registrado no histórico.
+              Explique brevemente o motivo (3 a 500 caracteres). Fica registrado no histórico.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -678,9 +627,7 @@ function StaffDashboard({
             maxLength={500}
             rows={4}
           />
-          <p className="text-xs text-muted-foreground">
-            {cancelNote.trim().length}/500
-          </p>
+          <p className="text-xs text-muted-foreground">{cancelNote.trim().length}/500</p>
           <DialogFooter>
             <Button
               variant="ghost"
@@ -764,7 +711,7 @@ function SegmentsFilter({
     value.length === 0
       ? "Segmentos"
       : value.length === 1
-        ? options.find((o) => o.id === value[0])?.label ?? "1 segmento"
+        ? (options.find((o) => o.id === value[0])?.label ?? "1 segmento")
         : `${value.length} segmentos`;
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -785,9 +732,7 @@ function SegmentsFilter({
       <PopoverContent align="start" className="w-64 p-2">
         <div className="max-h-64 space-y-1 overflow-auto">
           {options.length === 0 && (
-            <p className="p-2 text-xs text-muted-foreground">
-              Nenhum segmento disponível.
-            </p>
+            <p className="p-2 text-xs text-muted-foreground">Nenhum segmento disponível.</p>
           )}
           {options.map((o) => (
             <label
@@ -846,29 +791,19 @@ function ConnectionCard({
     userId,
     isAdmin,
   });
-  const canReveal =
-    canRevealContact(c.status) ||
-    (isAdmin && !isTerminalStatus(c.status)); // admin pode com override
+  const canReveal = canRevealContact(c.status) || (isAdmin && !isTerminalStatus(c.status)); // admin pode com override
 
   return (
     <Card className="p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <Badge
-              className={`border ${CONNECTION_STATUS_TONE[c.status]}`}
-              variant="outline"
-            >
+            <Badge className={`border ${CONNECTION_STATUS_TONE[c.status]}`} variant="outline">
               {CONNECTION_STATUS_LABEL[c.status]}
             </Badge>
             {c.assigned_to ? (
-              <Badge
-                variant={mine ? "default" : "secondary"}
-                className="text-xs"
-              >
-                {mine
-                  ? "Você"
-                  : `Com ${c.assignee_email ?? "outro operador"}`}
+              <Badge variant={mine ? "default" : "secondary"} className="text-xs">
+                {mine ? "Você" : `Com ${c.assignee_email ?? "outro operador"}`}
               </Badge>
             ) : (
               <Badge variant="outline" className="text-xs">
@@ -886,14 +821,9 @@ function ConnectionCard({
             </span>
           </div>
           <p className="mt-2 font-medium">
-            {c.a_name}{" "}
-            <span className="text-muted-foreground">
-              · {c.a_company ?? ""}
-            </span>{" "}
+            {c.a_name} <span className="text-muted-foreground">· {c.a_company ?? ""}</span>{" "}
             <span className="mx-1 text-muted-foreground">↔</span> {c.b_name}{" "}
-            <span className="text-muted-foreground">
-              · {c.b_company ?? ""}
-            </span>
+            <span className="text-muted-foreground">· {c.b_company ?? ""}</span>
           </p>
           <p className="text-xs text-muted-foreground">
             {c.a_city ?? "—"} · {c.b_city ?? "—"}
@@ -914,12 +844,7 @@ function ConnectionCard({
             </Button>
           )}
           {mine && !isTerminalStatus(c.status) && c.status !== "aguardando" && (
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={onRelease}
-              disabled={busy}
-            >
+            <Button size="sm" variant="outline" onClick={onRelease} disabled={busy}>
               <UserX className="mr-1 h-4 w-4" /> Devolver
             </Button>
           )}
@@ -931,26 +856,18 @@ function ConnectionCard({
               )}
             </Button>
           )}
-          {nextStatus &&
-            canOp &&
-            c.status !== "aguardando" &&
-            getOperationalCta(c.status) && (
-              <Button
-                size="sm"
-                onClick={() => onAdvance(c, nextStatus)}
-                disabled={busy}
-                title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
-              >
-                {getOperationalCta(c.status)}
-              </Button>
-            )}
-          {!isTerminalStatus(c.status) && canOp && (
+          {nextStatus && canOp && c.status !== "aguardando" && getOperationalCta(c.status) && (
             <Button
               size="sm"
-              variant="ghost"
-              onClick={onCancel}
+              onClick={() => onAdvance(c, nextStatus)}
               disabled={busy}
+              title={`Avançar para ${CONNECTION_STATUS_LABEL[nextStatus]}`}
             >
+              {getOperationalCta(c.status)}
+            </Button>
+          )}
+          {!isTerminalStatus(c.status) && canOp && (
+            <Button size="sm" variant="ghost" onClick={onCancel} disabled={busy}>
               Cancelar
             </Button>
           )}
@@ -999,13 +916,9 @@ function ConnectionDetailDrawer({
 
   async function handleReassign() {
     if (!connectionId || !reassignTo) return;
-    const parsed = optionalStaffNoteSchema.safeParse(
-      reassignNote || undefined,
-    );
+    const parsed = optionalStaffNoteSchema.safeParse(reassignNote || undefined);
     if (!parsed.success) {
-      toast.error(
-        parsed.error.issues[0]?.message ?? "Observação inválida.",
-      );
+      toast.error(parsed.error.issues[0]?.message ?? "Observação inválida.");
       return;
     }
     try {
@@ -1022,7 +935,6 @@ function ConnectionDetailDrawer({
     }
   }
 
-
   return (
     <Sheet open={connectionId !== null} onOpenChange={(o) => !o && onClose()}>
       <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
@@ -1035,9 +947,7 @@ function ConnectionDetailDrawer({
 
         {q.isPending && <Skeleton className="mt-4 h-40 w-full" />}
         {q.isError && (
-          <p className="mt-4 text-sm text-destructive">
-            {translateOperationalError(q.error)}
-          </p>
+          <p className="mt-4 text-sm text-destructive">{translateOperationalError(q.error)}</p>
         )}
         {q.data && (
           <div className="mt-4 space-y-6 text-sm">
@@ -1059,10 +969,7 @@ function ConnectionDetailDrawer({
                 <TimeRow label="Criada" v={q.data.created_at} />
                 <TimeRow label="Assumida" v={q.data.assumed_at} />
                 <TimeRow label="Apresentados" v={q.data.presented_at} />
-                <TimeRow
-                  label="Contato trocado"
-                  v={q.data.contact_exchanged_at}
-                />
+                <TimeRow label="Contato trocado" v={q.data.contact_exchanged_at} />
                 <TimeRow label="Concluída" v={q.data.completed_at} />
                 <TimeRow label="Cancelada" v={q.data.cancelled_at} />
               </div>
@@ -1093,8 +1000,7 @@ function ConnectionDetailDrawer({
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   {q.data.reasons.map((r) => (
                     <li key={r.code + (r.perspective_profile_id ?? "")}>
-                      • {r.label ?? r.code}{" "}
-                      <span className="opacity-70">(+{r.weight})</span>
+                      • {r.label ?? r.code} <span className="opacity-70">(+{r.weight})</span>
                     </li>
                   ))}
                 </ul>
@@ -1121,18 +1027,12 @@ function ConnectionDetailDrawer({
                         {CONNECTION_STATUS_LABEL[e.new_status]}
                       </p>
                     )}
-                    {e.actor_email && (
-                      <p className="text-muted-foreground">
-                        por {e.actor_email}
-                      </p>
-                    )}
+                    {e.actor_email && <p className="text-muted-foreground">por {e.actor_email}</p>}
                     {e.note && <p className="mt-1 italic">"{e.note}"</p>}
                   </li>
                 ))}
                 {q.data.events.length === 0 && (
-                  <li className="text-xs text-muted-foreground">
-                    Sem eventos registrados.
-                  </li>
+                  <li className="text-xs text-muted-foreground">Sem eventos registrados.</li>
                 )}
               </ul>
             </section>
@@ -1146,9 +1046,7 @@ function ConnectionDetailDrawer({
                     className="rounded-md border border-border/60 bg-secondary/10 p-2 text-xs"
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {n.author_email ?? "Equipe"}
-                      </span>
+                      <span className="font-medium">{n.author_email ?? "Equipe"}</span>
                       <span className="text-muted-foreground">
                         {new Date(n.created_at).toLocaleString("pt-BR")}
                       </span>
@@ -1157,9 +1055,7 @@ function ConnectionDetailDrawer({
                   </li>
                 ))}
                 {q.data.internal_notes.length === 0 && (
-                  <li className="text-xs text-muted-foreground">
-                    Nenhuma nota interna ainda.
-                  </li>
+                  <li className="text-xs text-muted-foreground">Nenhuma nota interna ainda.</li>
                 )}
               </ul>
               {canAddInternalNote() && (
@@ -1178,9 +1074,7 @@ function ConnectionDetailDrawer({
                     <Button
                       size="sm"
                       onClick={handleAddNote}
-                      disabled={
-                        addNote.isPending || noteInput.trim().length < 1
-                      }
+                      disabled={addNote.isPending || noteInput.trim().length < 1}
                     >
                       Adicionar nota
                     </Button>
@@ -1195,15 +1089,11 @@ function ConnectionDetailDrawer({
                   <ArrowRightLeft className="h-4 w-4" /> Reatribuir
                 </h3>
                 {(() => {
-                  const eligible = eligibleReassignees(
-                    staffMembers.data ?? [],
-                    q.data.assigned_to,
-                  );
+                  const eligible = eligibleReassignees(staffMembers.data ?? [], q.data.assigned_to);
                   if (eligible.length === 0) {
                     return (
                       <p className="text-xs text-muted-foreground">
-                        Não há outro membro disponível para reatribuição neste
-                        evento.
+                        Não há outro membro disponível para reatribuição neste evento.
                       </p>
                     );
                   }
@@ -1297,8 +1187,7 @@ function RevealContactDialog({
   onClose: () => void;
 }) {
   const reveal = useRevealStaffContact();
-  const needsOverride =
-    target !== null && !canRevealContact(target.status) && isAdmin;
+  const needsOverride = target !== null && !canRevealContact(target.status) && isAdmin;
   const [reason, setReason] = useState("");
 
   useEffect(() => {
@@ -1314,9 +1203,7 @@ function RevealContactDialog({
     if (needsOverride) {
       const parsed = adminRevealOverrideSchema.safeParse(reason);
       if (!parsed.success) {
-        toast.error(
-          parsed.error.issues[0]?.message ?? "Justificativa inválida.",
-        );
+        toast.error(parsed.error.issues[0]?.message ?? "Justificativa inválida.");
         return;
       }
       overrideReason = parsed.data;
@@ -1343,8 +1230,7 @@ function RevealContactDialog({
         <DialogHeader>
           <DialogTitle>Contatos dos participantes</DialogTitle>
           <DialogDescription>
-            Uso interno da equipe · esta consulta fica registrada no log de
-            auditoria.
+            Uso interno da equipe · esta consulta fica registrada no log de auditoria.
           </DialogDescription>
         </DialogHeader>
 
@@ -1354,13 +1240,11 @@ function RevealContactDialog({
               <>
                 <div className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
                   <p className="flex items-center gap-1 font-medium">
-                    <ShieldAlert className="h-4 w-4" /> Liberação
-                    administrativa
+                    <ShieldAlert className="h-4 w-4" /> Liberação administrativa
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    A conexão ainda não chegou em "Apresentados". Justifique
-                    (3 a 500 caracteres) para liberar os contatos. Fica no
-                    log.
+                    A conexão ainda não chegou em "Apresentados". Justifique (3 a 500 caracteres)
+                    para liberar os contatos. Fica no log.
                   </p>
                 </div>
                 <Textarea
@@ -1377,19 +1261,12 @@ function RevealContactDialog({
               </p>
             )}
             <div className="flex justify-end gap-2">
-              <Button
-                variant="ghost"
-                onClick={handleClose}
-                disabled={reveal.isPending}
-              >
+              <Button variant="ghost" onClick={handleClose} disabled={reveal.isPending}>
                 Voltar
               </Button>
               <Button
                 onClick={handleReveal}
-                disabled={
-                  reveal.isPending ||
-                  (needsOverride && reason.trim().length < 3)
-                }
+                disabled={reveal.isPending || (needsOverride && reason.trim().length < 3)}
               >
                 {reveal.isPending ? "Carregando…" : "Revelar contatos"}
               </Button>
@@ -1423,17 +1300,12 @@ function RevealContactDialog({
                       </a>
                     </p>
                   ) : (
-                    <p className="text-muted-foreground">
-                      Sem WhatsApp cadastrado
-                    </p>
+                    <p className="text-muted-foreground">Sem WhatsApp cadastrado</p>
                   )}
                   {c.email && (
                     <p>
                       ✉️{" "}
-                      <a
-                        href={`mailto:${c.email}`}
-                        className="text-primary hover:underline"
-                      >
+                      <a href={`mailto:${c.email}`} className="text-primary hover:underline">
                         {c.email}
                       </a>
                     </p>
@@ -1456,12 +1328,8 @@ function RevealContactDialog({
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <Card className="p-4">
-      <p className="text-xs uppercase tracking-wider text-muted-foreground">
-        {label}
-      </p>
-      <p className="mt-1 font-display text-3xl font-bold tabular-nums">
-        {value}
-      </p>
+      <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="mt-1 font-display text-3xl font-bold tabular-nums">{value}</p>
     </Card>
   );
 }

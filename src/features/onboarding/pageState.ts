@@ -20,9 +20,7 @@ export interface ResolveWizardPageStateInput {
  * 1) session error > 2) session loading > 3) profile error >
  * 4) profile loading > 5) hidratação > 6) ready.
  */
-export function resolveWizardPageState(
-  input: ResolveWizardPageStateInput,
-): WizardPageState {
+export function resolveWizardPageState(input: ResolveWizardPageStateInput): WizardPageState {
   if (input.session === "error") return "session_error";
   if (input.session === "loading") return "session_loading";
   if (input.profile === "error") return "profile_error";

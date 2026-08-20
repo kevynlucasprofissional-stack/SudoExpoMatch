@@ -156,9 +156,7 @@ describe("ownMatchSchema", () => {
     expect(ownMatchSchema.safeParse(withConn).success).toBe(true);
   });
   it("rejeita label desconhecido", () => {
-    expect(
-      ownMatchSchema.safeParse({ ...base, label: "impossivel" }).success,
-    ).toBe(false);
+    expect(ownMatchSchema.safeParse({ ...base, label: "impossivel" }).success).toBe(false);
   });
 });
 
@@ -220,9 +218,8 @@ describe("revealedContactSchema", () => {
 describe("recoverProfileResponseSchema", () => {
   it("aceita array de um elemento", () => {
     expect(
-      recoverProfileResponseSchema.safeParse([
-        { profile_id: "p", new_recovery_code: "ABC12345" },
-      ]).success,
+      recoverProfileResponseSchema.safeParse([{ profile_id: "p", new_recovery_code: "ABC12345" }])
+        .success,
     ).toBe(true);
   });
   it("rejeita array vazio", () => {
@@ -258,9 +255,7 @@ describe("saveOwnProfilePayloadSchema", () => {
     expect(saveOwnProfilePayloadSchema.safeParse(ok).success).toBe(true);
   });
   it("rejeita consent = false", () => {
-    expect(
-      saveOwnProfilePayloadSchema.safeParse({ ...ok, consent: false }).success,
-    ).toBe(false);
+    expect(saveOwnProfilePayloadSchema.safeParse({ ...ok, consent: false }).success).toBe(false);
   });
   it("rejeita >5 ofertas", () => {
     expect(
@@ -271,9 +266,7 @@ describe("saveOwnProfilePayloadSchema", () => {
     ).toBe(false);
   });
   it("rejeita 0 necessidades", () => {
-    expect(
-      saveOwnProfilePayloadSchema.safeParse({ ...ok, needs: [] }).success,
-    ).toBe(false);
+    expect(saveOwnProfilePayloadSchema.safeParse({ ...ok, needs: [] }).success).toBe(false);
   });
 });
 
@@ -303,9 +296,7 @@ describe("presentation labels", () => {
 describe("extractErrorCode", () => {
   it("reconhece códigos conhecidos", () => {
     expect(extractErrorCode("rate_limited")).toBe("rate_limited");
-    expect(extractErrorCode("some prefix invalid_code some suffix")).toBe(
-      "invalid_code",
-    );
+    expect(extractErrorCode("some prefix invalid_code some suffix")).toBe("invalid_code");
     expect(extractErrorCode("Failed to fetch")).toBe("network");
   });
   it("retorna unknown como fallback", () => {
@@ -359,15 +350,12 @@ vi.mock("@/integrations/supabase/client", () => {
 describe("ensureParticipantSession", () => {
   beforeEach(() => vi.resetModules());
   it("propaga SessionError quando signInAnonymously falha", async () => {
-    const { ensureParticipantSession, SessionError } = await import(
-      "@/features/participant/session"
-    );
+    const { ensureParticipantSession, SessionError } =
+      await import("@/features/participant/session");
     await expect(ensureParticipantSession()).rejects.toBeInstanceOf(SessionError);
   });
   it("SessionError code = sign_in_failed", async () => {
-    const { ensureParticipantSession } = await import(
-      "@/features/participant/session"
-    );
+    const { ensureParticipantSession } = await import("@/features/participant/session");
     try {
       await ensureParticipantSession();
       throw new Error("deveria ter lançado");
@@ -382,7 +370,7 @@ describe("busca estática: score.ts nunca importado por rotas/componentes", () =
   it("nenhum arquivo em src/routes ou src/components importa domains/matching/score", () => {
     const { execSync } = require("node:child_process") as typeof import("node:child_process");
     const out = execSync(
-      "grep -rEn \"from ['\\\"](@/)?domains/matching/score\" src/routes src/components src/features || true",
+      'grep -rEn "from [\'\\"](@/)?domains/matching/score" src/routes src/components src/features || true',
       { encoding: "utf8" },
     );
     const clean = out

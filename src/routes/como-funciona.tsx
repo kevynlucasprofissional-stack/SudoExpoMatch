@@ -59,23 +59,18 @@ function HowItWorks() {
   return (
     <PageShell>
       <section className="mx-auto max-w-4xl px-4 py-12 md:py-16">
-        <p className="text-sm font-medium uppercase tracking-wide text-primary">
-          Passo a passo
-        </p>
+        <p className="text-sm font-medium uppercase tracking-wide text-primary">Passo a passo</p>
         <h1 className="mt-2 font-display text-3xl font-bold md:text-4xl">
           Como o Matchmaker SudoExpo funciona
         </h1>
         <p className="mt-3 max-w-2xl text-muted-foreground">
-          Uma experiência rápida no celular, feita para transformar visita em
-          negócio real. Cada match tem motivo objetivo.
+          Uma experiência rápida no celular, feita para transformar visita em negócio real. Cada
+          match tem motivo objetivo.
         </p>
 
         <ol className="mt-10 space-y-4">
           {STEPS.map((s) => (
-            <li
-              key={s.n}
-              className="flex gap-4 rounded-xl border bg-card p-5 shadow-sm"
-            >
+            <li key={s.n} className="flex gap-4 rounded-xl border bg-card p-5 shadow-sm">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground font-display font-bold">
                 {s.n}
               </div>

@@ -12,10 +12,9 @@ export function useEventSegments(eventId: string, enabled: boolean = true) {
     enabled,
     staleTime: 5 * 60_000,
     queryFn: async (): Promise<Segment[]> => {
-      const { data, error } = await supabase.rpc(
-        "list_event_segments_and_taxonomy",
-        { _event_id: eventId },
-      );
+      const { data, error } = await supabase.rpc("list_event_segments_and_taxonomy", {
+        _event_id: eventId,
+      });
       if (error) throw error;
       const raw =
         (data as { segments?: Array<{ id: string; label: string; emoji: string | null }> } | null)

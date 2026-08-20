@@ -12,7 +12,7 @@ vi.mock("@/lib/onboarding-ai.functions", () => ({
   suggestOnboardingItems: (...args: unknown[]) => suggestMock(...args),
 }));
 vi.mock("@tanstack/react-start", () => ({
-  useServerFn: <T,>(fn: T) => fn,
+  useServerFn: <T>(fn: T) => fn,
 }));
 
 // Import DEPOIS dos mocks.

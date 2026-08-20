@@ -102,12 +102,9 @@ export function RecoveryView() {
     <PageShell>
       <section className="mx-auto max-w-md px-4 py-12">
         <Card className="p-6">
-          <h1 className="font-display text-2xl font-bold">
-            Recuperar meu perfil
-          </h1>
+          <h1 className="font-display text-2xl font-bold">Recuperar meu perfil</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Informe o WhatsApp e o código pessoal recebidos quando criou o
-            perfil.
+            Informe o WhatsApp e o código pessoal recebidos quando criou o perfil.
           </p>
           <div className="mt-6 space-y-4">
             <div>
@@ -157,10 +154,7 @@ export function RecoveryView() {
           </div>
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Primeiro acesso?{" "}
-            <Link
-              to="/participar"
-              className="font-medium text-primary hover:underline"
-            >
+            <Link to="/participar" className="font-medium text-primary hover:underline">
               Criar meu perfil
             </Link>
           </div>

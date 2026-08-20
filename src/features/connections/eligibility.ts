@@ -6,11 +6,7 @@ import type { ConnectionStatus } from "@/lib/types";
  * decide se o botão fica habilitado e qual mensagem exibir.
  */
 export function canParticipantRevealContact(status: ConnectionStatus | undefined | null): boolean {
-  return (
-    status === "apresentados" ||
-    status === "contato_trocado" ||
-    status === "concluido"
-  );
+  return status === "apresentados" || status === "contato_trocado" || status === "concluido";
 }
 
 export const PARTICIPANT_STATUS_MESSAGE: Record<ConnectionStatus, string> = {

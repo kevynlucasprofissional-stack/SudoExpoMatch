@@ -5,6 +5,4 @@ export const recoverProfileRowSchema = z.object({
   new_recovery_code: z.string(),
 });
 
-export const recoverProfileResponseSchema = z
-  .array(recoverProfileRowSchema)
-  .min(1);
+export const recoverProfileResponseSchema = z.array(recoverProfileRowSchema).min(1);

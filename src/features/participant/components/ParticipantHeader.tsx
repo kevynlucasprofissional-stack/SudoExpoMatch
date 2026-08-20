@@ -53,12 +53,8 @@ export function ParticipantHeader({
   return (
     <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
       <div>
-        <p className="text-xs uppercase tracking-wide text-primary">
-          Área do participante
-        </p>
-        <h1 className="font-display text-2xl font-bold md:text-3xl">
-          Olá, {firstName}!
-        </h1>
+        <p className="text-xs uppercase tracking-wide text-primary">Área do participante</p>
+        <h1 className="font-display text-2xl font-bold md:text-3xl">Olá, {firstName}!</h1>
         <p
           className="mt-1 text-xs text-muted-foreground"
           aria-live="polite"

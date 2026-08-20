@@ -15,11 +15,7 @@ import type {
 } from "./types";
 
 // Re-exports para compat com routes existentes.
-export type {
-  OwnProfileDTO,
-  OwnProfileOffer,
-  OwnProfileNeed,
-} from "./types";
+export type { OwnProfileDTO, OwnProfileOffer, OwnProfileNeed } from "./types";
 
 export const ownProfileKey = qk.ownProfile;
 
@@ -85,9 +81,7 @@ function toCode(err: unknown): ErrorCode {
 export function useSaveOwnProfile() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (
-      input: SaveOwnProfileInput,
-    ): Promise<SaveOwnProfileResult> => {
+    mutationFn: async (input: SaveOwnProfileInput): Promise<SaveOwnProfileResult> => {
       const apiInput: ApiSaveOwnProfileInput = {
         eventId: input.eventId,
         name: input.name,

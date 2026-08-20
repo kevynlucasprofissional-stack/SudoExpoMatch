@@ -61,8 +61,7 @@ export function BrandFooter() {
           Aqui, ninguém cresce isolado. A gente cresce conectado.
         </p>
         <p className="mt-2">
-          SudoExpo · realização{" "}
-          <span className="font-medium text-foreground">ACIRV</span>
+          SudoExpo · realização <span className="font-medium text-foreground">ACIRV</span>
         </p>
       </div>
     </footer>

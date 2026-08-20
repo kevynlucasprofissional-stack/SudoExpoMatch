@@ -10,10 +10,7 @@ import {
   optionalStaffNoteSchema,
   translateStaffRevealError,
 } from "@/features/staff/schemas";
-import {
-  parseActiveConnectionsCount,
-  translateStaffError,
-} from "@/features/admin/useEventStaff";
+import { parseActiveConnectionsCount, translateStaffError } from "@/features/admin/useEventStaff";
 
 describe("Onda D — hardening — URL search state", () => {
   it("aplica defaults quando URL vazia", () => {
@@ -64,9 +61,7 @@ describe("Onda D — hardening — URL search state", () => {
 
   it("clamp de page e segments", () => {
     const many = Array.from({ length: 100 }, (_, i) => `s${i}`).join(",");
-    const n = normalizeEquipeSearch(
-      equipeSearchSchema.parse({ page: 999999, segments: many }),
-    );
+    const n = normalizeEquipeSearch(equipeSearchSchema.parse({ page: 999999, segments: many }));
     expect(n.page).toBeLessThanOrEqual(9999);
     expect(n.segments.length).toBe(25);
   });
@@ -86,9 +81,7 @@ describe("Onda D — hardening — schemas de operação", () => {
 
   it("adminRevealOverride exige justificativa mínima", () => {
     expect(adminRevealOverrideSchema.safeParse("ab").success).toBe(false);
-    expect(
-      adminRevealOverrideSchema.safeParse("participante pediu urgência").success,
-    ).toBe(true);
+    expect(adminRevealOverrideSchema.safeParse("participante pediu urgência").success).toBe(true);
   });
 
   it("optionalStaffNote aceita vazio/undefined", () => {
@@ -100,21 +93,15 @@ describe("Onda D — hardening — schemas de operação", () => {
 
 describe("Onda D — hardening — tradução de erros", () => {
   it("reveal traduz códigos conhecidos", () => {
-    expect(translateStaffRevealError(new Error("not_mutual"))).toMatch(
-      /interesse mútuo/,
+    expect(translateStaffRevealError(new Error("not_mutual"))).toMatch(/interesse mútuo/);
+    expect(translateStaffRevealError(new Error("override_reason_required"))).toMatch(
+      /[Jj]ustificativa/,
     );
-    expect(
-      translateStaffRevealError(new Error("override_reason_required")),
-    ).toMatch(/[Jj]ustificativa/);
-    expect(translateStaffRevealError(new Error("connection_cancelled"))).toMatch(
-      /cancelada/,
-    );
+    expect(translateStaffRevealError(new Error("connection_cancelled"))).toMatch(/cancelada/);
   });
 
   it("parseActiveConnectionsCount extrai N do erro do banco", () => {
-    expect(
-      parseActiveConnectionsCount(new Error("has_active_connections:7")),
-    ).toBe(7);
+    expect(parseActiveConnectionsCount(new Error("has_active_connections:7"))).toBe(7);
     expect(parseActiveConnectionsCount(new Error("outro erro"))).toBeNull();
   });
 
@@ -125,11 +112,9 @@ describe("Onda D — hardening — tradução de erros", () => {
   });
 
   it("translateStaffError trata invalid_reassignee e self_removal", () => {
-    expect(translateStaffError(new Error("invalid_reassignee"))).toMatch(
-      /não faz parte da equipe/,
+    expect(translateStaffError(new Error("invalid_reassignee"))).toMatch(/não faz parte da equipe/);
+    expect(translateStaffError(new Error("self_removal_confirmation_required"))).toMatch(
+      /[Cc]onfirme/,
     );
-    expect(
-      translateStaffError(new Error("self_removal_confirmation_required")),
-    ).toMatch(/[Cc]onfirme/);
   });
 });

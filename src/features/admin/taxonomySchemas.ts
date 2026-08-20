@@ -227,7 +227,6 @@ export function translateTaxonomyError(err: unknown): string {
   return "Não foi possível concluir a operação na taxonomia.";
 }
 
-
 // ---------------------------------------------------------------------------
 // Estado de URL
 // ---------------------------------------------------------------------------

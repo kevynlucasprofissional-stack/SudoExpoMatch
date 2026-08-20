@@ -78,20 +78,15 @@ export function RotateRecoveryButton() {
       <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Gerar um novo código de recuperação?
-            </AlertDialogTitle>
+            <AlertDialogTitle>Gerar um novo código de recuperação?</AlertDialogTitle>
             <AlertDialogDescription>
-              O código anterior deixará de funcionar imediatamente. Você
-              precisará salvar o novo código em local seguro — ele será
-              exibido apenas uma vez.
+              O código anterior deixará de funcionar imediatamente. Você precisará salvar o novo
+              código em local seguro — ele será exibido apenas uma vez.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Voltar</AlertDialogCancel>
-            <AlertDialogAction onClick={rotate}>
-              Gerar novo código
-            </AlertDialogAction>
+            <AlertDialogAction onClick={rotate}>Gerar novo código</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

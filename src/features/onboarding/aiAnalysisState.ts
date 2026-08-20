@@ -114,17 +114,13 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
 
   const dismiss = useCallback(() => {
     setStatus((prev) =>
-      prev.s === "done"
-        ? { s: "dismissed", result: prev.result, keyId: prev.keyId }
-        : prev,
+      prev.s === "done" ? { s: "dismissed", result: prev.result, keyId: prev.keyId } : prev,
     );
   }, []);
 
   const reopen = useCallback(() => {
     setStatus((prev) =>
-      prev.s === "dismissed"
-        ? { s: "done", result: prev.result, keyId: prev.keyId }
-        : prev,
+      prev.s === "dismissed" ? { s: "done", result: prev.result, keyId: prev.keyId } : prev,
     );
   }, []);
 

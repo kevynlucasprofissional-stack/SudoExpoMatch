@@ -50,12 +50,8 @@ export interface NormalizedEquipeSearch {
 }
 
 export function normalizeEquipeSearch(s: EquipeSearch): NormalizedEquipeSearch {
-  const scope = (QUEUE_SCOPES as string[]).includes(s.scope)
-    ? (s.scope as QueueScope)
-    : "pending";
-  const sort = (QUEUE_SORTS as string[]).includes(s.sort)
-    ? (s.sort as QueueSort)
-    : "priority";
+  const scope = (QUEUE_SCOPES as string[]).includes(s.scope) ? (s.scope as QueueScope) : "pending";
+  const sort = (QUEUE_SORTS as string[]).includes(s.sort) ? (s.sort as QueueSort) : "priority";
   const status =
     s.status === "all" || (CONNECTION_STATUSES as string[]).includes(s.status)
       ? (s.status as ConnectionStatus | "all")
@@ -66,10 +62,7 @@ export function normalizeEquipeSearch(s: EquipeSearch): NormalizedEquipeSearch {
     .map((x) => x.trim())
     .filter((x) => x.length > 0)
     .slice(0, 25);
-  const page = Math.max(
-    1,
-    Math.min(9999, Number.isFinite(s.page) ? Math.trunc(s.page) : 1),
-  );
+  const page = Math.max(1, Math.min(9999, Number.isFinite(s.page) ? Math.trunc(s.page) : 1));
   return { scope, status, sort, q, segments, page };
 }
 
