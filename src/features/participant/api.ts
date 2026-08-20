@@ -1,14 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { ensureParticipantSession } from "./session";
-import {
-  ownProfileOrNullSchema,
-  saveOwnProfilePayloadSchema,
-} from "./schemas";
-import type {
-  OwnProfileDTO,
-  SaveOwnProfileInput,
-  ErrorCode,
-} from "./types";
+import { ownProfileOrNullSchema, saveOwnProfilePayloadSchema } from "./schemas";
+import type { OwnProfileDTO, SaveOwnProfileInput, ErrorCode } from "./types";
 
 /**
  * Extrai um código sanitizado a partir da mensagem retornada pelo Postgres.
@@ -73,9 +66,7 @@ export async function getOwnProfile(eventId: string): Promise<OwnProfileDTO | nu
   return parsed.data;
 }
 
-export async function saveOwnProfile(
-  input: SaveOwnProfileInput,
-): Promise<string> {
+export async function saveOwnProfile(input: SaveOwnProfileInput): Promise<string> {
   await ensureParticipantSession();
   const payload = saveOwnProfilePayloadSchema.parse({
     event_id: input.eventId,

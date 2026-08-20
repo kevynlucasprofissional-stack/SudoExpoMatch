@@ -131,17 +131,11 @@ function Professional({
 
       <g data-layer="neck">
         <path d="M52 80 L52 101 Q60 107 68 101 L68 80 Z" fill={skinColor} />
-        <path
-          d="M53 82 Q60 87 67 82 L67 88 Q60 93 53 88 Z"
-          fill="rgba(11,18,82,0.08)"
-        />
+        <path d="M53 82 Q60 87 67 82 L67 88 Q60 93 53 88 Z" fill="rgba(11,18,82,0.08)" />
       </g>
 
       <g data-layer="torso">
-        <path
-          d="M19 174 C19 132 36 106 60 106 C84 106 101 132 101 174 Z"
-          fill={shirtColor}
-        />
+        <path d="M19 174 C19 132 36 106 60 106 C84 106 101 132 101 174 Z" fill={shirtColor} />
       </g>
 
       <g data-layer="face">
@@ -212,24 +206,8 @@ function Professional({
         />
         <rect x="53" y="137" width="14" height="17" rx="2" fill="#ffffff" />
         <rect x="56" y="141" width="8" height="1.7" rx="0.8" fill="#0b1252" />
-        <rect
-          x="56"
-          y="145"
-          width="7"
-          height="1.2"
-          rx="0.6"
-          fill="#0b1252"
-          opacity="0.55"
-        />
-        <rect
-          x="56"
-          y="148"
-          width="7"
-          height="1.2"
-          rx="0.6"
-          fill="#0b1252"
-          opacity="0.4"
-        />
+        <rect x="56" y="145" width="7" height="1.2" rx="0.6" fill="#0b1252" opacity="0.55" />
+        <rect x="56" y="148" width="7" height="1.2" rx="0.6" fill="#0b1252" opacity="0.4" />
       </g>
     </g>
   );
@@ -258,7 +236,9 @@ function ProfileCard({
         <Avatar tone={avatarTone} initials={initials} />
         <div className="min-w-0">
           <div className="text-[13px] font-bold leading-tight text-[#0b1252]">{title}</div>
-          <span className={`mt-0.5 inline-block rounded px-1.5 text-[10px] font-bold ${badgeClassName}`}>
+          <span
+            className={`mt-0.5 inline-block rounded px-1.5 text-[10px] font-bold ${badgeClassName}`}
+          >
             {badge}
           </span>
         </div>
@@ -430,8 +410,7 @@ export function HeroVisual() {
         <div
           className="mx-auto grid max-w-[594px] items-end gap-3 px-2"
           style={{
-            gridTemplateColumns:
-              "minmax(0,1fr) minmax(140px, 170px) minmax(0,1fr)",
+            gridTemplateColumns: "minmax(0,1fr) minmax(140px, 170px) minmax(0,1fr)",
           }}
         >
           <ProfileCard

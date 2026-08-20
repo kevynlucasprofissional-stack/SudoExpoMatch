@@ -43,7 +43,6 @@ import { TaxonomyItemForm } from "@/features/admin/TaxonomyItemForm";
 import { TaxonomyRelationForm } from "@/features/admin/TaxonomyRelationForm";
 import type { Segment } from "@/lib/types";
 
-
 function fmt(iso: string | null): string {
   if (!iso) return "—";
   const d = new Date(iso);
@@ -53,7 +52,6 @@ function fmt(iso: string | null): string {
 function RelationItem({ r }: { r: TaxonomyRelation }) {
   return (
     <div className="rounded-md border p-3 text-sm" data-testid="relation-item">
-
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {r.direction === "outgoing" ? (
           <>
@@ -79,7 +77,6 @@ function RelationItem({ r }: { r: TaxonomyRelation }) {
         <p className="mt-1 text-xs text-muted-foreground">Justificativa: {r.rationale}</p>
       ) : null}
     </div>
-
   );
 }
 
@@ -146,7 +143,6 @@ export function TaxonomyItemSheet({
       setConfirmRelationOff(null);
     }
   }
-
 
   return (
     <Sheet
@@ -387,7 +383,6 @@ export function TaxonomyItemSheet({
                 </ul>
               )}
             </TabsContent>
-
           </Tabs>
         ) : null}
       </SheetContent>
@@ -453,6 +448,5 @@ export function TaxonomyItemSheet({
         </AlertDialogContent>
       </AlertDialog>
     </Sheet>
-
   );
 }

@@ -161,14 +161,14 @@ describe("suggestions: catálogo vazio (modo manual)", () => {
 describe("busca estática (hardening B): sem catálogo mockado", () => {
   it("wizard não importa SEGMENTS/TAXONOMY de mock-data", () => {
     const out = execSync(
-      "grep -rnE \"SEGMENTS|TAXONOMY|NEED_KIND_LABELS\" src/routes/participar.tsx src/features/onboarding || true",
+      'grep -rnE "SEGMENTS|TAXONOMY|NEED_KIND_LABELS" src/routes/participar.tsx src/features/onboarding || true',
       { encoding: "utf8" },
     );
     expect(out.trim()).toBe("");
   });
   it("wizard não importa mock-data (exceto EVENT_ID em rotas)", () => {
     const out = execSync(
-      "grep -rnE \"from ['\\\"]@/lib/mock-data['\\\"]\" src/features/onboarding || true",
+      'grep -rnE "from [\'\\"]@/lib/mock-data[\'\\"]" src/features/onboarding || true',
       { encoding: "utf8" },
     );
     expect(out.trim()).toBe("");

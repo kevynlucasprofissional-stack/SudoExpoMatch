@@ -16,14 +16,10 @@ describe("Onda D — acabamento residual (operationalUi)", () => {
       expect(getOperationalCta("aguardando")).toBe("Assumir atendimento");
     });
     it("em_atendimento → 'Marcar como apresentados'", () => {
-      expect(getOperationalCta("em_atendimento")).toBe(
-        "Marcar como apresentados",
-      );
+      expect(getOperationalCta("em_atendimento")).toBe("Marcar como apresentados");
     });
     it("apresentados → 'Registrar troca de contato'", () => {
-      expect(getOperationalCta("apresentados")).toBe(
-        "Registrar troca de contato",
-      );
+      expect(getOperationalCta("apresentados")).toBe("Registrar troca de contato");
     });
     it("contato_trocado → 'Concluir conexão'", () => {
       expect(getOperationalCta("contato_trocado")).toBe("Concluir conexão");
@@ -134,9 +130,7 @@ describe("Onda D — acabamento residual (operationalUi)", () => {
       }
     });
     it("faz trim antes de validar tamanho", () => {
-      const r = optionalStaffNoteSchema.safeParse(
-        "   " + "a".repeat(500) + "   ",
-      );
+      const r = optionalStaffNoteSchema.safeParse("   " + "a".repeat(500) + "   ");
       expect(r.success).toBe(true);
       if (r.success) expect(r.data).toBe("a".repeat(500));
     });

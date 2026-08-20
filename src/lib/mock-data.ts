@@ -19,11 +19,7 @@ export const SEGMENTS: Segment[] = [
   { id: "consultoria", label: "Consultoria", emoji: "🧭" },
 ];
 
-const t = (
-  segmentId: string,
-  label: string,
-  kind: "offer" | "need" = "offer",
-): TaxonomyItem => ({
+const t = (segmentId: string, label: string, kind: "offer" | "need" = "offer"): TaxonomyItem => ({
   id: `${segmentId}:${label.toLowerCase().replace(/\s+/g, "-")}:${kind}`,
   segmentId,
   label,

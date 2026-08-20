@@ -5,10 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import {
-  LABEL_TEXT,
-  participantMatchLabel,
-} from "@/features/matching/presentation";
+import { LABEL_TEXT, participantMatchLabel } from "@/features/matching/presentation";
 
 import { useDecideMatchMutation } from "@/features/matching/queries";
 import { ApiError } from "@/features/participant/api";
@@ -83,9 +80,7 @@ export function MatchCard({ match, eventId }: Props) {
                 </Badge>
               )}
             </div>
-            <h3 className="mt-2 font-display text-lg font-semibold">
-              {other.company}
-            </h3>
+            <h3 className="mt-2 font-display text-lg font-semibold">{other.company}</h3>
             <p className="text-sm text-muted-foreground">
               {other.name}
               {segmentLabel && <> · {segmentLabel}</>}
@@ -109,9 +104,7 @@ export function MatchCard({ match, eventId }: Props) {
               </li>
             ))}
             {match.reasons.length === 0 && (
-              <li className="text-muted-foreground">
-                Motivos ainda estão sendo calculados…
-              </li>
+              <li className="text-muted-foreground">Motivos ainda estão sendo calculados…</li>
             )}
           </ul>
         </div>
@@ -123,9 +116,7 @@ export function MatchCard({ match, eventId }: Props) {
           <div className="mt-3 space-y-2">
             <p className="text-muted-foreground">{other.summary}</p>
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Oferece
-              </p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Oferece</p>
               <div className="mt-1 flex flex-wrap gap-1">
                 {match.other_offers.map((o, i) => (
                   <Badge key={`o-${i}`} variant="secondary">
@@ -135,9 +126,7 @@ export function MatchCard({ match, eventId }: Props) {
               </div>
             </div>
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Procura
-              </p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Procura</p>
               <ul className="mt-1 space-y-0.5 text-xs">
                 {match.other_needs.map((n, i) => (
                   <li key={`n-${i}`}>
@@ -161,19 +150,16 @@ export function MatchCard({ match, eventId }: Props) {
           </div>
         )}
 
-        {mutual &&
-          match.connection != null &&
-          match.connection.status !== "cancelado" && (
-            <div className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
-              <p className="font-medium">
-                🎉 Interesse mútuo! A equipe da ACIRV vai apresentar vocês
-                pessoalmente na feira.
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Contato liberado quando a equipe registrar a apresentação.
-              </p>
-            </div>
-          )}
+        {mutual && match.connection != null && match.connection.status !== "cancelado" && (
+          <div className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
+            <p className="font-medium">
+              🎉 Interesse mútuo! A equipe da ACIRV vai apresentar vocês pessoalmente na feira.
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Contato liberado quando a equipe registrar a apresentação.
+            </p>
+          </div>
+        )}
 
         {!mutual && (
           <div className="flex flex-wrap gap-2">
@@ -189,9 +175,7 @@ export function MatchCard({ match, eventId }: Props) {
               ) : (
                 <Heart className="mr-1 h-4 w-4" />
               )}
-              {myDecision === "interesse"
-                ? "Interesse enviado"
-                : "Tenho interesse"}
+              {myDecision === "interesse" ? "Interesse enviado" : "Tenho interesse"}
             </Button>
             <Button
               variant="ghost"

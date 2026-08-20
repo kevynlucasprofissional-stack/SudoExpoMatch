@@ -4,17 +4,9 @@
 
 export type UUID = string;
 
-export type MatchKind =
-  | "direto"
-  | "inverso"
-  | "bidirecional"
-  | "complementar"
-  | "hibrido";
+export type MatchKind = "direto" | "inverso" | "bidirecional" | "complementar" | "hibrido";
 
-export type MatchLabel =
-  | "alta_compatibilidade"
-  | "boa_oportunidade"
-  | "conexao_possivel";
+export type MatchLabel = "alta_compatibilidade" | "boa_oportunidade" | "conexao_possivel";
 
 export type Decision = "interesse" | "agora_nao" | "sem_decisao";
 

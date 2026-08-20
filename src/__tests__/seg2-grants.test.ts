@@ -109,9 +109,7 @@ describe("seg-2: matriz de EXECUTE de RPCs privilegiadas", () => {
   it("internas de recomputação: apenas service_role", () => {
     for (const fn of INTERNAL_ONLY) {
       const roles = execs(fn);
-      expect(roles, `${fn} deve ser exclusivo do service_role`).toEqual([
-        "service_role",
-      ]);
+      expect(roles, `${fn} deve ser exclusivo do service_role`).toEqual(["service_role"]);
     }
   });
 

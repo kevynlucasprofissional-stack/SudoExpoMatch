@@ -6,20 +6,12 @@ import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { EVENT_ID } from "@/lib/mock-data";
 import { useEnsureParticipantSession } from "@/features/participant/session";
 import { useOwnProfile } from "@/features/participant/useOwnProfile";
-import {
-  useOwnMatchesQuery,
-  useRecomputeMatchesMutation,
-} from "@/features/matching/queries";
+import { useOwnMatchesQuery, useRecomputeMatchesMutation } from "@/features/matching/queries";
 import { resolveParticipantPageState } from "@/features/participant/pageState";
 import {
   filterActiveConnections,
@@ -109,12 +101,10 @@ function ParticipantPage() {
       <PageShell>
         <section className="mx-auto max-w-2xl px-4 py-12">
           <Card className="p-6">
-            <h2 className="text-lg font-semibold">
-              Não conseguimos carregar seu perfil
-            </h2>
+            <h2 className="text-lg font-semibold">Não conseguimos carregar seu perfil</h2>
             <p className="mt-1 text-sm text-muted-foreground">
-              Verifique sua conexão e tente novamente. Não presumimos que você
-              é um usuário novo até termos certeza.
+              Verifique sua conexão e tente novamente. Não presumimos que você é um usuário novo até
+              termos certeza.
             </p>
             <Button
               className="mt-4"
@@ -147,20 +137,10 @@ function Panel({ profile }: { profile: OwnProfileDTO }) {
   const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
   const hasCachedResult = matchesQuery.data !== undefined;
   const interested = useMemo(() => filterInterests(matches), [matches]);
-  const activeConn = useMemo(
-    () => filterActiveConnections(matches),
-    [matches],
-  );
-  const pendingConn = useMemo(
-    () => filterPendingConnections(matches),
-    [matches],
-  );
-  const cancelledConn = useMemo(
-    () => filterCancelledConnections(matches),
-    [matches],
-  );
-  const totalConnections =
-    activeConn.length + pendingConn.length + cancelledConn.length;
+  const activeConn = useMemo(() => filterActiveConnections(matches), [matches]);
+  const pendingConn = useMemo(() => filterPendingConnections(matches), [matches]);
+  const cancelledConn = useMemo(() => filterCancelledConnections(matches), [matches]);
+  const totalConnections = activeConn.length + pendingConn.length + cancelledConn.length;
 
   const lastUpdatedLabel = useLastUpdatedLabel(matchesQuery.dataUpdatedAt);
 
@@ -204,15 +184,9 @@ function Panel({ profile }: { profile: OwnProfileDTO }) {
 
         <Tabs defaultValue="matches">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="matches">
-              Matches ({matches.length})
-            </TabsTrigger>
-            <TabsTrigger value="interested">
-              Interesses ({interested.length})
-            </TabsTrigger>
-            <TabsTrigger value="connections">
-              Conexões ({totalConnections})
-            </TabsTrigger>
+            <TabsTrigger value="matches">Matches ({matches.length})</TabsTrigger>
+            <TabsTrigger value="interested">Interesses ({interested.length})</TabsTrigger>
+            <TabsTrigger value="connections">Conexões ({totalConnections})</TabsTrigger>
             <TabsTrigger value="profile">Perfil</TabsTrigger>
           </TabsList>
 
@@ -240,11 +214,7 @@ function Panel({ profile }: { profile: OwnProfileDTO }) {
             />
           </TabsContent>
           <TabsContent value="connections" className="mt-6">
-            <ConnectionsList
-              active={activeConn}
-              pending={pendingConn}
-              cancelled={cancelledConn}
-            />
+            <ConnectionsList active={activeConn} pending={pendingConn} cancelled={cancelledConn} />
           </TabsContent>
           <TabsContent value="profile" className="mt-6">
             <ProfileCard profile={profile} />

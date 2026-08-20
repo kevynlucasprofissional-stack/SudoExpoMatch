@@ -49,7 +49,13 @@ describe("proveniência (source)", () => {
       summary: "Consultoria B2B",
       consent: true,
       offers: [
-        { localId: "1", label: "Consultoria", segmentId: "servicos", taxonomyItemId: null, source: "ai" as const },
+        {
+          localId: "1",
+          label: "Consultoria",
+          segmentId: "servicos",
+          taxonomyItemId: null,
+          source: "ai" as const,
+        },
         { localId: "2", label: "Treinamento", segmentId: "servicos", taxonomyItemId: null },
       ],
       needs: [

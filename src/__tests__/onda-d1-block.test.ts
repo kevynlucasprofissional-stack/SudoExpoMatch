@@ -7,10 +7,7 @@ import {
   QUEUE_SCOPES,
   type QueueSort,
 } from "@/features/staff/useOperationalQueue";
-import {
-  equipeSearchSchema,
-  normalizeEquipeSearch,
-} from "@/features/staff/urlState";
+import { equipeSearchSchema, normalizeEquipeSearch } from "@/features/staff/urlState";
 
 /**
  * BLOCO D1 — testes contratuais dedicados ao hardening da fila.
@@ -22,9 +19,12 @@ import {
 
 describe("D1 — labels/opções de ordenação", () => {
   it("expõe exatamente as 4 opções previstas na spec", () => {
-    expect([...QUEUE_SORTS].sort()).toEqual(
-      ["created", "priority", "updated", "waiting"] as QueueSort[],
-    );
+    expect([...QUEUE_SORTS].sort()).toEqual([
+      "created",
+      "priority",
+      "updated",
+      "waiting",
+    ] as QueueSort[]);
   });
 
   it("todas as opções têm rótulo humano em pt-BR", () => {
@@ -40,17 +40,13 @@ describe("D1 — labels/opções de ordenação", () => {
   });
 
   it("scopes conhecidos ficam estáveis (allowlist da UI)", () => {
-    expect([...QUEUE_SCOPES].sort()).toEqual(
-      ["all", "closed", "mine", "pending", "unassigned"],
-    );
+    expect([...QUEUE_SCOPES].sort()).toEqual(["all", "closed", "mine", "pending", "unassigned"]);
   });
 });
 
 describe("D1 — URL: mudança de filtro reseta page", () => {
   it("simula o fluxo do updateSearch: alterar scope leva page para 1", () => {
-    const before = normalizeEquipeSearch(
-      equipeSearchSchema.parse({ scope: "mine", page: "7" }),
-    );
+    const before = normalizeEquipeSearch(equipeSearchSchema.parse({ scope: "mine", page: "7" }));
     expect(before.page).toBe(7);
     // Depois do patch { scope, page: 1 } em updateSearch:
     const after = normalizeEquipeSearch(
@@ -61,9 +57,7 @@ describe("D1 — URL: mudança de filtro reseta page", () => {
   });
 
   it("busca debounced não desloca page quando o texto não muda", () => {
-    const s = normalizeEquipeSearch(
-      equipeSearchSchema.parse({ q: "acme", page: "3" }),
-    );
+    const s = normalizeEquipeSearch(equipeSearchSchema.parse({ q: "acme", page: "3" }));
     expect(s.q).toBe("acme");
     expect(s.page).toBe(3);
   });
@@ -87,9 +81,13 @@ describe("D1 — contrato SQL da RPC staff_list_connections_v2", () => {
   });
 
   it("valida _scope e _sort por allowlist com erro dedicado", () => {
-    expect(sql).toMatch(/IF\s+v_scope\s+NOT\s+IN\s*\(\s*'all','mine','unassigned','pending','closed'\s*\)/i);
+    expect(sql).toMatch(
+      /IF\s+v_scope\s+NOT\s+IN\s*\(\s*'all','mine','unassigned','pending','closed'\s*\)/i,
+    );
     expect(sql).toMatch(/RAISE EXCEPTION 'invalid_scope'/);
-    expect(sql).toMatch(/IF\s+v_sort\s+NOT\s+IN\s*\(\s*'priority','waiting','updated','created'\s*\)/i);
+    expect(sql).toMatch(
+      /IF\s+v_sort\s+NOT\s+IN\s*\(\s*'priority','waiting','updated','created'\s*\)/i,
+    );
     expect(sql).toMatch(/RAISE EXCEPTION 'invalid_sort'/);
   });
 
@@ -109,7 +107,9 @@ describe("D1 — contrato SQL da RPC staff_list_connections_v2", () => {
   });
 
   it("agrega jsonb_agg APÓS a paginação, preservando a ordem por rn", () => {
-    expect(sql).toMatch(/jsonb_agg\(\s*\(to_jsonb\(p\)\s*-\s*'rn'\s*-\s*'status_order'\)\s*ORDER BY p\.rn\s*\)/);
+    expect(sql).toMatch(
+      /jsonb_agg\(\s*\(to_jsonb\(p\)\s*-\s*'rn'\s*-\s*'status_order'\)\s*ORDER BY p\.rn\s*\)/,
+    );
   });
 
   it("total é count(*) da MESMA CTE filtered (mesmos filtros)", () => {
@@ -124,8 +124,7 @@ describe("D1 — contrato SQL da RPC staff_list_connections_v2", () => {
 
   it("isola por event_id em todas as agregações de contagem", () => {
     // filtered CTE + counts_by_status + counts_by_scope precisam filtrar por event_id.
-    const eventFilters =
-      sql.match(/event_id\s*=\s*_event_id/gi) ?? [];
+    const eventFilters = sql.match(/event_id\s*=\s*_event_id/gi) ?? [];
     expect(eventFilters.length).toBeGreaterThanOrEqual(3);
   });
 

@@ -228,7 +228,7 @@ describe("draft: save/load/clear/hasValid", () => {
     saveWizardDraft(
       {
         ...goodDraft(),
-        
+
         whatsapp: "(64) 99999-9999",
       } as WizardDraft,
       NOW,
@@ -307,9 +307,9 @@ describe("mappers: mapWizardToSaveProfileInput", () => {
         isPriority: true,
       },
     ];
-    expect(() =>
-      mapWizardToSaveProfileInput(goodDraft({ needs: twoPri }), "e1"),
-    ).toThrow(WizardMappingError);
+    expect(() => mapWizardToSaveProfileInput(goodDraft({ needs: twoPri }), "e1")).toThrow(
+      WizardMappingError,
+    );
   });
 
   it("não inclui WhatsApp/campos legados", () => {
@@ -575,14 +575,14 @@ describe("suggestions: heurística sobre catálogo real", () => {
 describe("busca estática: /participar e wizard não consomem catálogo mockado", () => {
   it("não importa SEGMENTS/TAXONOMY de mock-data em routes/participar.tsx", () => {
     const out = execSync(
-      "grep -nE \"SEGMENTS|TAXONOMY|NEED_KIND_LABELS\" src/routes/participar.tsx || true",
+      'grep -nE "SEGMENTS|TAXONOMY|NEED_KIND_LABELS" src/routes/participar.tsx || true',
       { encoding: "utf8" },
     );
     expect(out.trim()).toBe("");
   });
   it("não importa catálogo de mock-data em componentes do wizard (src/features/onboarding)", () => {
     const out = execSync(
-      "grep -rnE \"from ['\\\"]@/lib/mock-data['\\\"]\" src/features/onboarding || true",
+      'grep -rnE "from [\'\\"]@/lib/mock-data[\'\\"]" src/features/onboarding || true',
       { encoding: "utf8" },
     );
     // Permitido nenhum uso do mock catalog no wizard.
@@ -590,14 +590,14 @@ describe("busca estática: /participar e wizard não consomem catálogo mockado"
   });
   it("wizard não usa mais useSaveOwnProfile (wrapper legado)", () => {
     const out = execSync(
-      "grep -nE \"useSaveOwnProfile\" src/routes/participar.tsx src/features/onboarding 2>/dev/null || true",
+      'grep -nE "useSaveOwnProfile" src/routes/participar.tsx src/features/onboarding 2>/dev/null || true',
       { encoding: "utf8" },
     );
     expect(out.trim()).toBe("");
   });
   it("wizard não usa mais domains/ai/mock (adaptador antigo)", () => {
     const out = execSync(
-      "grep -rnE \"domains/ai/mock\" src/routes/participar.tsx src/features/onboarding || true",
+      'grep -rnE "domains/ai/mock" src/routes/participar.tsx src/features/onboarding || true',
       { encoding: "utf8" },
     );
     expect(out.trim()).toBe("");

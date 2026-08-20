@@ -15,17 +15,13 @@ export const CONNECTION_STATUS_TONE: Record<ConnectionStatus, string> = {
   aguardando: "bg-warning/20 text-warning-foreground border-warning/40",
   em_atendimento: "bg-accent/20 text-accent-foreground border-accent/40",
   apresentados: "bg-primary/15 text-primary border-primary/30",
-  contato_trocado:
-    "bg-secondary/20 text-secondary-foreground border-secondary/40",
+  contato_trocado: "bg-secondary/20 text-secondary-foreground border-secondary/40",
   concluido: "bg-success/20 text-success-foreground border-success/40",
   cancelado: "bg-muted text-muted-foreground border-muted",
 };
 
 /** Próximo estado na máquina linear (nulo em terminal). */
-export const NEXT_CONNECTION_STATUS: Record<
-  ConnectionStatus,
-  ConnectionStatus | null
-> = {
+export const NEXT_CONNECTION_STATUS: Record<ConnectionStatus, ConnectionStatus | null> = {
   aguardando: "em_atendimento",
   em_atendimento: "apresentados",
   apresentados: "contato_trocado",
@@ -39,7 +35,6 @@ export function isTerminalStatus(s: ConnectionStatus): boolean {
   return s === "concluido" || s === "cancelado";
 }
 
-
 /** Uma conexão pode ser assumida quando ainda está livre na fila. */
 export function canAssume(status: ConnectionStatus, assignedTo: string | null): boolean {
   return status === "aguardando" && !assignedTo;
@@ -47,11 +42,7 @@ export function canAssume(status: ConnectionStatus, assignedTo: string | null): 
 
 /** Contato pode ser revelado sem override a partir de "apresentados". */
 export function canRevealContact(status: ConnectionStatus): boolean {
-  return (
-    status === "apresentados" ||
-    status === "contato_trocado" ||
-    status === "concluido"
-  );
+  return status === "apresentados" || status === "contato_trocado" || status === "concluido";
 }
 
 /** Um operador pode agir na conexão? */
@@ -84,27 +75,19 @@ export function translateOperationalError(err: unknown): string {
     return "Confirme explicitamente para sair da equipe.";
   if (msg.includes("invalid_transition"))
     return "Transição inválida: siga a ordem aguardando → em atendimento → apresentados → contato trocado → concluído.";
-  if (msg.includes("note_required"))
-    return "Cancelar exige uma observação de 3 a 500 caracteres.";
-  if (msg.includes("invalid_note"))
-    return "A observação precisa ter entre 1 e 1000 caracteres.";
+  if (msg.includes("note_required")) return "Cancelar exige uma observação de 3 a 500 caracteres.";
+  if (msg.includes("invalid_note")) return "A observação precisa ter entre 1 e 1000 caracteres.";
   if (msg.includes("override_reason_required"))
     return "Revelar antes de apresentar exige uma justificativa (mínimo 3 caracteres).";
   if (msg.includes("reveal_not_allowed"))
     return "Contato só pode ser revelado a partir da etapa 'Apresentados'.";
   if (msg.includes("connection_cancelled"))
     return "Esta conexão foi cancelada — contatos não ficam disponíveis.";
-  if (msg.includes("no_connection"))
-    return "Ainda não existe conexão para este match.";
-  if (msg.includes("not_mutual"))
-    return "Ainda não houve interesse mútuo entre as duas partes.";
-  if (msg.includes("connection_not_found"))
-    return "Conexão não encontrada. Atualize a fila.";
-  if (msg.includes("match_not_found"))
-    return "Match não encontrado. Atualize a fila.";
-  if (msg.includes("forbidden"))
-    return "Acesso negado.";
-  if (msg.includes("not_authenticated"))
-    return "Sessão expirada. Entre novamente.";
+  if (msg.includes("no_connection")) return "Ainda não existe conexão para este match.";
+  if (msg.includes("not_mutual")) return "Ainda não houve interesse mútuo entre as duas partes.";
+  if (msg.includes("connection_not_found")) return "Conexão não encontrada. Atualize a fila.";
+  if (msg.includes("match_not_found")) return "Match não encontrado. Atualize a fila.";
+  if (msg.includes("forbidden")) return "Acesso negado.";
+  if (msg.includes("not_authenticated")) return "Sessão expirada. Entre novamente.";
   return msg || "Falha inesperada.";
 }

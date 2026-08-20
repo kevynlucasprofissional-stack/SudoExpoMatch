@@ -47,12 +47,8 @@ export function MatchesList({
         <div className="flex items-start gap-2 text-destructive">
           <AlertTriangle className="mt-0.5 h-4 w-4" />
           <div>
-            <p className="font-medium">
-              Não conseguimos carregar seus matches.
-            </p>
-            <p className="mt-1 text-muted-foreground">
-              Tente novamente em instantes.
-            </p>
+            <p className="font-medium">Não conseguimos carregar seus matches.</p>
+            <p className="mt-1 text-muted-foreground">Tente novamente em instantes.</p>
           </div>
         </div>
         <Button
@@ -87,8 +83,7 @@ export function MatchesList({
             {emptyMessage ?? "Nenhum match ainda"}
           </h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Seu perfil segue ativo. Buscaremos novas conexões conforme mais
-            gente entra.
+            Seu perfil segue ativo. Buscaremos novas conexões conforme mais gente entra.
           </p>
           <Button asChild className="mt-4">
             <Link to="/participar">Ajustar meu perfil</Link>
@@ -100,9 +95,7 @@ export function MatchesList({
 
   return (
     <div className="space-y-3">
-      {state.showRefreshError && (
-        <RefreshErrorNotice onRetry={onRetry} retrying={retrying} />
-      )}
+      {state.showRefreshError && <RefreshErrorNotice onRetry={onRetry} retrying={retrying} />}
       {state.matches.map((m) => (
         <MatchCard key={m.match_id} match={m} eventId={eventId} />
       ))}
@@ -110,13 +103,7 @@ export function MatchesList({
   );
 }
 
-function RefreshErrorNotice({
-  onRetry,
-  retrying,
-}: {
-  onRetry: () => void;
-  retrying: boolean;
-}) {
+function RefreshErrorNotice({ onRetry, retrying }: { onRetry: () => void; retrying: boolean }) {
   return (
     <div
       role="status"

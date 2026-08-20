@@ -55,9 +55,7 @@ function PublicBoard() {
       <div className="relative mx-auto flex min-h-screen max-w-7xl flex-col justify-between px-8 py-10">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-sm uppercase tracking-[0.3em] text-white/70">
-              {EVENT_NAME} · ACIRV
-            </p>
+            <p className="text-sm uppercase tracking-[0.3em] text-white/70">{EVENT_NAME} · ACIRV</p>
             <h1 className="mt-1 font-display text-3xl font-bold md:text-4xl">
               Matchmaker em tempo real
             </h1>
@@ -73,10 +71,30 @@ function PublicBoard() {
           </div>
         ) : (
           <div className="grid gap-6 md:grid-cols-4">
-            <StatCard icon={Users} label="Participantes" value={stats.totalProfiles} tone="secondary" />
-            <StatCard icon={Sparkles} label="Matches gerados" value={stats.totalMatches} tone="accent" />
-            <StatCard icon={HeartHandshake} label="Interesse mútuo" value={stats.mutualMatches} tone="warning" />
-            <StatCard icon={Handshake} label="Conexões concluídas" value={stats.completedConnections} tone="success" />
+            <StatCard
+              icon={Users}
+              label="Participantes"
+              value={stats.totalProfiles}
+              tone="secondary"
+            />
+            <StatCard
+              icon={Sparkles}
+              label="Matches gerados"
+              value={stats.totalMatches}
+              tone="accent"
+            />
+            <StatCard
+              icon={HeartHandshake}
+              label="Interesse mútuo"
+              value={stats.mutualMatches}
+              tone="warning"
+            />
+            <StatCard
+              icon={Handshake}
+              label="Conexões concluídas"
+              value={stats.completedConnections}
+              tone="success"
+            />
           </div>
         )}
 

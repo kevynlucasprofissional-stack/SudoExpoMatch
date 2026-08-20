@@ -28,15 +28,37 @@ const goodModelOutput = {
     clarifyingQuestion: null,
   },
   offers: [
-    { taxonomyItemId: "t-1", segmentId: null, label: "Software de gestão", confidence: 0.9, rationale: "match" },
-    { taxonomyItemId: null, segmentId: null, label: "Consultoria", confidence: 0.7, rationale: "extra" },
+    {
+      taxonomyItemId: "t-1",
+      segmentId: null,
+      label: "Software de gestão",
+      confidence: 0.9,
+      rationale: "match",
+    },
+    {
+      taxonomyItemId: null,
+      segmentId: null,
+      label: "Consultoria",
+      confidence: 0.7,
+      rationale: "extra",
+    },
   ],
-  needs: [{ taxonomyItemId: "t-2", segmentId: null, label: "Suporte técnico", confidence: 0.6, rationale: "" }],
+  needs: [
+    {
+      taxonomyItemId: "t-2",
+      segmentId: null,
+      label: "Suporte técnico",
+      confidence: 0.6,
+      rationale: "",
+    },
+  ],
 };
 
 const fallbackResult: AiSuggestionResult = {
   understanding: { summary: "", mainActivity: "", keywords: [], clarifyingQuestion: null },
-  offers: [{ taxonomyItemId: null, segmentId: null, label: "Fallback", kind: "offer", confidence: 0.4 }],
+  offers: [
+    { taxonomyItemId: null, segmentId: null, label: "Fallback", kind: "offer", confidence: 0.4 },
+  ],
   needs: [],
   source: "heuristic",
   promptVersion: "a1a2-v2",
@@ -129,7 +151,9 @@ describe("runOnboardingAi — cache hit e rate limit", () => {
   it("cache hit: 0 chamadas ao Gateway", async () => {
     const cached: AiSuggestionResult = {
       understanding: { summary: "x", mainActivity: "x", keywords: [], clarifyingQuestion: null },
-      offers: [{ taxonomyItemId: null, segmentId: null, label: "Cached", kind: "offer", confidence: 0.9 }],
+      offers: [
+        { taxonomyItemId: null, segmentId: null, label: "Cached", kind: "offer", confidence: 0.9 },
+      ],
       needs: [],
       source: "ai",
       promptVersion: "a1a2-v2",
@@ -180,11 +204,31 @@ describe("runOnboardingAi — normalização", () => {
     const modelOutput = {
       understanding: { summary: "", mainActivity: "", keywords: [], clarifyingQuestion: null },
       offers: [
-        { taxonomyItemId: "does-not-exist", segmentId: null, label: "Fake", confidence: 0.5, rationale: "" },
-        { taxonomyItemId: "t-3", segmentId: null, label: "Cross segment", confidence: 0.5, rationale: "" },
+        {
+          taxonomyItemId: "does-not-exist",
+          segmentId: null,
+          label: "Fake",
+          confidence: 0.5,
+          rationale: "",
+        },
+        {
+          taxonomyItemId: "t-3",
+          segmentId: null,
+          label: "Cross segment",
+          confidence: 0.5,
+          rationale: "",
+        },
         { taxonomyItemId: "t-1", segmentId: null, label: "Ok", confidence: 0.9, rationale: "" },
       ],
-      needs: [{ taxonomyItemId: "t-1", segmentId: null, label: "Kind mismatch", confidence: 0.5, rationale: "" }],
+      needs: [
+        {
+          taxonomyItemId: "t-1",
+          segmentId: null,
+          label: "Kind mismatch",
+          confidence: 0.5,
+          rationale: "",
+        },
+      ],
     };
     const deps = makeDeps({ callGateway: vi.fn(async () => ({ output: modelOutput })) });
     const out = await runOnboardingAi({ input, catalog, actorUserId, deps });

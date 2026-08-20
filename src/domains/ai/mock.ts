@@ -51,12 +51,12 @@ const norm = (s: string) =>
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "");
 
-export async function suggestFromSummary(
-  summary: string,
-): Promise<AISuggestion> {
+export async function suggestFromSummary(summary: string): Promise<AISuggestion> {
   // Simula latência para permitir estados de loading reais.
   await new Promise((r) => setTimeout(r, 450));
-  const words = norm(summary).split(/[^a-z0-9]+/).filter(Boolean);
+  const words = norm(summary)
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
   const scores: Record<string, number> = {};
   for (const w of words) {
     for (const k in KEYWORDS) {

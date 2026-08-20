@@ -41,27 +41,17 @@ d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
   });
 
   it("analytics_events: anon não tem INSERT/UPDATE/DELETE", () => {
-    const anonIns = q(
-      "SELECT has_table_privilege('anon','public.analytics_events','INSERT')",
-    );
-    const anonUpd = q(
-      "SELECT has_table_privilege('anon','public.analytics_events','UPDATE')",
-    );
-    const anonDel = q(
-      "SELECT has_table_privilege('anon','public.analytics_events','DELETE')",
-    );
+    const anonIns = q("SELECT has_table_privilege('anon','public.analytics_events','INSERT')");
+    const anonUpd = q("SELECT has_table_privilege('anon','public.analytics_events','UPDATE')");
+    const anonDel = q("SELECT has_table_privilege('anon','public.analytics_events','DELETE')");
     expect(anonIns).toBe("f");
     expect(anonUpd).toBe("f");
     expect(anonDel).toBe("f");
   });
 
   it("analytics_events: authenticated não tem UPDATE/DELETE", () => {
-    const upd = q(
-      "SELECT has_table_privilege('authenticated','public.analytics_events','UPDATE')",
-    );
-    const del = q(
-      "SELECT has_table_privilege('authenticated','public.analytics_events','DELETE')",
-    );
+    const upd = q("SELECT has_table_privilege('authenticated','public.analytics_events','UPDATE')");
+    const del = q("SELECT has_table_privilege('authenticated','public.analytics_events','DELETE')");
     expect(upd).toBe("f");
     expect(del).toBe("f");
   });
@@ -72,10 +62,7 @@ d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
     )
       .split("\n")
       .filter(Boolean);
-    expect(rows).toEqual([
-      "taxonomy_items_read_active:r",
-      "taxonomy_items_read_staff_all:r",
-    ]);
+    expect(rows).toEqual(["taxonomy_items_read_active:r", "taxonomy_items_read_staff_all:r"]);
   });
 
   it("taxonomy_items: leitura de participante filtrada por active=true", () => {
@@ -87,27 +74,20 @@ d("Fase Seg-1 — analytics_events + taxonomy_items policies", () => {
 
   it("taxonomy_items: authenticated não pode mutar direto (Impl 11)", () => {
     for (const priv of ["INSERT", "UPDATE", "DELETE"]) {
-      const r = q(
-        `SELECT has_table_privilege('authenticated','public.taxonomy_items','${priv}')`,
-      );
+      const r = q(`SELECT has_table_privilege('authenticated','public.taxonomy_items','${priv}')`);
       expect(r, `authenticated ${priv}`).toBe("f");
     }
   });
 
-
   it("taxonomy_items: anon não tem SELECT nem escrita", () => {
     for (const priv of ["SELECT", "INSERT", "UPDATE", "DELETE"]) {
-      const r = q(
-        `SELECT has_table_privilege('anon','public.taxonomy_items','${priv}')`,
-      );
+      const r = q(`SELECT has_table_privilege('anon','public.taxonomy_items','${priv}')`);
       expect(r, `anon ${priv}`).toBe("f");
     }
   });
 
   it("taxonomy_items: authenticated pode SELECT (RLS filtra por active)", () => {
-    const r = q(
-      "SELECT has_table_privilege('authenticated','public.taxonomy_items','SELECT')",
-    );
+    const r = q("SELECT has_table_privilege('authenticated','public.taxonomy_items','SELECT')");
     expect(r).toBe("t");
   });
 });

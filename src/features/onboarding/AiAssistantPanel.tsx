@@ -31,8 +31,7 @@ export function AiAssistantPanel(props: Props) {
   const activeKeyId = serializeAnalysisKey(key);
 
   const st = analysis.status;
-  const matched =
-    (st.s === "done" || st.s === "dismissed") && st.keyId === activeKeyId;
+  const matched = (st.s === "done" || st.s === "dismissed") && st.keyId === activeKeyId;
   const showResult = matched && st.s === "done";
   const dismissedForKey = matched && st.s === "dismissed";
 
@@ -53,12 +52,8 @@ export function AiAssistantPanel(props: Props) {
     // Filtra apenas o que ainda NÃO está em existingLabels (case-insensitive).
     // Merge e cap acontecem no parent, garantindo atomicidade em uma única
     // atualização do draft.
-    const existingLower = new Set(
-      props.existingLabels.map((l) => l.trim().toLowerCase()),
-    );
-    const toAdd = items.filter(
-      (i) => !existingLower.has(i.label.trim().toLowerCase()),
-    );
+    const existingLower = new Set(props.existingLabels.map((l) => l.trim().toLowerCase()));
+    const toAdd = items.filter((i) => !existingLower.has(i.label.trim().toLowerCase()));
     if (toAdd.length === 0) return;
     props.onAcceptMany(toAdd, source);
   }
@@ -133,33 +128,38 @@ export function AiAssistantPanel(props: Props) {
         <p className="mt-3 text-xs text-muted-foreground">Usamos sugestões padrão desta vez.</p>
       )}
 
-      {result?.understanding && (result.understanding.mainActivity || result.understanding.keywords.length > 0) && (
-        <div className="mt-3 space-y-1 text-xs">
-          {result.understanding.mainActivity && (
-            <p>
-              <span className="font-medium">Atividade principal:</span> {result.understanding.mainActivity}
-            </p>
-          )}
-          {result.understanding.keywords.length > 0 && (
-            <div className="flex flex-wrap gap-1">
-              {result.understanding.keywords.map((k) => (
-                <Badge key={k} variant="secondary" className="text-[10px]">
-                  {k}
-                </Badge>
-              ))}
-            </div>
-          )}
-          {result.understanding.clarifyingQuestion && (
-            <p className="italic text-muted-foreground">{result.understanding.clarifyingQuestion}</p>
-          )}
-        </div>
-      )}
+      {result?.understanding &&
+        (result.understanding.mainActivity || result.understanding.keywords.length > 0) && (
+          <div className="mt-3 space-y-1 text-xs">
+            {result.understanding.mainActivity && (
+              <p>
+                <span className="font-medium">Atividade principal:</span>{" "}
+                {result.understanding.mainActivity}
+              </p>
+            )}
+            {result.understanding.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {result.understanding.keywords.map((k) => (
+                  <Badge key={k} variant="secondary" className="text-[10px]">
+                    {k}
+                  </Badge>
+                ))}
+              </div>
+            )}
+            {result.understanding.clarifyingQuestion && (
+              <p className="italic text-muted-foreground">
+                {result.understanding.clarifyingQuestion}
+              </p>
+            )}
+          </div>
+        )}
 
       {items.length > 0 && (
         <div className="mt-3">
           <div className="mb-2 flex items-center justify-between">
             <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              Sugestões de {props.kind === "offer" ? "ofertas" : "necessidades"} — confirme as que fazem sentido
+              Sugestões de {props.kind === "offer" ? "ofertas" : "necessidades"} — confirme as que
+              fazem sentido
             </p>
             {remainingSuggestions.length > 1 && (
               <Button
@@ -185,7 +185,9 @@ export function AiAssistantPanel(props: Props) {
                   disabled={already || props.disabled}
                   onClick={() => props.onAcceptMany([s], source)}
                   className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-all disabled:opacity-50 ${
-                    already ? "border-success bg-success/10" : "hover:border-primary hover:bg-primary/5"
+                    already
+                      ? "border-success bg-success/10"
+                      : "hover:border-primary hover:bg-primary/5"
                   }`}
                   title={s.rationale}
                 >

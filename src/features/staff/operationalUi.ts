@@ -41,15 +41,8 @@ export function getOperationalCta(status: ConnectionStatus): string | null {
  * Cobre segundos, minutos, horas (até 48h) e dias. Retorna `"—"` para
  * valores nulos, indefinidos, negativos ou NaN.
  */
-export function formatElapsedSeconds(
-  seconds: number | null | undefined,
-): string {
-  if (
-    seconds === null ||
-    seconds === undefined ||
-    !Number.isFinite(seconds) ||
-    seconds < 0
-  ) {
+export function formatElapsedSeconds(seconds: number | null | undefined): string {
+  if (seconds === null || seconds === undefined || !Number.isFinite(seconds) || seconds < 0) {
     return "—";
   }
   const s = Math.floor(seconds);

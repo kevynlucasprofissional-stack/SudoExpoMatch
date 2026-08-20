@@ -21,8 +21,7 @@ export function useSession() {
 
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED")
-        return;
+      if (event !== "SIGNED_IN" && event !== "SIGNED_OUT" && event !== "USER_UPDATED") return;
       qc.setQueryData(sessionKey, session ?? null);
       qc.invalidateQueries({ queryKey: ["auth"] });
       qc.invalidateQueries({ queryKey: ["staff"] });

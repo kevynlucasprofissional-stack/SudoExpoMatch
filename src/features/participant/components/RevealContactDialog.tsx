@@ -13,14 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRevealContactMutation } from "@/features/matching/queries";
 import { ApiError } from "@/features/participant/api";
-import {
-  isRevealRetriable,
-  translateRevealErrorCode,
-} from "@/features/participant/presentation";
-import type {
-  ErrorCode,
-  RevealedContactDTO,
-} from "@/features/participant/types";
+import { isRevealRetriable, translateRevealErrorCode } from "@/features/participant/presentation";
+import type { ErrorCode, RevealedContactDTO } from "@/features/participant/types";
 
 interface Props {
   open: boolean;
@@ -49,12 +43,7 @@ interface Props {
  *    contact_unavailable). Estados de negócio (not_mutual, not_yet_introduced,
  *    contact_sharing_disabled, ...) exibem instrução e nenhum botão.
  */
-export function RevealContactDialog({
-  open,
-  matchId,
-  otherFirstName,
-  onClose,
-}: Props) {
+export function RevealContactDialog({ open, matchId, otherFirstName, onClose }: Props) {
   const mutation = useRevealContactMutation();
   const [contact, setContact] = useState<RevealedContactDTO | null>(null);
   const [errorCode, setErrorCode] = useState<ErrorCode | null>(null);
@@ -147,8 +136,7 @@ export function RevealContactDialog({
         <DialogHeader>
           <DialogTitle>Contato de {otherFirstName}</DialogTitle>
           <DialogDescription>
-            Só liberamos após a apresentação feita pela equipe da ACIRV no
-            evento.
+            Só liberamos após a apresentação feita pela equipe da ACIRV no evento.
           </DialogDescription>
         </DialogHeader>
 
@@ -212,10 +200,7 @@ export function RevealContactDialog({
             {contact.email && (
               <p>
                 ✉️{" "}
-                <a
-                  href={`mailto:${contact.email}`}
-                  className="text-primary hover:underline"
-                >
+                <a href={`mailto:${contact.email}`} className="text-primary hover:underline">
                   {contact.email}
                 </a>
               </p>

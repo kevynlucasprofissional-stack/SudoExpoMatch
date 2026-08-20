@@ -27,20 +27,12 @@ function sanitizeOffer(raw: unknown): WizardOffer | null {
   const segmentId = typeof r.segmentId === "string" ? r.segmentId : "";
   if (!label || !segmentId) return null;
   return {
-    localId:
-      typeof r.localId === "string" && r.localId
-        ? r.localId
-        : cryptoUid(),
+    localId: typeof r.localId === "string" && r.localId ? r.localId : cryptoUid(),
     label: label.slice(0, 80),
-    detail:
-      typeof r.detail === "string" && r.detail
-        ? r.detail.slice(0, 200)
-        : undefined,
+    detail: typeof r.detail === "string" && r.detail ? r.detail.slice(0, 200) : undefined,
     segmentId: segmentId.slice(0, 60),
     taxonomyItemId:
-      typeof r.taxonomyItemId === "string" && r.taxonomyItemId
-        ? r.taxonomyItemId
-        : null,
+      typeof r.taxonomyItemId === "string" && r.taxonomyItemId ? r.taxonomyItemId : null,
   };
 }
 
@@ -91,8 +83,7 @@ export function sanitizeWizardDraft(raw: unknown): WizardDraft {
     name: typeof r.name === "string" ? r.name.slice(0, 120) : "",
     company: typeof r.company === "string" ? r.company.slice(0, 120) : "",
     city: typeof r.city === "string" ? r.city.slice(0, 80) : "",
-    neighborhood:
-      typeof r.neighborhood === "string" ? r.neighborhood.slice(0, 80) : "",
+    neighborhood: typeof r.neighborhood === "string" ? r.neighborhood.slice(0, 80) : "",
     segmentId: typeof r.segmentId === "string" ? r.segmentId.slice(0, 60) : "",
     summary: typeof r.summary === "string" ? r.summary.slice(0, 500) : "",
     offers,

@@ -24,14 +24,12 @@ export function validateWizardForSubmit(args: {
   mode: WizardMode;
   phone: string;
 }): WizardValidation {
-  const schema =
-    args.mode === "create" ? wizardCreateSchema : wizardEditSchema;
+  const schema = args.mode === "create" ? wizardCreateSchema : wizardEditSchema;
   const parsed = schema.safeParse(args.draft);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
     const reason: WizardValidationReason =
-      issue?.path?.[0] === "needs" &&
-      issue?.message === "Marque exatamente uma prioridade"
+      issue?.path?.[0] === "needs" && issue?.message === "Marque exatamente uma prioridade"
         ? "priority"
         : "profile";
     return {
@@ -40,16 +38,13 @@ export function validateWizardForSubmit(args: {
       message: issue?.message ?? "Revise os campos do formulário.",
     };
   }
-  const phoneSchema =
-    args.mode === "create" ? phoneCreateSchema : phoneEditSchema;
+  const phoneSchema = args.mode === "create" ? phoneCreateSchema : phoneEditSchema;
   const phoneParsed = phoneSchema.safeParse(args.phone);
   if (!phoneParsed.success) {
     return {
       ok: false,
       reason: "phone",
-      message:
-        phoneParsed.error.issues[0]?.message ??
-        "Informe um WhatsApp válido.",
+      message: phoneParsed.error.issues[0]?.message ?? "Informe um WhatsApp válido.",
     };
   }
   return { ok: true };

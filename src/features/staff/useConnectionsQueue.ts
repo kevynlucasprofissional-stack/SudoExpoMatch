@@ -27,13 +27,10 @@ export interface RevealInput {
 export function useRevealStaffContact() {
   return useMutation<StaffContactPair[], Error, RevealInput>({
     mutationFn: async ({ matchId, overrideReason }) => {
-      const { data, error } = await supabase.rpc(
-        "staff_reveal_contact_for_match",
-        {
-          _match_id: matchId,
-          _override_reason: overrideReason ?? undefined,
-        },
-      );
+      const { data, error } = await supabase.rpc("staff_reveal_contact_for_match", {
+        _match_id: matchId,
+        _override_reason: overrideReason ?? undefined,
+      });
       if (error) throw error;
       return (data ?? []).map((r) => ({
         profileId: r.profile_id,

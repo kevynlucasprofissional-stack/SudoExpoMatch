@@ -3,10 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import type { WizardDraft, WizardNeed } from "@/features/onboarding/types";
 import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
 import { resolveWizardPageState } from "@/features/onboarding/pageState";
-import {
-  preSubmit,
-  runWizardSubmit,
-} from "@/features/onboarding/submitOrchestrator";
+import { preSubmit, runWizardSubmit } from "@/features/onboarding/submitOrchestrator";
 
 function baseDraft(overrides?: Partial<WizardDraft>): WizardDraft {
   const d: WizardDraft = {
@@ -125,34 +122,34 @@ describe("resolveCatalogAvailability", () => {
 // ---------------------------------------------------------------------------
 describe("resolveWizardPageState", () => {
   it("session error vence hydrated=false", () => {
-    expect(
-      resolveWizardPageState({ session: "error", profile: "pending", hydrated: false }),
-    ).toBe("session_error");
+    expect(resolveWizardPageState({ session: "error", profile: "pending", hydrated: false })).toBe(
+      "session_error",
+    );
   });
   it("session loading => session_loading", () => {
-    expect(
-      resolveWizardPageState({ session: "loading", profile: "success", hydrated: true }),
-    ).toBe("session_loading");
+    expect(resolveWizardPageState({ session: "loading", profile: "success", hydrated: true })).toBe(
+      "session_loading",
+    );
   });
   it("session ready + profile error => profile_error (não hidrata)", () => {
-    expect(
-      resolveWizardPageState({ session: "ready", profile: "error", hydrated: false }),
-    ).toBe("profile_error");
+    expect(resolveWizardPageState({ session: "ready", profile: "error", hydrated: false })).toBe(
+      "profile_error",
+    );
   });
   it("session ready + profile pending => profile_loading", () => {
-    expect(
-      resolveWizardPageState({ session: "ready", profile: "pending", hydrated: false }),
-    ).toBe("profile_loading");
+    expect(resolveWizardPageState({ session: "ready", profile: "pending", hydrated: false })).toBe(
+      "profile_loading",
+    );
   });
   it("hidratação pendente após sucessos => hydrating", () => {
-    expect(
-      resolveWizardPageState({ session: "ready", profile: "success", hydrated: false }),
-    ).toBe("hydrating");
+    expect(resolveWizardPageState({ session: "ready", profile: "success", hydrated: false })).toBe(
+      "hydrating",
+    );
   });
   it("tudo ok => ready", () => {
-    expect(
-      resolveWizardPageState({ session: "ready", profile: "success", hydrated: true }),
-    ).toBe("ready");
+    expect(resolveWizardPageState({ session: "ready", profile: "success", hydrated: true })).toBe(
+      "ready",
+    );
   });
 });
 
@@ -169,9 +166,7 @@ describe("runWizardSubmit", () => {
       eventId: "evt",
       deps,
     });
-    expect(events).toEqual([
-      { type: "PRE_FAIL", reason: "phone", message: expect.any(String) },
-    ]);
+    expect(events).toEqual([{ type: "PRE_FAIL", reason: "phone", message: expect.any(String) }]);
     expect(deps.saveOwnProfile).not.toHaveBeenCalled();
     expect(deps.setOwnContact).not.toHaveBeenCalled();
     expect(deps.rotateOwnRecoveryCode).not.toHaveBeenCalled();
@@ -198,7 +193,6 @@ describe("runWizardSubmit", () => {
     // então o orquestrador não faz mais RPC client-side de recompute.
     expect(deps.recomputeOwnMatches).not.toHaveBeenCalled();
   });
-
 
   it("create feliz: perfil -> contato -> code -> aguarda confirmação (sem recompute)", async () => {
     const deps = noopDeps();

@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { ConnectionStatus } from "@/lib/types";
@@ -61,29 +57,14 @@ const queueResponseSchema = z.object({
   total: z.number().int().nonnegative(),
   limit: z.number().int().positive(),
   offset: z.number().int().nonnegative(),
-  counts_by_status: z
-    .record(z.string(), z.number().int().nonnegative())
-    .default({}),
-  counts_by_scope: z
-    .record(z.string(), z.number().int().nonnegative())
-    .default({}),
+  counts_by_status: z.record(z.string(), z.number().int().nonnegative()).default({}),
+  counts_by_scope: z.record(z.string(), z.number().int().nonnegative()).default({}),
 });
 
 export type QueueScope = "all" | "mine" | "unassigned" | "pending" | "closed";
 export type QueueSort = "priority" | "waiting" | "updated" | "created";
-export const QUEUE_SCOPES: QueueScope[] = [
-  "all",
-  "mine",
-  "unassigned",
-  "pending",
-  "closed",
-];
-export const QUEUE_SORTS: QueueSort[] = [
-  "priority",
-  "waiting",
-  "updated",
-  "created",
-];
+export const QUEUE_SCOPES: QueueScope[] = ["all", "mine", "unassigned", "pending", "closed"];
+export const QUEUE_SORTS: QueueSort[] = ["priority", "waiting", "updated", "created"];
 export const QUEUE_SORT_LABEL: Record<QueueSort, string> = {
   priority: "Prioridade",
   waiting: "Maior espera",
@@ -158,9 +139,7 @@ export function useOperationalQueue(input: QueueQueryInput, enabled: boolean) {
           filter: `event_id=eq.${eventId}`,
         },
         (payload) => {
-          const row = (payload.new ?? payload.old) as
-            | { event_id?: string }
-            | null;
+          const row = (payload.new ?? payload.old) as { event_id?: string } | null;
           if (row && row.event_id && row.event_id !== eventId) return;
           qc.invalidateQueries({ queryKey: ["staff", "queue", eventId] });
           qc.invalidateQueries({ queryKey: ["staff", "op-stats", eventId] });
@@ -251,10 +230,9 @@ export function useConnectionDetail(connectionId: string | null) {
     enabled: !!connectionId,
     staleTime: 2_000,
     queryFn: async (): Promise<ConnectionDetail> => {
-      const { data, error } = await supabase.rpc(
-        "staff_list_connection_detail",
-        { _connection_id: connectionId! },
-      );
+      const { data, error } = await supabase.rpc("staff_list_connection_detail", {
+        _connection_id: connectionId!,
+      });
       if (error) throw error;
       return detailSchema.parse(data);
     },
@@ -311,11 +289,7 @@ export function useReleaseConnection(eventId: string) {
 export function useReassignConnection(eventId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (input: {
-      connectionId: string;
-      newUserId: string;
-      note?: string;
-    }) => {
+    mutationFn: async (input: { connectionId: string; newUserId: string; note?: string }) => {
       const { error } = await supabase.rpc("admin_reassign_connection", {
         _connection_id: input.connectionId,
         _new_user_id: input.newUserId,

@@ -149,7 +149,6 @@ export function TaxonomyRelationForm({
           <Badge variant="outline">{initial?.otherLabel ?? "outro item"}</Badge>
           <span>. Para mudar os itens, desative esta relação e crie outra.</span>
         </div>
-
       )}
 
       <div className="space-y-1.5">
@@ -164,8 +163,8 @@ export function TaxonomyRelationForm({
         />
         {errors.weight ? <p className="text-xs text-destructive">{errors.weight}</p> : null}
         <p className="text-xs text-muted-foreground">
-          O matcher só considera relações com peso a partir de 40 e converte o peso em até 30
-          pontos no score.
+          O matcher só considera relações com peso a partir de 40 e converte o peso em até 30 pontos
+          no score.
         </p>
       </div>
 

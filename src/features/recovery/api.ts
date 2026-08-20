@@ -42,9 +42,7 @@ export function translateRecoverErrorCode(code: ErrorCode): string {
   }
 }
 
-export async function recoverProfile(
-  input: RecoverProfileInput,
-): Promise<RecoverProfileResult> {
+export async function recoverProfile(input: RecoverProfileInput): Promise<RecoverProfileResult> {
   await ensureParticipantSession();
   const { data, error } = await supabase.rpc("recover_profile_v2", {
     _event_id: input.eventId,

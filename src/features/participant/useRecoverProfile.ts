@@ -30,9 +30,7 @@ export function translateRecoverError(codeOrMsg: string): string {
 
 export function useRecoverProfile() {
   return useMutation({
-    mutationFn: async (
-      input: RecoverProfileInput,
-    ): Promise<RecoverProfileResult> => {
+    mutationFn: async (input: RecoverProfileInput): Promise<RecoverProfileResult> => {
       try {
         return await recoverProfile(input);
       } catch (err) {

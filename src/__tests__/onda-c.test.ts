@@ -22,25 +22,14 @@ import {
 } from "@/features/participant/presentation";
 import { resolveMatchesDisplayState } from "@/features/participant/matchesDisplayState";
 import { ownMatchesQueryOptions } from "@/features/matching/queries";
-import type {
-  ConnectionStatus,
-  Decision,
-  MatchKind,
-  NeedKind,
-} from "@/lib/types";
-import type {
-  OwnMatchDTO,
-  OwnMatchConnection,
-} from "@/features/participant/types";
+import type { ConnectionStatus, Decision, MatchKind, NeedKind } from "@/lib/types";
+import type { OwnMatchDTO, OwnMatchConnection } from "@/features/participant/types";
 
 // ---------------------------------------------------------------------------
 // Fixtures — DTOs válidos, sem `as any`, respeitando o contrato v2.
 // ---------------------------------------------------------------------------
 
-function makeConnection(
-  status: ConnectionStatus,
-  notes: string | null = null,
-): OwnMatchConnection {
+function makeConnection(status: ConnectionStatus, notes: string | null = null): OwnMatchConnection {
   return { id: `conn-${status}`, status, notes };
 }
 
@@ -188,9 +177,11 @@ describe("filtros por decisão mútua real", () => {
   ];
 
   it("interests: apenas my_decision=interesse", () => {
-    expect(filterInterests(all).map((m) => m.match_id).sort()).toEqual(
-      ["m1", "m3", "m4", "m5"],
-    );
+    expect(
+      filterInterests(all)
+        .map((m) => m.match_id)
+        .sort(),
+    ).toEqual(["m1", "m3", "m4", "m5"]);
   });
   it("active: mútuo, com conexão, não cancelada", () => {
     expect(filterActiveConnections(all).map((m) => m.match_id)).toEqual(["m4"]);
@@ -199,9 +190,7 @@ describe("filtros por decisão mútua real", () => {
     expect(filterPendingConnections(all).map((m) => m.match_id)).toEqual(["m3"]);
   });
   it("cancelled: mútuo com conexão cancelada", () => {
-    expect(filterCancelledConnections(all).map((m) => m.match_id)).toEqual([
-      "m5",
-    ]);
+    expect(filterCancelledConnections(all).map((m) => m.match_id)).toEqual(["m5"]);
   });
   it("isMatchMutual respeita ambas as decisões", () => {
     expect(isMatchMutual(mutualNoConn)).toBe(true);
@@ -325,28 +314,18 @@ describe("tradutores sanitizados de erro", () => {
   });
 
   it("recompute tem tradutor DEDICADO, distinto de decide", () => {
-    expect(translateRecomputeErrorCode("profile_not_found")).toMatch(
-      /perfil/i,
-    );
-    expect(translateRecomputeErrorCode("event_not_active")).toMatch(
-      /evento/i,
-    );
+    expect(translateRecomputeErrorCode("profile_not_found")).toMatch(/perfil/i);
+    expect(translateRecomputeErrorCode("event_not_active")).toMatch(/evento/i);
     expect(translateRecomputeErrorCode("network")).toMatch(/conexão/i);
     // Nunca reutiliza mensagens de decisão
-    expect(translateRecomputeErrorCode("unknown")).not.toEqual(
-      translateDecideErrorCode("unknown"),
-    );
-    expect(translateRecomputeErrorCode("network")).not.toEqual(
-      translateDecideErrorCode("network"),
-    );
+    expect(translateRecomputeErrorCode("unknown")).not.toEqual(translateDecideErrorCode("unknown"));
+    expect(translateRecomputeErrorCode("network")).not.toEqual(translateDecideErrorCode("network"));
   });
 });
 
 describe("formatSegmentLabel — sem catálogo autoritativo", () => {
   it("humaniza slug", () => {
-    expect(formatSegmentLabel("industria_metalurgica")).toBe(
-      "Industria Metalurgica",
-    );
+    expect(formatSegmentLabel("industria_metalurgica")).toBe("Industria Metalurgica");
   });
   it("humanizeSlug lida com hífen", () => {
     expect(humanizeSlug("agro-tech")).toBe("Agro Tech");
@@ -456,7 +435,10 @@ describe("recompute mutation invalida matches e public stats", () => {
     }));
     const invalidateSpy = vi.fn();
     vi.doMock("@tanstack/react-query", () => ({
-      useMutation: (opts: { mutationFn: (v: unknown) => unknown; onSuccess?: (d: unknown) => void }) => ({
+      useMutation: (opts: {
+        mutationFn: (v: unknown) => unknown;
+        onSuccess?: (d: unknown) => void;
+      }) => ({
         mutate: async (v: unknown) => {
           const d = await opts.mutationFn(v);
           opts.onSuccess?.(d);
@@ -534,9 +516,7 @@ describe("static guards — /participante e componentes", () => {
   }
 
   it("participante.tsx importa RotateRecoveryButton só via ParticipantHeader", () => {
-    expect(readCode("src/routes/participante.tsx")).not.toMatch(
-      /RotateRecoveryButton/,
-    );
+    expect(readCode("src/routes/participante.tsx")).not.toMatch(/RotateRecoveryButton/);
   });
 
   it("ProfileCard renderiza link para /participar (edição do wizard)", () => {
@@ -546,20 +526,14 @@ describe("static guards — /participante e componentes", () => {
   });
 
   it("RotateRecoveryButton usa API v2, nunca supabase.rpc", () => {
-    const src = readCode(
-      "src/features/participant/components/RotateRecoveryButton.tsx",
-    );
+    const src = readCode("src/features/participant/components/RotateRecoveryButton.tsx");
     expect(src).toMatch(/rotateOwnRecoveryCode/);
     expect(src).not.toMatch(/supabase\.rpc/);
   });
 
   it("Recovery/Reveal não persistem código/telefone em storage/URL/log", () => {
-    const recovery = readCode(
-      "src/features/participant/components/RecoveryView.tsx",
-    );
-    const reveal = readCode(
-      "src/features/participant/components/RevealContactDialog.tsx",
-    );
+    const recovery = readCode("src/features/participant/components/RecoveryView.tsx");
+    const reveal = readCode("src/features/participant/components/RevealContactDialog.tsx");
     for (const src of [recovery, reveal]) {
       expect(src).not.toMatch(/localStorage/);
       expect(src).not.toMatch(/sessionStorage/);
@@ -572,9 +546,7 @@ describe("static guards — /participante e componentes", () => {
   });
 
   it("Reveal: mutation cache é purgado (reset + gcTime:0)", () => {
-    const reveal = read(
-      "src/features/participant/components/RevealContactDialog.tsx",
-    );
+    const reveal = read("src/features/participant/components/RevealContactDialog.tsx");
     // Deve chamar mutation.reset() em pelo menos 3 caminhos (sucesso, erro, close).
     const resets = reveal.match(/mutation\.reset\(\)/g) ?? [];
     expect(resets.length).toBeGreaterThanOrEqual(3);

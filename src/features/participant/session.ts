@@ -36,18 +36,14 @@ export async function ensureParticipantSession(): Promise<User> {
       const { data, error } = await supabase.auth.getSession();
       if (error) throw new SessionError("sign_in_failed", error.message);
       if (data.session?.user) return data.session.user;
-      const { data: signed, error: signErr } =
-        await supabase.auth.signInAnonymously();
+      const { data: signed, error: signErr } = await supabase.auth.signInAnonymously();
       if (signErr || !signed?.user) {
         throw new SessionError("sign_in_failed", signErr?.message);
       }
       return signed.user;
     } catch (err) {
       if (err instanceof SessionError) throw err;
-      throw new SessionError(
-        "unknown",
-        err instanceof Error ? err.message : undefined,
-      );
+      throw new SessionError("unknown", err instanceof Error ? err.message : undefined);
     }
   })();
   try {
@@ -88,8 +84,7 @@ export function useEnsureParticipantSession(): UseParticipantSession {
       setStatus("ready");
     } catch (err) {
       if (v !== versionRef.current) return;
-      const se =
-        err instanceof SessionError ? err : new SessionError("unknown");
+      const se = err instanceof SessionError ? err : new SessionError("unknown");
       setError(se);
       setStatus("error");
     }

@@ -1,9 +1,6 @@
 import type { WizardDraft, WizardMode } from "./types";
 import { validateWizardForSubmit } from "./validate";
-import {
-  mapWizardToSaveProfileInput,
-  normalizePhoneE164,
-} from "./mappers";
+import { mapWizardToSaveProfileInput, normalizePhoneE164 } from "./mappers";
 
 export interface SubmitOrchestratorDeps {
   saveOwnProfile: (input: ReturnType<typeof mapWizardToSaveProfileInput>) => Promise<unknown>;
@@ -102,5 +99,4 @@ export async function runWizardSubmit(args: {
   // emitido como sinal de "matches prontos" para o reducer/UI.
   events.push({ type: "MATCH_OK" });
   return events;
-
 }

@@ -25,9 +25,7 @@ export interface ResolveCatalogInput {
  * - Modo manual só quando não há dados e existe segmento autoritativo.
  * - Bloqueio total quando não há dados nem segmento autoritativo.
  */
-export function resolveCatalogAvailability(
-  input: ResolveCatalogInput,
-): CatalogAvailability {
+export function resolveCatalogAvailability(input: ResolveCatalogInput): CatalogAvailability {
   const { data, isPending, isError, fallbackSegmentId } = input;
   const hasData = !!data;
   if (hasData) {

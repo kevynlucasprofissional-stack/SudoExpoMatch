@@ -102,24 +102,18 @@ describe("Onda D — connections domain", () => {
       expect(translateOperationalError(new Error("already_assigned"))).toMatch(
         /assumiu esta conexão/,
       );
-      expect(translateOperationalError(new Error("not_assignee"))).toMatch(
-        /assumiu/,
+      expect(translateOperationalError(new Error("not_assignee"))).toMatch(/assumiu/);
+      expect(translateOperationalError(new Error("has_active_connections:3"))).toMatch(
+        /conexões ativas/,
       );
-      expect(
-        translateOperationalError(new Error("has_active_connections:3")),
-      ).toMatch(/conexões ativas/);
-      expect(
-        translateOperationalError(new Error("invalid_transition:foo->bar")),
-      ).toMatch(/Transição inválida/);
+      expect(translateOperationalError(new Error("invalid_transition:foo->bar"))).toMatch(
+        /Transição inválida/,
+      );
       expect(translateOperationalError(new Error("note_required"))).toMatch(
         /observação de 3 a 500/,
       );
-      expect(translateOperationalError(new Error("reveal_not_allowed"))).toMatch(
-        /Apresentados/,
-      );
-      expect(translateOperationalError(new Error("forbidden"))).toMatch(
-        /Acesso negado/,
-      );
+      expect(translateOperationalError(new Error("reveal_not_allowed"))).toMatch(/Apresentados/);
+      expect(translateOperationalError(new Error("forbidden"))).toMatch(/Acesso negado/);
     });
     it("fallback é seguro", () => {
       expect(translateOperationalError(null)).toMatch(/Falha inesperada/);

@@ -26,10 +26,7 @@ export function initialSubmitState(): SubmitState {
 }
 
 /** Reducer puro — sem side-effects, seguro para testes. */
-export function submitReducer(
-  state: SubmitState,
-  action: SubmitAction,
-): SubmitState {
+export function submitReducer(state: SubmitState, action: SubmitAction): SubmitState {
   switch (action.type) {
     case "START":
       return {

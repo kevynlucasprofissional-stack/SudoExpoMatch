@@ -4,10 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
-import {
-  NEED_KIND_TEXT,
-  formatSegmentLabel,
-} from "@/features/participant/presentation";
+import { NEED_KIND_TEXT, formatSegmentLabel } from "@/features/participant/presentation";
 import type { OwnProfileDTO } from "@/features/participant/types";
 
 interface Props {
@@ -48,11 +45,7 @@ export function ProfileCard({ profile }: Props) {
                   {NEED_KIND_TEXT[n.need_kind] ?? n.need_kind}
                 </Badge>
                 {n.label}
-                {n.is_priority && (
-                  <span className="ml-1 text-xs text-warning">
-                    ★ prioridade
-                  </span>
-                )}
+                {n.is_priority && <span className="ml-1 text-xs text-warning">★ prioridade</span>}
               </li>
             ))}
           </ul>

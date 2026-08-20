@@ -23,16 +23,13 @@ interface Props {
 }
 
 export function ConnectionsList({ active, pending, cancelled }: Props) {
-  const empty =
-    active.length === 0 && pending.length === 0 && cancelled.length === 0;
+  const empty = active.length === 0 && pending.length === 0 && cancelled.length === 0;
 
   if (empty) {
     return (
       <Card className="p-8 text-center">
         <HeartHandshake className="mx-auto h-8 w-8 text-muted-foreground" />
-        <h3 className="mt-3 font-display text-lg font-semibold">
-          Ainda sem conexões confirmadas
-        </h3>
+        <h3 className="mt-3 font-display text-lg font-semibold">Ainda sem conexões confirmadas</h3>
         <p className="mt-1 text-sm text-muted-foreground">
           Quando o interesse for mútuo, a conexão aparece aqui.
         </p>
@@ -67,13 +64,7 @@ export function ConnectionsList({ active, pending, cancelled }: Props) {
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="space-y-3">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -107,10 +98,7 @@ function CancelledRow({ match }: { match: OwnMatchDTO }) {
       <p className="text-sm text-muted-foreground">
         {other.name} · {other.city}
       </p>
-      <Badge
-        variant="outline"
-        className={`mt-2 border ${CONNECTION_STATUS_TONE.cancelado}`}
-      >
+      <Badge variant="outline" className={`mt-2 border ${CONNECTION_STATUS_TONE.cancelado}`}>
         {CONNECTION_STATUS_TEXT.cancelado}
       </Badge>
       <p className="mt-3 text-xs text-muted-foreground">
@@ -137,10 +125,7 @@ function ActiveRow({ match }: { match: OwnMatchDTO }) {
           <p className="text-sm text-muted-foreground">
             {other.name} · {other.city}
           </p>
-          <Badge
-            variant="outline"
-            className={`mt-2 border ${CONNECTION_STATUS_TONE[status]}`}
-          >
+          <Badge variant="outline" className={`mt-2 border ${CONNECTION_STATUS_TONE[status]}`}>
             {CONNECTION_STATUS_TEXT[status]}
           </Badge>
         </div>
@@ -150,9 +135,7 @@ function ActiveRow({ match }: { match: OwnMatchDTO }) {
             size="sm"
             onClick={() => setOpen(true)}
             disabled={!canReveal}
-            aria-describedby={
-              disabledHint ? `reveal-hint-${match.match_id}` : undefined
-            }
+            aria-describedby={disabledHint ? `reveal-hint-${match.match_id}` : undefined}
             data-testid={`btn-reveal-${match.match_id}`}
           >
             <MessageCircle className="mr-1 h-4 w-4" />
@@ -168,9 +151,7 @@ function ActiveRow({ match }: { match: OwnMatchDTO }) {
           )}
         </div>
       </div>
-      <p className="mt-3 text-xs text-muted-foreground">
-        {PARTICIPANT_STATUS_MESSAGE[status]}
-      </p>
+      <p className="mt-3 text-xs text-muted-foreground">{PARTICIPANT_STATUS_MESSAGE[status]}</p>
       {open && (
         <RevealContactDialog
           open={open}
