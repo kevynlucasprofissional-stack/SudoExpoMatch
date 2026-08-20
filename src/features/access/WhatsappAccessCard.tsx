@@ -1,0 +1,219 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { Loader2, ShieldCheck } from "lucide-react";
+import { toast } from "sonner";
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { EVENT_ID } from "@/config/event";
+import { qk } from "@/features/participant/queryKeys";
+import {
+  claimProfileByVerifiedPhone,
+  PhoneAuthError,
+  requestPhoneOtp,
+  verifyPhoneOtp,
+} from "./api";
+import {
+  createAttemptLimiter,
+  limiterKey,
+  maskPhone,
+  normalizePhoneToE164,
+  OTP_REQUEST_MAX,
+  OTP_REQUEST_WINDOW_MS,
+  OTP_RESEND_COOLDOWN_SEC,
+  OTP_VERIFY_MAX,
+  OTP_VERIFY_WINDOW_MS,
+  translatePhoneAuthError,
+  type PhoneAuthCapability,
+} from "@/lib/phone-auth";
+
+/**
+ * Acesso passwordless: WhatsApp -> OTP -> número verificado -> perfil.
+ *
+ * Política de dados: telefone e OTP vivem apenas em `useState` local; nunca
+ * URL, storage ou logs. Mensagens de solicitação são genéricas para não
+ * revelar se o número possui cadastro.
+ */
+const requestLimiter = createAttemptLimiter(OTP_REQUEST_MAX, OTP_REQUEST_WINDOW_MS);
+const verifyLimiter = createAttemptLimiter(OTP_VERIFY_MAX, OTP_VERIFY_WINDOW_MS);
+
+type Phase = "phone" | "code";
+
+export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapability }) {
+  const navigate = useNavigate();
+  const qc = useQueryClient();
+  const [phase, setPhase] = useState<Phase>("phone");
+  const [phone, setPhone] = useState("");
+  const [code, setCode] = useState("");
+  const [notice, setNotice] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => Math.max(0, c - 1)), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  const key = useMemo(() => {
+    const n = normalizePhoneToE164(phone);
+    return n.ok ? limiterKey(n.e164) : "invalid";
+  }, [phone]);
+
+  const send = useCallback(async () => {
+    setError(null);
+    const norm = normalizePhoneToE164(phone);
+    if (!norm.ok) {
+      setError(translatePhoneAuthError("invalid_phone"));
+      return;
+    }
+    const gate = requestLimiter.check(key);
+    if (!gate.allowed) {
+      setError(translatePhoneAuthError("rate_limited"));
+      return;
+    }
+    setBusy(true);
+    try {
+      const res = await requestPhoneOtp(phone, capability.channels[0] ?? "sms");
+      requestLimiter.record(key);
+      if (!mounted.current) return;
+      setNotice(res.message);
+      setPhase("code");
+      setCooldown(OTP_RESEND_COOLDOWN_SEC);
+    } catch (err) {
+      requestLimiter.record(key);
+      if (!mounted.current) return;
+      setError(
+        translatePhoneAuthError(err instanceof PhoneAuthError ? err.code : "unknown"),
+      );
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  }, [phone, key, capability.channels]);
+
+  const confirm = useCallback(async () => {
+    setError(null);
+    const gate = verifyLimiter.check(key);
+    if (!gate.allowed) {
+      setError(translatePhoneAuthError("rate_limited"));
+      return;
+    }
+    setBusy(true);
+    verifyLimiter.record(key);
+    try {
+      await verifyPhoneOtp(phone, code);
+      const res = await claimProfileByVerifiedPhone(EVENT_ID);
+      verifyLimiter.reset(key);
+      setPhone("");
+      setCode("");
+      if (!mounted.current) return;
+      qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
+      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      toast.success(res.claimed ? "Bem-vindo(a) de volta!" : "Acesso liberado.");
+      navigate({ to: "/participante" });
+    } catch (err) {
+      setCode("");
+      if (!mounted.current) return;
+      setError(
+        translatePhoneAuthError(err instanceof PhoneAuthError ? err.code : "unknown"),
+      );
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  }, [phone, code, key, qc, navigate]);
+
+  if (!capability.otpEnabled) return null;
+
+  return (
+    <div className="space-y-4" data-testid="whatsapp-access">
+      <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
+        <p className="text-muted-foreground">
+          Sem senha: confirmamos seu WhatsApp com um código de uso único.
+        </p>
+      </div>
+
+      {phase === "phone" ? (
+        <div>
+          <Label htmlFor="access-phone">WhatsApp</Label>
+          <Input
+            id="access-phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="(64) 99999-9999"
+            inputMode="tel"
+            autoComplete="tel"
+          />
+        </div>
+      ) : (
+        <div>
+          <Label htmlFor="access-code">Código de 6 dígitos</Label>
+          <Input
+            id="access-code"
+            value={code}
+            onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+            placeholder="000000"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            className="font-mono tracking-widest"
+          />
+          <p className="mt-1 text-xs text-muted-foreground">
+            Enviado para {maskPhone(phone)}.
+          </p>
+        </div>
+      )}
+
+      {notice && !error && (
+        <p className="rounded-md border border-border bg-muted/40 p-2 text-sm text-muted-foreground">
+          {notice}
+        </p>
+      )}
+      {error && (
+        <p
+          role="alert"
+          className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm text-destructive"
+        >
+          {error}
+        </p>
+      )}
+
+      {phase === "phone" ? (
+        <Button className="w-full" onClick={() => void send()} disabled={!phone || busy} aria-busy={busy}>
+          {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+          Receber código
+        </Button>
+      ) : (
+        <div className="space-y-2">
+          <Button
+            className="w-full"
+            onClick={() => void confirm()}
+            disabled={code.length !== 6 || busy}
+            aria-busy={busy}
+          >
+            {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Entrar
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => void send()}
+            disabled={busy || cooldown > 0}
+          >
+            {cooldown > 0 ? `Reenviar em ${cooldown}s` : "Reenviar código"}
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
