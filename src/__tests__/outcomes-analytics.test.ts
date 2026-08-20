@@ -13,7 +13,7 @@ import {
 import { OUTCOME_KINDS, OUTCOME_LABEL } from "@/features/staff/outcomes";
 
 // ---------------------------------------------------------------- supabase mock
-const insert = vi.fn(async () => ({ error: null }));
+const insert = vi.fn(async (_row: Record<string, unknown>) => ({ error: null }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => ({ insert }) },
 }));
@@ -123,7 +123,7 @@ describe("analytics/track — allowlist e sanitização", () => {
   });
 
   it("nunca lança e libera o dedupe quando o insert falha", async () => {
-    insert.mockImplementationOnce(async () => {
+    insert.mockImplementationOnce(async (_row: Record<string, unknown>) => {
       throw new Error("offline");
     });
     const fail = await trackEvent({ kind: "match_viewed", eventId: "e1", payload: { match_id: "z" } });
