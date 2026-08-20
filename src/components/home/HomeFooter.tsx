@@ -1,7 +1,7 @@
 export function HomeFooter() {
   return (
     <footer className="border-t border-white/10 bg-[#0b1252] text-white">
-      <div className="mx-auto grid max-w-[1480px] gap-3 px-4 py-5 text-sm md:grid-cols-3 md:items-center md:px-8">
+      <div className="mx-auto grid max-w-[1480px] gap-3 px-8 py-5 text-sm md:grid-cols-3 md:items-center md:px-16">
         <div className="flex items-center justify-center gap-2.5 md:justify-start">
           <span className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-white font-display text-base font-black text-primary">
             M

@@ -22,7 +22,7 @@ export function HomeHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/95 text-white backdrop-blur">
-      <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-3 px-4 md:px-8">
+      <div className="mx-auto flex h-16 max-w-[1480px] items-center justify-between gap-3 px-8 md:px-16">
         <Link
           to="/"
           className="flex min-w-0 items-center gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252]"
@@ -79,7 +79,7 @@ export function HomeHeader() {
       {open && (
         <div id="home-mobile-menu" className="border-t border-white/10 bg-[#0b1252] md:hidden">
           <nav
-            className="mx-auto flex max-w-[1480px] flex-col gap-1 px-4 py-3"
+            className="mx-auto flex max-w-[1480px] flex-col gap-1 px-8 py-3"
             aria-label="Navegação móvel"
           >
             {NAV.map((item) => (
