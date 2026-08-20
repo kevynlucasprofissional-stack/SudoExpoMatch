@@ -28,7 +28,7 @@ const MOBILE_CATEGORIES = [
 export function Hero() {
   return (
     <section className="relative text-white">
-      <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-4 py-6 md:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] md:gap-6 md:px-8 md:py-10 lg:py-12">
+      <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] md:gap-6 md:px-16 md:py-10 lg:py-12">
         {/* Coluna esquerda — texto e CTAs */}
         <div className="min-w-0 max-w-xl">
           <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium ring-1 ring-white/15 backdrop-blur">
@@ -110,7 +110,7 @@ export function Hero() {
 
       {/* Composição visual dedicada para mobile, após CTAs e linha de tempo */}
       <div
-        className="relative mx-auto max-w-[520px] px-4 pb-4 md:hidden"
+        className="relative mx-auto max-w-[520px] px-8 pb-4 md:hidden"
         data-testid="hero-visual-mobile"
       >
         <HeroVisualMobile />

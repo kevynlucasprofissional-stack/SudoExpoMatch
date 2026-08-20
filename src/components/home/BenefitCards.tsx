@@ -26,7 +26,7 @@ const CARDS = [
 
 export function BenefitCards() {
   return (
-    <section className="mx-auto max-w-[1480px] px-4 pt-2 pb-4 md:px-8 md:pt-3 md:pb-5">
+    <section className="mx-auto max-w-[1480px] px-8 pt-2 pb-4 md:px-16 md:pt-3 md:pb-5">
       <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3 md:gap-4">
         {CARDS.map(({ Icon, color, fg, title, body }) => (
           <article
