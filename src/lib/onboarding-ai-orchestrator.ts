@@ -18,7 +18,6 @@ import { buildSocialContextPromptBlock, socialContextFingerprint } from "./socia
 import { SOCIAL_ANALYSIS_PROMPT_VERSION, buildSocialAnalysisPromptBlock } from "./social-analysis";
 import type { EventCatalog } from "@/features/participant/types";
 
-
 /** Resultado bruto de uma tentativa ao Gateway. */
 export interface GatewayCallResult {
   output: unknown;
@@ -105,9 +104,10 @@ export function buildBusinessProfileBlock(input: SuggestOnboardingInput): string
   const niche = input.niche?.trim();
   if (niche) lines.push(`nicho declarado: ${niche.slice(0, 120)}`);
   if (lines.length === 0) return "";
-  return ["Perfil declarado do negócio (use para tornar as sugestões mais específicas):", ...lines].join(
-    "\n",
-  );
+  return [
+    "Perfil declarado do negócio (use para tornar as sugestões mais específicas):",
+    ...lines,
+  ].join("\n");
 }
 
 /**
@@ -239,7 +239,6 @@ export async function buildCacheKey(
     AI_MODEL,
   ]);
 }
-
 
 /**
  * Executa o pipeline completo: rate-limit → cache → 1 tentativa + 1 retry só

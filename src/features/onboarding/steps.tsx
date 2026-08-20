@@ -1,10 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
-import {
-  AI_SUGGESTION_BADGE,
-  buildSuggestionFeed,
-  type FeedSuggestion,
-} from "./suggestionFeed";
+import { AI_SUGGESTION_BADGE, buildSuggestionFeed, type FeedSuggestion } from "./suggestionFeed";
 import { useAutoAiSuggestions } from "./useAutoAiSuggestions";
 import { normalizeConfirmedOffers } from "./aiAnalysisState";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
@@ -12,7 +8,6 @@ import { mergeCapped } from "./mergeItems";
 import type { SocialBusinessContext } from "@/lib/social-context";
 import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
-
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -286,7 +281,6 @@ export function StepWhoIAm({
   manualSegmentLabel?: string;
   social?: SocialLookupUiState;
 }) {
-
   const isOther = draft.segmentId === OTHER_SEGMENT_ID;
   const nicheOk = !isOther || draft.niche.trim().length >= 3;
   const canNext =
@@ -385,9 +379,7 @@ export function StepWhoIAm({
             value={draft.niche}
             onChange={(e) => update("niche", e.target.value.slice(0, 120))}
             placeholder={
-              isOther
-                ? "Ex.: Manutenção de equipamentos agrícolas"
-                : "Ex.: Panificação artesanal"
+              isOther ? "Ex.: Manutenção de equipamentos agrícolas" : "Ex.: Panificação artesanal"
             }
             className="mt-1"
             maxLength={120}
@@ -443,7 +435,6 @@ export function StepWhoIAm({
         </div>
       </div>
 
-
       <div className="mt-6 flex justify-between">
         <Button variant="outline" onClick={onBack}>
           Voltar
@@ -486,7 +477,6 @@ export function StepOffers({
   socialContext?: SocialBusinessContext | null;
   socialAnalysis?: SocialBusinessAnalysis | null;
 }) {
-
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<SuggestionItem[]>([]);
   const [custom, setCustom] = useState("");
@@ -780,7 +770,6 @@ export function StepNeeds({
   socialContext?: SocialBusinessContext | null;
   socialAnalysis?: SocialBusinessAnalysis | null;
 }) {
-
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
@@ -816,10 +805,7 @@ export function StepNeeds({
   // IMPL 22 — a análise da Etapa 4 é semanticamente diferente: considera as
   // ofertas CONFIRMADAS na Etapa 3. Trocar uma oferta invalida a análise;
   // não mexer nelas reaproveita a anterior (zero chamada).
-  const confirmedOffers = useMemo(
-    () => normalizeConfirmedOffers(draft.offers),
-    [draft.offers],
-  );
+  const confirmedOffers = useMemo(() => normalizeConfirmedOffers(draft.offers), [draft.offers]);
   const { items: aiItems, loading: aiLoading } = useAutoAiSuggestions({
     focus: "needs",
     enabled: Boolean(eventId && aiAnalysis),
@@ -1098,7 +1084,6 @@ export function StepNeeds({
 
 // A antiga etapa "Prioridade" foi integrada em StepNeeds (etapa "O que eu
 // procuro"). O Matcher v2.3 continua consumindo `is_priority` normalmente.
-
 
 // ============================================================================
 // StepReview

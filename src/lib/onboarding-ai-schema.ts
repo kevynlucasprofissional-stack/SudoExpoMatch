@@ -19,7 +19,6 @@ import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/t
  */
 export const PROMPT_VERSION = "a1a2-v9-focus-confirmed-offers";
 
-
 /**
  * IMPL 8 — única defesa determinística contra sugestão semanticamente
  * desconectada: o piso de autodeclaração do modelo. Deliberadamente BAIXO
@@ -82,7 +81,6 @@ export const suggestOnboardingInputSchema = z.object({
   socialAnalysis: socialBusinessAnalysisSchema.optional(),
 });
 export type SuggestOnboardingInput = z.infer<typeof suggestOnboardingInputSchema>;
-
 
 export const aiSuggestionItemSchema = z
   .object({
@@ -377,4 +375,3 @@ export function buildAiRunInput(input: SuggestOnboardingInput, cacheKey: string)
     socialAnalysisUsed: Boolean(input.socialAnalysis),
   };
 }
-

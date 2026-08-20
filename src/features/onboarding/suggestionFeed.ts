@@ -39,10 +39,7 @@ export function normalizeLabel(label: string): string {
     .replace(/\s+/g, " ");
 }
 
-export function suggestionIdentity(item: {
-  taxonomyItemId: string | null;
-  label: string;
-}): string {
+export function suggestionIdentity(item: { taxonomyItemId: string | null; label: string }): string {
   return item.taxonomyItemId ? `id:${item.taxonomyItemId}` : `label:${normalizeLabel(item.label)}`;
 }
 

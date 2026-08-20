@@ -37,7 +37,13 @@ const catalog: EventCatalog = {
   ],
   taxonomy: [
     { id: "t-emb", segment_id: "alim", label: "Embalagens", kind: "need", synonyms: [] },
-    { id: "t-mkt", segment_id: "mkt", label: "Gestão de redes sociais", kind: "both", synonyms: [] },
+    {
+      id: "t-mkt",
+      segment_id: "mkt",
+      label: "Gestão de redes sociais",
+      kind: "both",
+      synonyms: [],
+    },
   ],
 };
 
@@ -109,7 +115,9 @@ describe("IMPL 22 — lista única com proveniência", () => {
     const feed = buildSuggestionFeed({
       kind: "need",
       heuristic,
-      ai: ai([{ taxonomyItemId: "t-emb", label: "Embalagens sustentáveis", needKind: "fornecedor" }]),
+      ai: ai([
+        { taxonomyItemId: "t-emb", label: "Embalagens sustentáveis", needKind: "fornecedor" },
+      ]),
     });
     expect(feed.filter((f) => f.taxonomyItemId === "t-emb")).toHaveLength(1);
     const item = feed.find((f) => f.taxonomyItemId === "t-emb")!;
@@ -167,9 +175,7 @@ describe("IMPL 22 — chave da análise distingue focus e ofertas confirmadas", 
   const base: AnalysisKey = { focus: "offers", eventId: "e1", segmentId: "alim", summary: "s" };
 
   it("focus faz parte da identidade", () => {
-    expect(serializeAnalysisKey(base)).not.toBe(
-      serializeAnalysisKey({ ...base, focus: "needs" }),
-    );
+    expect(serializeAnalysisKey(base)).not.toBe(serializeAnalysisKey({ ...base, focus: "needs" }));
   });
 
   it("trocar oferta confirmada invalida a análise de necessidades", () => {
