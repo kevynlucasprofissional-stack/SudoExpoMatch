@@ -177,6 +177,12 @@ export async function runSocialEnrichment(args: {
   raw: string;
   actor: string;
   force?: boolean;
+  /**
+   * Só consulta os caches persistentes (L1/L2). Nunca chama o provider nem a
+   * IA — usado quando a página é recarregada e queremos apenas reidratar o
+   * contexto já persistido para aquele `@`.
+   */
+  cacheOnly?: boolean;
   deps: SocialEnrichmentDeps;
 }): Promise<SocialEnrichmentResult> {
   const { deps } = args;
@@ -246,6 +252,16 @@ export async function runSocialEnrichment(args: {
     });
     deps.memory?.set(key, entry);
     return ok(entry, "database", false, 0, deps.analyzer ? 1 : 0);
+  }
+
+  // Reidratação pós-reload: devolve o que já está persistido para o handle,
+  // mesmo que a coleta esteja vencida, sem gastar provider nem IA.
+  if (args.cacheOnly) {
+    if (stored) {
+      deps.memory?.set(key, stored);
+      return ok(stored, "database", true, 0, 0);
+    }
+    return { status: "unavailable", reason: "cache_miss" };
   }
 
   // -------------------------------------------------------- provider (L3)

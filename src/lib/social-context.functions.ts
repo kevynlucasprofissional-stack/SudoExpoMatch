@@ -12,6 +12,8 @@ export const analyzeSocialProfileInputSchema = z.object({
   input: z.string().trim().min(1).max(300),
   /** Ignora L1/L2 e reconsulta o provider (usado pelo painel admin). */
   force: z.boolean().optional(),
+  /** Reidratação: usa apenas cache persistente (zero provider, zero IA). */
+  cacheOnly: z.boolean().optional(),
 });
 
 // L1 — cache de processo do Edge Worker (descartável).
@@ -59,6 +61,7 @@ export const analyzeSocialProfile = createServerFn({ method: "POST" })
       return await runSocialEnrichment({
         raw: data.input,
         actor: context.userId,
+        ...(data.cacheOnly ? { cacheOnly: true } : {}),
         deps: await buildEnrichmentDeps(),
       });
     } catch {
