@@ -4,7 +4,6 @@ import { Clock, HeartHandshake, Sparkles, Users, Handshake } from "lucide-react"
 
 import { EVENT_ID } from "@/config/event";
 import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
-import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 import { useEventStats } from "@/features/staff/useEventStats";
 
 export const Route = createFileRoute("/publico")({
