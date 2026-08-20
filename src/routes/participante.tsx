@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { EVENT_ID } from "@/lib/mock-data";
+import { EVENT_ID } from "@/config/event";
 import { useEnsureParticipantSession } from "@/features/participant/session";
 import { useOwnProfile } from "@/features/participant/useOwnProfile";
 import { useOwnMatchesQuery, useRecomputeMatchesMutation } from "@/features/matching/queries";

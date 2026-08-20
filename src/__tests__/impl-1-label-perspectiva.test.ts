@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 
-import { classifyLabel } from "@/domains/matching/score";
+import { classifyLabel } from "@/testing/matching-spec";
 import { matchLabelForScore, participantMatchLabel } from "@/features/matching/presentation";
 import { ownMatchSchema } from "@/features/participant/schemas";
 import type { OwnMatchDTO } from "@/features/participant/types";

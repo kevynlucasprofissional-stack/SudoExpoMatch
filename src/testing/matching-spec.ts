@@ -1,3 +1,13 @@
+/**
+ * ESPECIFICAÇÃO DE REFERÊNCIA DO MATCHING — USO EXCLUSIVO EM TESTES.
+ *
+ * Este módulo NÃO é executado em produção. O matching real roda inteiramente no
+ * banco (Matcher v2.3, funções `_recompute_matches_for_profile` /
+ * `match_label_for_score`). Aqui vive apenas um espelho legível dos pesos e das
+ * regras de classificação, usado pelas suítes para conferir que o SQL continua
+ * aderente à especificação. Nenhum arquivo em src/routes, src/components ou
+ * src/features pode importá-lo (há guarda estática em onda-a.test.ts).
+ */
 import type { Match, MatchKind, MatchLabel, MatchReason, Profile } from "@/lib/types";
 
 // Pesos oficiais da especificação:
