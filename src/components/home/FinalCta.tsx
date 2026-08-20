@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { UserCircle2, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export function FinalCta() {
   return (
@@ -29,9 +29,7 @@ export function FinalCta() {
 
         <div className="relative flex flex-col items-center gap-3 text-center md:flex-row md:text-left md:items-center md:justify-between md:pr-[260px]">
           <div className="flex items-center gap-3">
-            <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
-              <UserCircle2 className="h-6 w-6" />
-            </span>
+
             <div className="min-w-0">
               <h3 className="font-display text-lg font-black text-white md:text-xl">
                 Já criou seu perfil?
