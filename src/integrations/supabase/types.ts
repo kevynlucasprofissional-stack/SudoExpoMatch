@@ -1544,6 +1544,14 @@ export type Database = {
       }
       rotate_own_recovery_code: { Args: never; Returns: string }
       save_own_profile_v2: { Args: { _payload: Json }; Returns: string }
+      service_get_profile_social_handle: {
+        Args: { _network?: string; _profile_id: string }
+        Returns: Json
+      }
+      service_refresh_profile_social: {
+        Args: { _actor_user_id: string; _network?: string; _profile_id: string }
+        Returns: Json
+      }
       set_own_contact: {
         Args: { _email?: string; _phone_e164: string; _sharing?: boolean }
         Returns: undefined
@@ -1551,6 +1559,11 @@ export type Database = {
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       slugify: { Args: { _txt: string }; Returns: string }
+      social_cache_lookup: {
+        Args: { _handle: string; _network: string }
+        Returns: Json
+      }
+      social_cache_store: { Args: { _payload: Json }; Returns: Json }
       staff_add_connection_note: {
         Args: { _body: string; _connection_id: string }
         Returns: string

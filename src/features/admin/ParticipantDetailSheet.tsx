@@ -146,7 +146,7 @@ export function ParticipantDetailSheet({
             </TabsContent>
 
             <TabsContent value="instagram" className="mt-4">
-              <ParticipantSocialPanel query={socialQuery} />
+              <ParticipantSocialPanel query={socialQuery} profileId={profileId} />
             </TabsContent>
 
             <TabsContent value="ofertas" className="mt-4">

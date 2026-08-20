@@ -5,6 +5,7 @@ import type { AiSuggestionItem, AiSuggestionResult } from "@/lib/onboarding-ai-s
 import type { AnalysisKey, SharedAiAnalysis } from "./aiAnalysisState";
 import { serializeAnalysisKey } from "./aiAnalysisState";
 import { track } from "@/features/analytics/track";
+import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
 import type { SocialBusinessContext } from "@/lib/social-context";
 import type { BusinessSize, BusinessType } from "./types";
 
@@ -21,6 +22,7 @@ interface Props {
   businessType?: BusinessType | "";
   niche?: string;
   socialContext?: SocialBusinessContext | null;
+  socialAnalysis?: SocialBusinessAnalysis | null;
   /**
    * Aceita um lote de sugestões atomicamente. `source` é a origem REAL do
    * resultado (ai vs heuristic). O parent deve fazer o merge respeitando o
@@ -39,6 +41,7 @@ function analysisKey(p: Props): AnalysisKey {
     businessType: p.businessType ?? "",
     niche: p.niche ?? "",
     socialContext: p.socialContext ?? null,
+    socialAnalysis: p.socialAnalysis ?? null,
   };
 }
 

@@ -96,6 +96,10 @@ export function buildSocialLinkPayload(args: {
           display_name: ctx.displayName ?? null,
           category: ctx.category ?? null,
           bio: ctx.bio ?? null,
+          website: ctx.website ?? null,
+          followers_count: ctx.followersCount ?? null,
+          media_count: ctx.mediaCount ?? null,
+          profile_picture_url: ctx.profilePictureUrl ?? null,
         }
       : null,
     extracted_context: ctx
@@ -106,6 +110,10 @@ export function buildSocialLinkPayload(args: {
           bio: ctx.bio ?? null,
           keywords: ctx.keywords,
           signals: ctx.signals,
+          website: ctx.website ?? null,
+          followers_count: ctx.followersCount ?? null,
+          media_count: ctx.mediaCount ?? null,
+          recent_media: ctx.recentMedia ?? null,
           provider: ctx.provider,
           fetched_at: ctx.fetchedAt,
           truncated: ctx.truncated,

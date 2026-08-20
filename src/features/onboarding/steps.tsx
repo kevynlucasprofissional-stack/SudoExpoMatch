@@ -4,7 +4,9 @@ import { AiAssistantPanel } from "./AiAssistantPanel";
 import type { AiSuggestionItem } from "@/lib/onboarding-ai-schema";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
-import type { SocialBusinessContext, SocialLookupResult } from "@/lib/social-context";
+import type { SocialBusinessContext } from "@/lib/social-context";
+import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
+import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
 
 
 import { Button } from "@/components/ui/button";
@@ -260,7 +262,7 @@ function ChoiceGroup<T extends string>({
 /** Estado de UI do enriquecimento por Instagram (nunca bloqueia o cadastro). */
 export interface SocialLookupUiState {
   status: "idle" | "loading" | "done";
-  result: SocialLookupResult | null;
+  result: SocialEnrichmentResult | null;
   message: string;
 }
 
@@ -485,11 +487,13 @@ export function StepOffers({
   eventId,
   aiAnalysis,
   socialContext,
+  socialAnalysis,
 }: BaseProps & {
   catalog: EventCatalog;
   eventId?: string;
   aiAnalysis?: SharedAiAnalysis;
   socialContext?: SocialBusinessContext | null;
+  socialAnalysis?: SocialBusinessAnalysis | null;
 }) {
 
   const [loading, setLoading] = useState(false);
@@ -594,6 +598,7 @@ export function StepOffers({
           businessType={draft.businessType}
           niche={draft.niche}
           socialContext={socialContext ?? null}
+          socialAnalysis={socialAnalysis ?? null}
           analysis={aiAnalysis}
 
           onAcceptMany={(picks: AiSuggestionItem[], source) => {
@@ -756,11 +761,13 @@ export function StepNeeds({
   eventId,
   aiAnalysis,
   socialContext,
+  socialAnalysis,
 }: BaseProps & {
   catalog: EventCatalog;
   eventId?: string;
   aiAnalysis?: SharedAiAnalysis;
   socialContext?: SocialBusinessContext | null;
+  socialAnalysis?: SocialBusinessAnalysis | null;
 }) {
 
   const [kind, setKind] = useState<NeedKind>("servico");
@@ -853,6 +860,7 @@ export function StepNeeds({
           businessType={draft.businessType}
           niche={draft.niche}
           socialContext={socialContext ?? null}
+          socialAnalysis={socialAnalysis ?? null}
           analysis={aiAnalysis}
 
           onAcceptMany={(picks: AiSuggestionItem[], source) => {
