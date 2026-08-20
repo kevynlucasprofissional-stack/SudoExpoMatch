@@ -25,12 +25,12 @@ const STEPS = [
 ] as const;
 
 const AUDIENCE: { label: string; Icon: typeof Users; tone: string }[] = [
-  { label: "Potenciais clientes", Icon: Users, tone: "var(--success)" },
+  { label: "Clientes", Icon: Users, tone: "var(--success)" },
   { label: "Fornecedores", Icon: Package, tone: "var(--secondary)" },
-  { label: "Parceiros comerciais", Icon: HandshakeIcon, tone: "var(--accent)" },
+  { label: "Parceiros", Icon: HandshakeIcon, tone: "var(--accent)" },
   { label: "Distribuidores", Icon: Truck, tone: "#6b57e0" },
   { label: "Prestadores de serviços", Icon: Wrench, tone: "#129cdf" },
-  { label: "Soluções complementares", Icon: Boxes, tone: "var(--warning)" },
+  { label: "Soluções", Icon: Boxes, tone: "var(--warning)" },
 ];
 
 // Preview agregado do painel público — não expõe empresas nomeadas
