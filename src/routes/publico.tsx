@@ -3,7 +3,7 @@ import { memo, useEffect, useState } from "react";
 import { Clock, HeartHandshake, Sparkles, Users, Handshake } from "lucide-react";
 
 import { EVENT_ID } from "@/config/event";
-import { ConnectionScene } from "@/components/public/ConnectionScene";
+import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
 import { useEventStats } from "@/features/staff/useEventStats";
 
@@ -129,26 +129,14 @@ function PublicBoard() {
     ];
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-[#02072a] text-white xl:h-screen xl:overflow-hidden">
-      {/* Fundo: marinho profundo + gradientes radiais azul/violeta/ciano */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            "radial-gradient(70% 55% at 12% 4%, rgba(4,17,74,0.95) 0%, transparent 62%)," +
-            "radial-gradient(60% 50% at 88% 6%, rgba(90,60,190,0.30) 0%, transparent 64%)," +
-            "radial-gradient(55% 45% at 96% 78%, rgba(34,211,238,0.14) 0%, transparent 66%)," +
-            "radial-gradient(85% 60% at 45% 112%, rgba(3,11,58,0.98) 0%, transparent 70%)",
-        }}
-      />
-      {/* Rede de conexões (atrás dos cards) */}
-      <ConnectionScene className="pointer-events-none absolute inset-0 h-full w-full opacity-70" />
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "radial-gradient(80% 60% at 50% 55%, rgba(2,7,42,0.55) 0%, transparent 75%)" }}
-      />
+    <div className="relative min-h-screen overflow-x-hidden bg-[#0b1252] text-white xl:h-screen xl:overflow-hidden">
+      {/* Mesmo fundo da homepage: marinho contínuo com textura e fragmentos de papel */}
+      <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
+        <DotTexture className="absolute inset-0 h-full w-full opacity-25" />
+        <PaperFragments className="absolute inset-0 h-full w-full opacity-70" />
+        <CornerLeaves className="absolute -bottom-4 -right-6 h-64 w-64 opacity-90 hidden md:block" />
+        <CornerLines className="absolute -left-6 bottom-6 hidden h-40 w-40 opacity-70 md:block" />
+      </div>
 
       <div className="relative mx-auto flex min-h-screen w-full max-w-[1720px] xl:h-screen xl:min-h-0 flex-col px-6 py-7 sm:px-10 xl:px-20 xl:py-12">
         {/* TOPO: identidade institucional + relógio */}
