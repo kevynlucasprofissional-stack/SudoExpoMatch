@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import type { AiSuggestionItem, AiSuggestionResult } from "@/lib/onboarding-ai-schema";
 import type { AnalysisKey, SharedAiAnalysis } from "./aiAnalysisState";
 import { serializeAnalysisKey } from "./aiAnalysisState";
+import { track } from "@/features/analytics/track";
 
 interface Props {
   kind: "offer" | "need";
@@ -44,6 +45,12 @@ export function AiAssistantPanel(props: Props) {
 
   async function run() {
     if (props.disabled) return;
+    track({
+      kind: "ai_suggestion_requested",
+      eventId: props.eventId,
+      payload: { kind: props.kind },
+      dedupeKey: `ai_suggestion_requested:${props.kind}:${activeKeyId}`,
+    });
     await analysis.analyze(key, props.existingLabels);
   }
 
@@ -55,6 +62,12 @@ export function AiAssistantPanel(props: Props) {
     const existingLower = new Set(props.existingLabels.map((l) => l.trim().toLowerCase()));
     const toAdd = items.filter((i) => !existingLower.has(i.label.trim().toLowerCase()));
     if (toAdd.length === 0) return;
+    track({
+      kind: "ai_suggestion_accepted",
+      eventId: props.eventId,
+      payload: { kind: props.kind, source, count: toAdd.length },
+      dedupeKey: `ai_suggestion_accepted:${props.kind}:${activeKeyId}:all`,
+    });
     props.onAcceptMany(toAdd, source);
   }
 
@@ -183,7 +196,15 @@ export function AiAssistantPanel(props: Props) {
                   key={s.label + (s.taxonomyItemId ?? "")}
                   type="button"
                   disabled={already || props.disabled}
-                  onClick={() => props.onAcceptMany([s], source)}
+                  onClick={() => {
+                    track({
+                      kind: "ai_suggestion_accepted",
+                      eventId: props.eventId,
+                      payload: { kind: props.kind, source, count: 1 },
+                      dedupeKey: `ai_suggestion_accepted:${props.kind}:${activeKeyId}:${s.label}`,
+                    });
+                    props.onAcceptMany([s], source);
+                  }}
                   className={`inline-flex items-center gap-1 rounded-full border px-3 py-1.5 text-sm transition-all disabled:opacity-50 ${
                     already
                       ? "border-success bg-success/10"

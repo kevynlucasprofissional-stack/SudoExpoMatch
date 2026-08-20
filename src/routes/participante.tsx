@@ -27,6 +27,7 @@ import { ConnectionsList } from "@/features/participant/components/ConnectionsLi
 import { ProfileCard } from "@/features/participant/components/ProfileCard";
 import { RecoveryView } from "@/features/participant/components/RecoveryView";
 import type { OwnProfileDTO } from "@/features/participant/types";
+import { track } from "@/features/analytics/track";
 
 /** Polling interval real usado pela query — reutilizado nos testes. */
 export const PARTICIPANT_MATCHES_POLL_MS = 20_000;
@@ -143,6 +144,19 @@ function Panel({ profile }: { profile: OwnProfileDTO }) {
   const totalConnections = activeConn.length + pendingConn.length + cancelledConn.length;
 
   const lastUpdatedLabel = useLastUpdatedLabel(matchesQuery.dataUpdatedAt);
+
+  // Analytics: um `match_viewed` por match exibido (dedupe interno evita repetir).
+  useEffect(() => {
+    for (const m of matches) {
+      track({
+        kind: "match_viewed",
+        eventId: EVENT_ID,
+        profileId: profile.id,
+        payload: { match_id: m.match_id, label: m.label_me ?? m.label, score: m.score_me },
+        dedupeKey: `match_viewed:${m.match_id}`,
+      });
+    }
+  }, [matches, profile.id]);
 
   const handleRecompute = useCallback(() => {
     if (recompute.isPending) return;

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { qk } from "@/features/participant/queryKeys";
 import type { Decision } from "@/lib/types";
+import { track } from "@/features/analytics/track";
 import {
   listOwnMatches,
   recordMatchDecision,
@@ -38,7 +39,13 @@ export function useDecideMatchMutation(eventId: string) {
   return useMutation({
     mutationFn: (input: { matchId: string; decision: Decision }) =>
       recordMatchDecision(input.matchId, input.decision),
-    onSuccess: () => {
+    onSuccess: (_data, input) => {
+      track({
+        kind: "match_decided",
+        eventId,
+        payload: { match_id: input.matchId, decision: input.decision },
+        dedupeKey: `match_decided:${input.matchId}:${input.decision}`,
+      });
       qc.invalidateQueries({ queryKey: qk.ownMatches(eventId) });
       qc.invalidateQueries({ queryKey: qk.publicStats(eventId) });
     },

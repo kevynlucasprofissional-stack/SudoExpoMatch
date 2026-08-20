@@ -21,6 +21,7 @@ import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
 
 import { EVENT_ID } from "@/lib/mock-data";
 import { useEnsureParticipantSession } from "@/features/participant/session";
+import { track } from "@/features/analytics/track";
 import { useEventTaxonomy } from "@/features/taxonomy/queries";
 import { useOwnProfile } from "@/features/participant/useOwnProfile";
 import {
@@ -149,6 +150,27 @@ function WizardPage() {
     setMode("create");
     setHydrated(true);
   }, [session.isReady, profileQuery.isPending, profileQuery.isError, profileQuery.data, hydrated]);
+
+  // Analytics do funil: início e conclusão do cadastro (sem PII).
+  useEffect(() => {
+    if (!hydrated) return;
+    track({
+      kind: "onboarding_started",
+      eventId: EVENT_ID,
+      payload: { source: mode },
+      dedupeKey: `onboarding_started:${mode}`,
+    });
+  }, [hydrated, mode]);
+
+  useEffect(() => {
+    if (submit.stage !== "completed") return;
+    track({
+      kind: "onboarding_completed",
+      eventId: EVENT_ID,
+      payload: { source: mode, segment_id: draft.segmentId || undefined },
+      dedupeKey: "onboarding_completed",
+    });
+  }, [submit.stage, mode, draft.segmentId]);
 
   // Persistência: apenas depois de hidratado e antes de completar.
   useEffect(() => {

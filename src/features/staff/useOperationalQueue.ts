@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import type { ConnectionStatus } from "@/lib/types";
+import { outcomeListSchema } from "@/features/staff/outcomes";
 
 // --------------------------------------------------------------------------
 // Schemas Zod para respostas das RPCs v2 (Onda D — hardening).
@@ -200,6 +201,7 @@ const detailSchema = z.object({
   mapped_at: z.string().nullable().default(null),
   mapped_by: z.string().nullable().default(null),
   mapped_by_email: z.string().nullable().default(null),
+  outcomes: outcomeListSchema,
   a: z.object({
     id: z.string(),
     name: z.string(),

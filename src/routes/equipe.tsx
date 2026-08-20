@@ -105,6 +105,17 @@ import {
   translateOperationalError,
 } from "@/features/connections/domain";
 import { secondsSince } from "@/features/connections/time";
+import { track } from "@/features/analytics/track";
+import {
+  OUTCOME_KINDS,
+  OUTCOME_LABEL,
+  OUTCOME_NOTE_MAX,
+  translateOutcomeError,
+  useRecordConnectionOutcome,
+  useRemoveConnectionOutcome,
+  type ConnectionOutcome,
+  type OutcomeKind,
+} from "@/features/staff/outcomes";
 import {
   canAddInternalNote,
   eligibleReassignees,
@@ -983,6 +994,17 @@ function ConnectionDetailDrawer({
     setReassignNote("");
   }, [connectionId]);
 
+  // Analytics: abertura do detalhe da conexão (sem PII).
+  useEffect(() => {
+    if (!connectionId) return;
+    track({
+      kind: "connection_viewed",
+      eventId: EVENT_ID,
+      payload: { connection_id: connectionId },
+      dedupeKey: `connection_viewed:${connectionId}`,
+    });
+  }, [connectionId]);
+
   async function handleAddNote() {
     if (!connectionId || noteInput.trim().length < 1) return;
     try {
@@ -1123,6 +1145,12 @@ function ConnectionDetailDrawer({
               </ul>
             </section>
 
+            <OutcomesSection
+              eventId={q.data.event_id}
+              connectionId={q.data.id}
+              outcomes={q.data.outcomes}
+            />
+
             <section>
               <h3 className="mb-2 font-medium">Notas internas</h3>
               <ul className="space-y-2">
@@ -1224,6 +1252,114 @@ function ConnectionDetailDrawer({
         )}
       </SheetContent>
     </Sheet>
+  );
+}
+
+function OutcomesSection({
+  eventId,
+  connectionId,
+  outcomes,
+}: {
+  eventId: string;
+  connectionId: string;
+  outcomes: ConnectionOutcome[];
+}) {
+  const [kind, setKind] = useState<OutcomeKind | "">("");
+  const [note, setNote] = useState("");
+  const record = useRecordConnectionOutcome(eventId);
+  const remove = useRemoveConnectionOutcome(eventId);
+  const registered = new Set(outcomes.map((o) => o.kind));
+  const available = OUTCOME_KINDS.filter((k) => !registered.has(k));
+
+  async function handleRecord() {
+    if (!kind) return;
+    try {
+      await record.mutateAsync({ connectionId, kind, note });
+      toast.success("Resultado comercial registrado.");
+      setKind("");
+      setNote("");
+    } catch (err) {
+      toast.error(translateOutcomeError(err));
+    }
+  }
+
+  async function handleRemove(target: OutcomeKind) {
+    try {
+      await remove.mutateAsync({ connectionId, kind: target });
+      toast.success("Resultado removido.");
+    } catch (err) {
+      toast.error(translateOutcomeError(err));
+    }
+  }
+
+  return (
+    <section>
+      <h3 className="mb-1 font-medium">Resultados comerciais</h3>
+      <p className="mb-2 text-xs text-muted-foreground">
+        Independente do status operacional. Registre apenas o que foi informado.
+      </p>
+      <ul className="space-y-2">
+        {outcomes.map((o) => (
+          <li
+            key={o.kind}
+            className="rounded-md border border-border/60 bg-secondary/10 p-2 text-xs"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <span className="font-medium">{OUTCOME_LABEL[o.kind]}</span>
+              <span className="text-muted-foreground">
+                {new Date(o.created_at).toLocaleString("pt-BR")}
+              </span>
+            </div>
+            {o.actor_email && <p className="text-muted-foreground">por {o.actor_email}</p>}
+            {o.note && <p className="mt-1 italic">"{o.note}"</p>}
+            <Button
+              size="sm"
+              variant="ghost"
+              className="mt-1 h-7 px-2 text-xs"
+              disabled={remove.isPending}
+              onClick={() => handleRemove(o.kind)}
+            >
+              Remover
+            </Button>
+          </li>
+        ))}
+        {outcomes.length === 0 && (
+          <li className="text-xs text-muted-foreground">Nenhum resultado registrado.</li>
+        )}
+      </ul>
+
+      {available.length > 0 && (
+        <div className="mt-2 space-y-2">
+          <div className="flex gap-2">
+            <Select value={kind} onValueChange={(v) => setKind(v as OutcomeKind)}>
+              <SelectTrigger>
+                <SelectValue placeholder="Tipo de resultado" />
+              </SelectTrigger>
+              <SelectContent>
+                {available.map((k) => (
+                  <SelectItem key={k} value={k}>
+                    {OUTCOME_LABEL[k]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleRecord} disabled={!kind || record.isPending}>
+              Registrar
+            </Button>
+          </div>
+          <Textarea
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Observação curta opcional"
+            rows={2}
+            maxLength={OUTCOME_NOTE_MAX}
+          />
+          <p className="text-right text-[10px] text-muted-foreground">
+            {note.trim().length}/{OUTCOME_NOTE_MAX}
+          </p>
+        </div>
+      )}
+    </section>
   );
 }
 

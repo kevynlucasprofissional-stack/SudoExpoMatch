@@ -44,6 +44,7 @@ import {
   type AppRole,
 } from "@/features/admin/useEventStaff";
 import { OperationalStatsCard } from "@/features/staff/OperationalStatsCard";
+import { ExperienceAnalyticsCard } from "@/features/admin/ExperienceAnalyticsCard";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -342,7 +343,10 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               <Link to="/equipe">Abrir fila operacional</Link>
             </Button>
           </div>
-          <OperationalStatsCard eventId={EVENT_ID} />
+          <div className="space-y-4">
+            <ExperienceAnalyticsCard eventId={EVENT_ID} enabled />
+            <OperationalStatsCard eventId={EVENT_ID} />
+          </div>
         </section>
       </section>
 
