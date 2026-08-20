@@ -28,11 +28,11 @@ const MOBILE_CATEGORIES = [
 export function Hero() {
   return (
     <section className="relative text-white">
-      <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:px-32 md:py-10 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-6 lg:py-12">
+      <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] md:gap-6 md:px-32 md:py-10 lg:py-12">
         {/* Coluna esquerda — texto e CTAs */}
-        <div className="flex min-w-0 max-w-xl flex-col">
+        <div className="min-w-0 max-w-xl">
           <h1
-            className="order-1 mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
+            className="mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
             style={{ fontSize: "clamp(2rem, 9.5vw, 3.25rem)" }}
           >
             Encontre{" "}
@@ -49,20 +49,12 @@ export function Hero() {
             dentro da SudoExpo.
           </h1>
 
-          <p className="order-2 mt-4 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
+          <p className="mt-4 max-w-lg text-sm leading-relaxed text-white/85 sm:text-base">
             Diga o que oferece e o que procura. O Matchmaker encontra as conexões mais relevantes
             para você durante a SudoExpo.
           </p>
 
-          {/* Ilustração — entre subtítulo e CTAs no mobile/tablet */}
-          <div
-            className="order-3 mx-auto mt-5 w-full max-w-[520px] lg:hidden"
-            data-testid="hero-visual-mobile"
-          >
-            <HeroVisualMobile />
-          </div>
-
-          <div className="order-4 mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
             <Link
               to="/participar"
               className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-success px-6 py-3 font-semibold text-[#0b1252] shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] sm:w-auto"
@@ -77,13 +69,13 @@ export function Hero() {
             </Link>
           </div>
 
-          <p className="order-5 mt-3 flex items-center gap-2 text-xs text-white/70">
+          <p className="mt-3 flex items-center gap-2 text-xs text-white/70">
             <Clock className="h-3.5 w-3.5" /> Cadastro gratuito · 3 minutos
           </p>
 
-          {/* Categorias compactas — só mobile/tablet */}
+          {/* Categorias compactas — só mobile */}
           <ul
-            className="order-6 mt-5 grid grid-cols-3 gap-2 lg:hidden"
+            className="mt-5 grid grid-cols-3 gap-2 md:hidden"
             aria-label="Categorias de conexões"
             data-testid="hero-mobile-categories"
           >
@@ -105,10 +97,18 @@ export function Hero() {
           </ul>
         </div>
 
-        {/* Coluna direita — visual desktop */}
-        <div className="relative hidden lg:block" data-testid="hero-visual-desktop">
+        {/* Coluna direita — visual desktop (oculto no mobile) */}
+        <div className="relative hidden md:block" data-testid="hero-visual-desktop">
           <HeroVisual />
         </div>
+      </div>
+
+      {/* Composição visual dedicada para mobile, após CTAs e linha de tempo */}
+      <div
+        className="relative mx-auto max-w-[520px] px-8 pb-4 md:hidden"
+        data-testid="hero-visual-mobile"
+      >
+        <HeroVisualMobile />
       </div>
     </section>
   );
