@@ -3,7 +3,7 @@ import { UserCircle2, ArrowRight } from "lucide-react";
 
 export function FinalCta() {
   return (
-    <section className="mx-auto max-w-[1480px] px-8 pb-6 md:px-16 md:pb-6">
+    <section className="mx-auto max-w-[1480px] px-8 pb-6 md:px-32 md:pb-6">
       <div
         className="relative overflow-hidden rounded-2xl px-4 py-4 md:px-6 md:py-4"
         style={{
