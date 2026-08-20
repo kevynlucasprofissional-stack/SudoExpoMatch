@@ -310,9 +310,12 @@ BEGIN
   PERFORM public._recompute_matches_for_profile(v_pa, v_ev);
   SELECT count(*) INTO v_n FROM public.matches m WHERE m.id = v_match.id AND m.is_active;
   IF v_n <> 0 THEN RAISE EXCEPTION 'FALHA: relação desativada deveria remover o match complementar'; END IF;
+  -- O histórico de motivos do match desativado é preservado por design;
+  -- o que precisa desaparecer é o sinal complementar em matches ATIVOS.
   SELECT count(*) INTO v_n FROM public.match_reasons r
-   WHERE r.match_id = v_match.id AND r.code = 'relacao_complementar';
-  IF v_n <> 0 THEN RAISE EXCEPTION 'FALHA: motivos complementares deveriam desaparecer'; END IF;
+    JOIN public.matches m ON m.id = r.match_id AND m.is_active
+   WHERE m.event_id = v_ev AND r.code = 'relacao_complementar';
+  IF v_n <> 0 THEN RAISE EXCEPTION 'FALHA: sinal complementar ativo deveria desaparecer'; END IF;
 
   -- reativação restaura
   SET LOCAL role authenticated;
