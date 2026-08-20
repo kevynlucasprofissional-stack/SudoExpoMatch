@@ -845,6 +845,22 @@ export function StepNeeds({
     [heuristicNeeds, aiItems, draft.needs],
   );
 
+  // IMPL 23: sem repetir no "Comuns no seu segmento" o que já está no feed.
+  const feedIdentities = useMemo(() => new Set(feed.map((s) => s.identity)), [feed]);
+  const segmentTax = useMemo(
+    () =>
+      segmentTaxAll
+        .filter(
+          (t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: t.id, label: t.label })),
+        )
+        .filter(
+          (t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: null, label: t.label })),
+        ),
+    [segmentTaxAll, feedIdentities],
+  );
+
+
+
   /** IA sugere, usuário confirma. `needKind` vem do item, nunca do seletor. */
   function addFromFeed(s: FeedSuggestion) {
     if (draft.needs.length >= 5) return;
