@@ -652,6 +652,9 @@ function WizardPage() {
             eventId={EVENT_ID}
             aiAnalysis={aiAnalysis}
             socialContext={social.result?.status === "ok" ? social.result.context : null}
+            socialAnalysis={
+              social.result?.status === "ok" ? (social.result.analysis ?? null) : null
+            }
           />
         )}
         {step === 3 && (
@@ -664,6 +667,9 @@ function WizardPage() {
             eventId={EVENT_ID}
             aiAnalysis={aiAnalysis}
             socialContext={social.result?.status === "ok" ? social.result.context : null}
+            socialAnalysis={
+              social.result?.status === "ok" ? (social.result.analysis ?? null) : null
+            }
           />
         )}
         {step === 4 && (

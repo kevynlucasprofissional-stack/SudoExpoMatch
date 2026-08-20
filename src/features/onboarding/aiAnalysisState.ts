@@ -3,6 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { suggestOnboardingItems } from "@/lib/onboarding-ai.functions";
 import type { AiSuggestionResult } from "@/lib/onboarding-ai-schema";
 import { socialContextFingerprint, type SocialBusinessContext } from "@/lib/social-context";
+import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
 import type { BusinessSize, BusinessType } from "./types";
 
 /**
@@ -20,6 +21,7 @@ export interface AnalysisKey {
   businessType?: BusinessType | "";
   niche?: string;
   socialContext?: SocialBusinessContext | null;
+  socialAnalysis?: SocialBusinessAnalysis | null;
 }
 
 export function serializeAnalysisKey(k: AnalysisKey): string {
@@ -31,6 +33,7 @@ export function serializeAnalysisKey(k: AnalysisKey): string {
     k.businessType ?? "",
     (k.niche ?? "").trim().toLowerCase(),
     socialContextFingerprint(k.socialContext ?? null),
+    k.socialAnalysis ? JSON.stringify(k.socialAnalysis) : "",
   ].join("\u0001");
 }
 
@@ -109,6 +112,7 @@ export function useSharedAiAnalysis(): SharedAiAnalysis {
               ...(key.businessType ? { businessType: key.businessType } : {}),
               ...(key.niche?.trim() ? { niche: key.niche.trim() } : {}),
               ...(key.socialContext ? { socialContext: key.socialContext } : {}),
+              ...(key.socialAnalysis ? { socialAnalysis: key.socialAnalysis } : {}),
             },
           });
 
