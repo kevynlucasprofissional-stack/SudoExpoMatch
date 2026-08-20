@@ -143,7 +143,7 @@ export function buildPrompt(input: SuggestOnboardingInput, catalog: EventCatalog
     "Regras:",
     "- Até 5 ofertas e até 5 necessidades.",
     "- Cada item precisa de label (<=80 chars), confidence 0..1 e rationale curta.",
-    "- ADERÊNCIA: sugira apenas o que decorre do resumo, do perfil declarado ou do contexto público acima. `confidence` mede o quanto a sugestão está ancorada nessas fontes (1 = explícito; 0 = chute). Não liste itens do catálogo só porque existem.",
+    "- ADERÊNCIA: sugira apenas o que decorre do resumo, do perfil declarado ou do contexto público acima. `confidence` mede o quanto a sugestão está ancorada no resumo e nas demais fontes (1 = explícito; 0 = chute). Não liste itens do catálogo só porque existem.",
     "- O resumo digitado prevalece: o contexto de rede social apenas complementa e nunca contradiz o que o participante escreveu.",
     "- A rationale deve citar o trecho/necessidade que justifica a sugestão. Sem justificativa nas fontes, não sugira o item.",
 
