@@ -125,8 +125,6 @@ export function ProcessPanel() {
 
           {/* Coluna 3: Painel público AGREGADO */}
           <div className="lg:pl-6" data-testid="public-panel-aggregate">
-            <h3 className="font-display text-base font-bold">Painel público da SudoExpo</h3>
-            <p className="mt-1 text-xs text-white/75">Números agregados, sem expor empresas.</p>
             <Link
               to="/publico"
               className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#070d3a]"
