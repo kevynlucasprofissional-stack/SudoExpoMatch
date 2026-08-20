@@ -95,8 +95,11 @@ describe("admin_set_match_reviewed — regras (prova comportamental na migration
     expect(SRC).toContain("_admin_require_event_admin");
   });
 
-  it("usa auth.uid() como autor e valida o match dentro do evento", () => {
-    expect(SRC).toContain("auth.uid()");
+  it("autor vem do gate de admin (auth.uid()) e o match é validado no evento", () => {
+    expect(
+      psql(`SELECT prosrc FROM pg_proc WHERE oid='public._admin_require_event_admin(text)'::regprocedure`),
+    ).toContain("auth.uid()");
+    expect(SRC).toContain("v_uid");
     expect(SRC).toContain("not_found");
     expect(SRC).toMatch(/matches[\s\S]*event_id/);
   });
