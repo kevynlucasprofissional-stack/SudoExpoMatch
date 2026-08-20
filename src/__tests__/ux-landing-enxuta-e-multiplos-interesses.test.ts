@@ -97,7 +97,7 @@ describe("Entrega A — landing com menos texto", () => {
       }
       expect(src).not.toMatch(/overflow-x-scroll/);
     }
-    expect(HERO).toContain("md:grid-cols-");
+    expect(HERO).toContain("lg:grid-cols-");
     expect(PROCESS).toContain("lg:grid-cols-");
     expect(CTA).toContain("md:flex-row");
   });

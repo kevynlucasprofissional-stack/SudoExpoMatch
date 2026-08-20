@@ -46,7 +46,7 @@ export function ProcessPanel() {
       <div className="relative overflow-hidden rounded-[16px] border border-secondary/40 bg-[#070d3a] p-4 text-white shadow-xl md:p-6">
         <div className="grid gap-6 lg:grid-cols-[46fr_30fr_24fr] lg:gap-0 lg:divide-x lg:divide-white/10">
           {/* Coluna 1: Como funciona */}
-          <div className="lg:pr-6">
+          <div className="text-center lg:pr-6 lg:text-left">
             <h2 className="font-display text-xl font-black md:text-2xl">Como funciona</h2>
             {/* Mobile: sequência vertical */}
             <ol
@@ -57,7 +57,7 @@ export function ProcessPanel() {
               {STEPS.map((s, i) => (
                 <li
                   key={s.label}
-                  className="flex items-center gap-3 rounded-lg bg-white/[0.06] px-3 py-2.5 ring-1 ring-white/10"
+                  className="flex items-center gap-3 rounded-lg bg-white/[0.06] px-3 py-2.5 text-left ring-1 ring-white/10"
                 >
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-display text-sm font-black text-[#0b1252]">
                     {i + 1}
@@ -97,7 +97,7 @@ export function ProcessPanel() {
           </div>
 
           {/* Coluna 2: Chips com ícones */}
-          <div className="lg:px-6">
+          <div className="text-center lg:px-6 lg:text-left">
             <h3 className="font-display text-base font-bold">
               Quem você pode encontrar
             </h3>
@@ -124,7 +124,7 @@ export function ProcessPanel() {
           </div>
 
           {/* Coluna 3: Painel público AGREGADO */}
-          <div className="lg:pl-6" data-testid="public-panel-aggregate">
+          <div className="text-center lg:pl-6 lg:text-left" data-testid="public-panel-aggregate">
             <Link
               to="/publico"
               className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-md bg-secondary px-3 text-sm font-semibold text-[#0b1252] transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#070d3a]"

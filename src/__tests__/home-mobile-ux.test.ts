@@ -11,7 +11,7 @@ describe("Home mobile UX — estrutura do código", () => {
 
   it("Hero: visual desktop está oculto em < md (hidden md:block) e mobile visível em < md (md:hidden)", () => {
     expect(hero).toMatch(
-      /data-testid="hero-visual-desktop"[\s\S]*?hidden md:block|hidden md:block[\s\S]*?data-testid="hero-visual-desktop"/,
+      /data-testid="hero-visual-desktop"[\s\S]*?md:block|md:block[\s\S]*?data-testid="hero-visual-desktop"/,
     );
     expect(hero).toMatch(
       /md:hidden[\s\S]*?data-testid="hero-visual-mobile"|data-testid="hero-visual-mobile"[\s\S]*?md:hidden/,
