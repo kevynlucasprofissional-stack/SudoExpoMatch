@@ -137,9 +137,26 @@ export const socialBusinessContextSchema = z.object({
 });
 export type SocialBusinessContext = z.infer<typeof socialBusinessContextSchema>;
 
+/**
+ * Neutraliza texto público de terceiros antes de qualquer uso:
+ * remove marcação HTML/script, caracteres de controle (inclusive o \u0001
+ * usado como separador de fingerprint) e desarma os delimitadores de bloco
+ * de prompt (`<<<` / `>>>`, `DADOS>>>`), que seriam a via de escape de uma
+ * tentativa de prompt injection embutida em bio ou legenda.
+ */
+function neutralizeUntrustedText(raw: string): string {
+  return raw
+    .replace(/<[^>]*>/g, " ")
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/<{2,}/g, "«")
+    .replace(/>{2,}/g, "»")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function clampText(raw: unknown, max: number): string | undefined {
   if (typeof raw !== "string") return undefined;
-  const s = raw.replace(/\s+/g, " ").trim();
+  const s = neutralizeUntrustedText(raw);
   if (!s) return undefined;
   return s.length > max ? s.slice(0, max) : s;
 }
