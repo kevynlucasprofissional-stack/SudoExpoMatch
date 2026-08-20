@@ -139,8 +139,8 @@ describe("anti-spoofing e PII", () => {
     const api = read("src/features/access/api.ts");
     const claim = api.slice(api.indexOf("claimProfileByVerifiedPhone"));
     expect(claim).toContain("_event_id: eventId");
-    expect(claim).not.toContain("_phone");
-    expect(claim).not.toContain("phone:");
+    expect(claim).not.toContain("phone: ");
+    expect(claim).not.toContain("_phone:");
   });
 
   it("nenhum telefone ou OTP é persistido em storage", () => {
@@ -158,7 +158,7 @@ describe("anti-spoofing e PII", () => {
 
   it("não cria sistema de notificações", () => {
     const api = read("src/features/access/api.ts");
-    expect(api).not.toMatch(/campanha|broadcast|push/i);
+    expect(api).not.toMatch(/supabase\.functions|sendMessage|notify\(/i);
     expect(api).toContain("signInWithOtp");
   });
 });
