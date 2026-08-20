@@ -185,7 +185,7 @@ function PublicBoard() {
         </div>
 
         {/* ÁREA PRINCIPAL: 4 métricas reais */}
-        <div className="mt-8 mb-12 grid flex-1 content-center gap-5 sm:grid-cols-2 xl:mt-10 xl:mb-16 xl:grid-cols-4 xl:gap-8">
+        <div className="mt-6 mb-8 grid sm:mt-8 sm:mb-12 flex-1 content-center gap-4 sm:grid-cols-2 sm:gap-5 xl:mt-10 xl:mb-16 xl:grid-cols-4 xl:gap-8">
           {metrics.map((m, i) => (
             <MetricCard
               key={m.key}
@@ -233,7 +233,7 @@ function MetricCard({
     <section
       aria-label={label}
       data-testid={`metric-card-${label}`}
-      className="pb-card-glow relative flex min-h-[210px] flex-col overflow-hidden rounded-[28px] border p-5 backdrop-blur-md sm:min-h-[240px] sm:p-6 xl:min-h-[320px] xl:p-8"
+      className="pb-card-glow relative flex min-h-[210px] flex-col overflow-hidden rounded-[28px] border p-5 backdrop-blur-md sm:min-h-[215px] sm:p-6 xl:min-h-[320px] xl:p-8"
       style={{
         borderColor: t.border,
         background: t.wash,
