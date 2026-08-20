@@ -12,6 +12,8 @@ import {
   ClipboardList,
   ArrowRightLeft,
   ShieldAlert,
+  MapPin,
+  MapPinOff,
   X,
 } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
@@ -61,6 +63,7 @@ import {
   cancelNoteSchema,
   adminRevealOverrideSchema,
   optionalStaffNoteSchema,
+  pinCodeSchema,
   translateStaffRevealError,
 } from "@/features/staff/schemas";
 import {
@@ -80,8 +83,14 @@ import {
   useConnectionDetail,
   QUEUE_SORT_LABEL,
   QUEUE_SORTS,
+  useParticipantPins,
+  useSetParticipantPin,
+  useClearParticipantPin,
+  useMarkConnectionMapped,
+  useUnmarkConnectionMapped,
   type QueueItem,
   type QueueSort,
+  type PinItem,
 } from "@/features/staff/useOperationalQueue";
 import { supabase } from "@/integrations/supabase/client";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -316,6 +325,9 @@ function StaffDashboard({
   const assume = useAssumeConnection(EVENT_ID);
   const release = useReleaseConnection(EVENT_ID);
   const advance = useAdvanceStatusMutation(EVENT_ID);
+  const markMapped = useMarkConnectionMapped(EVENT_ID);
+  const unmarkMapped = useUnmarkConnectionMapped(EVENT_ID);
+  const [pinsOpen, setPinsOpen] = useState(false);
 
   const items = queueQuery.data?.items ?? [];
   const total = queueQuery.data?.total ?? 0;
@@ -376,6 +388,21 @@ function StaffDashboard({
     }
   }
 
+  async function handleToggleMapped(c: QueueItem) {
+    try {
+      if (c.mapped_at) {
+        await unmarkMapped.mutateAsync({ connectionId: c.id });
+        toast.success("Registro no mapa físico desfeito.");
+      } else {
+        await markMapped.mutateAsync({ connectionId: c.id });
+        toast.success("Conexão registrada no mapa físico.");
+      }
+    } catch (err) {
+      toast.error(translateOperationalError(err));
+      queueQuery.refetch();
+    }
+  }
+
   async function handleConfirmCancel() {
     if (!cancelTarget) return;
     const parsed = cancelNoteSchema.safeParse(cancelNote);
@@ -411,6 +438,9 @@ function StaffDashboard({
             </p>
           </div>
           <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={() => setPinsOpen(true)}>
+              <MapPin className="mr-1 h-4 w-4" /> Pins do mapa
+            </Button>
             {isAdmin && (
               <Button asChild variant="outline" size="sm">
                 <Link to="/admin">Administração</Link>
@@ -428,7 +458,7 @@ function StaffDashboard({
           <Stat label="Mútuos" value={stats.mutualMatches} />
           <Stat label="Na fila" value={counts.pending ?? 0} />
           <Stat label="Minhas" value={counts.mine ?? 0} />
-          <Stat label="Livres" value={counts.unassigned ?? 0} />
+          <Stat label="Falta no mapa" value={counts.map_pending ?? 0} />
         </div>
 
         <Card className="mb-4 p-3">
@@ -441,6 +471,8 @@ function StaffDashboard({
                   ["unassigned", "Livres"],
                   ["all", "Todas"],
                   ["closed", "Encerradas"],
+                  ["map_pending", "Falta no mapa"],
+                  ["mapped", "No mapa"],
                 ] as const
               ).map(([s, label]) => (
                 <Button
