@@ -1,10 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 import {
-  GENERIC_REQUEST_MESSAGE,
   mapClaimError,
   mapOtpError,
   normalizeOtpCode,
   normalizePhoneToE164,
+  requestSentMessage,
   type OtpChannel,
   type PhoneAuthErrorCode,
 } from "@/lib/phone-auth";
@@ -22,6 +22,18 @@ export interface RequestOtpResult {
   /** Sempre genérica: não revela se o número possui cadastro. */
   message: string;
   e164: string;
+  /** Canal efetivamente solicitado ao provedor. */
+  channel: OtpChannel;
+}
+
+export interface RequestOtpOptions {
+  /**
+   * `false` impede que um telefone qualquer digitado na tela crie identidade
+   * de auth. Só é seguro quando os participantes já possuem identidade com
+   * telefone — hoje o cadastro é anônimo, então o padrão continua `true`
+   * (ver docs/passwordless-otp-ativacao.md).
+   */
+  createUser?: boolean;
 }
 
 /**
@@ -31,17 +43,22 @@ export interface RequestOtpResult {
 export async function requestPhoneOtp(
   rawPhone: string,
   channel: OtpChannel = "sms",
+  options: RequestOtpOptions = {},
 ): Promise<RequestOtpResult> {
   const norm = normalizePhoneToE164(rawPhone);
   if (!norm.ok) throw new PhoneAuthError("invalid_phone");
 
+  // Um envio por vez: nunca disparamos WhatsApp e SMS juntos por padrão.
   const { error } = await supabase.auth.signInWithOtp({
     phone: norm.e164,
-    ...(channel === "whatsapp" ? { options: { channel: "whatsapp" as const } } : {}),
+    options: {
+      channel,
+      ...(options.createUser === false ? { shouldCreateUser: false } : {}),
+    },
   });
   if (error) throw new PhoneAuthError(mapOtpError(error.message, "request"));
 
-  return { message: GENERIC_REQUEST_MESSAGE, e164: norm.e164 };
+  return { message: requestSentMessage(channel, norm.e164), e164: norm.e164, channel };
 }
 
 /**
@@ -54,6 +71,8 @@ export async function verifyPhoneOtp(rawPhone: string, rawCode: string): Promise
   const code = normalizeOtpCode(rawCode);
   if (!code.ok) throw new PhoneAuthError("invalid_code");
 
+  // `type: "sms"` é o tipo de verificação de telefone do GoTrue e cobre os
+  // dois canais de entrega (SMS e WhatsApp) — não existe tipo "whatsapp".
   const { data, error } = await supabase.auth.verifyOtp({
     phone: norm.e164,
     token: code.code,
