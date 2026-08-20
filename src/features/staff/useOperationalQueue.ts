@@ -50,6 +50,14 @@ const queueItemSchema = z.object({
   b_company: z.string().nullable().default(""),
   b_city: z.string().nullable().default(""),
   b_segment: z.string().nullable(),
+  // Mapa físico da SudoExpo
+  mapped_at: z.string().nullable().default(null),
+  mapped_by: z.string().nullable().default(null),
+  mapped_by_email: z.string().nullable().default(null),
+  a_pin_code: z.string().nullable().default(null),
+  a_pin_placed_at: z.string().nullable().default(null),
+  b_pin_code: z.string().nullable().default(null),
+  b_pin_placed_at: z.string().nullable().default(null),
 });
 
 const queueResponseSchema = z.object({
