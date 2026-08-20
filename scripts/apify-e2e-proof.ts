@@ -30,3 +30,6 @@ const before = providerCalls;
 const second = await runSocialEnrichment({ raw: handle, actor: "proof", deps: deps2 });
 console.log("2a) source", (second as any).source, "providerCalls(delta)", providerCalls - before,
   "aiCalls", (second as any).aiCalls, "analysisReused", (second as any).analysisReused);
+
+const raw = await admin.rpc("social_cache_lookup", { _network: "instagram", _handle: handle });
+console.log("L2 raw:", JSON.stringify(raw).slice(0, 900));
