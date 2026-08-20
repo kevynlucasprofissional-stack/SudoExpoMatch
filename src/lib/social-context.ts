@@ -451,7 +451,11 @@ export type SocialLookupFailure =
         | "empty"
         | "error"
         /** Consulta restrita ao cache persistente e nada havia guardado. */
-        | "cache_miss";
+        | "cache_miss"
+        /** Alvo existe mas não é conta profissional (Business/Creator). */
+        | "not_professional"
+        /** Credencial/permissão do provider inválida — problema de config. */
+        | "config_error";
     };
 
 export type SocialLookupResult = { status: "ok"; context: SocialBusinessContext } | SocialLookupFailure;
