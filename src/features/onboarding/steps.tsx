@@ -786,7 +786,12 @@ export function StepNeeds({
           segmentId={draft.segmentId}
           summary={draft.summary}
           existingLabels={draft.needs.map((n) => n.label)}
+          businessSize={draft.businessSize}
+          businessType={draft.businessType}
+          niche={draft.niche}
+          socialContext={socialContext ?? null}
           analysis={aiAnalysis}
+
           onAcceptMany={(picks: AiSuggestionItem[], source) => {
             const additions: WizardNeed[] = picks.map((s) => ({
               localId: cryptoUid(),
