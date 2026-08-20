@@ -48,15 +48,28 @@ export function Hero() {
             para você durante a SudoExpo.
           </p>
 
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-center lg:justify-start">
-
-            <Link
-              to="/participar"
-              className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-md bg-success px-6 py-3 font-semibold text-[#0b1252] shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] sm:w-auto"
-            >
-              Criar meu perfil <ArrowRight className="h-4 w-4" />
-            </Link>
+          <div
+            className="relative mt-5 overflow-hidden rounded-2xl px-4 py-4 text-left md:px-6"
+            style={{
+              background: "linear-gradient(120deg, #0b1252 0%, #1b26ae 55%, #129cdf 130%)",
+            }}
+          >
+            <div className="relative flex flex-col items-center gap-3 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left">
+              <div className="min-w-0">
+                <h3 className="font-display text-lg font-black text-white md:text-xl">
+                  Novo por aqui?
+                </h3>
+                <p className="mt-0.5 text-xs text-white/80 md:text-sm">Comece a se conectar.</p>
+              </div>
+              <Link
+                to="/participar"
+                className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md bg-success px-5 font-semibold text-[#0b1252] shadow-lg transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1252] sm:w-auto"
+              >
+                Criar meu perfil <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
           </div>
+
 
 
 
