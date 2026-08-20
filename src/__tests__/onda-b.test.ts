@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { execSync } from "node:child_process";
+import { existsSync } from "node:fs";
 
 import {
   createEmptyDraft,
