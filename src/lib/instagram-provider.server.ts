@@ -249,7 +249,21 @@ function pickApifyWebsite(it: ApifyItem): unknown {
   return it.website;
 }
 
+/**
+ * A Apify devolve placeholders textuais ("None", "null") quando o campo não
+ * existe no perfil. Tratados como ausência: senão viram ruído no contexto e
+ * no prompt da análise (visto em coleta real de `businessCategoryName`).
+ */
+const APIFY_PLACEHOLDERS = new Set(["none", "null", "undefined", "n/a", "-"]);
+export function cleanApifyText(value: unknown): unknown {
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (!trimmed || APIFY_PLACEHOLDERS.has(trimmed.toLowerCase())) return undefined;
+  return trimmed;
+}
+
 /** Mapeia o payload do Apify para o nosso domínio — nada bruto é guardado. */
+
 export function mapApifyItemToContext(item: unknown, handle: string): SocialBusinessContext | null {
   if (!item || typeof item !== "object") return null;
   const it = item as ApifyItem;
@@ -267,10 +281,10 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
   );
   return toContext("instagram_apify", {
     handle: typeof it.username === "string" && it.username ? it.username : handle,
-    displayName: it.fullName,
-    bio: it.biography,
-    category: it.businessCategoryName,
-    website: pickApifyWebsite(it),
+    displayName: cleanApifyText(it.fullName),
+    bio: cleanApifyText(it.biography),
+    category: cleanApifyText(it.businessCategoryName),
+    website: cleanApifyText(pickApifyWebsite(it)),
     followersCount: it.followersCount,
     followsCount: it.followsCount,
     mediaCount: it.postsCount,

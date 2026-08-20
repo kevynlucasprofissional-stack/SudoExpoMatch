@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
-import { AI_SUGGESTION_BADGE, buildSuggestionFeed, type FeedSuggestion } from "./suggestionFeed";
+import {
+  AI_SUGGESTION_BADGE,
+  buildSuggestionFeed,
+  suggestionIdentity,
+  type FeedSuggestion,
+} from "./suggestionFeed";
+
 import { useAutoAiSuggestions } from "./useAutoAiSuggestions";
 import { normalizeConfirmedOffers } from "./aiAnalysisState";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
@@ -588,15 +594,20 @@ export function StepOffers({
     );
   }
 
+  // IMPL 23: um item já presente no feed unificado NÃO se repete aqui.
+  const feedIdentities = useMemo(() => new Set(feed.map((s) => s.identity)), [feed]);
   const segmentTax: CatalogTaxonomyItem[] = useMemo(
     () =>
       catalog.taxonomy
         .filter(
           (t) => t.segment_id === draft.segmentId && (t.kind === "offer" || t.kind === "both"),
         )
+        .filter((t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: t.id, label: t.label })))
+        .filter((t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: null, label: t.label })))
         .slice(0, 8),
-    [catalog, draft.segmentId],
+    [catalog, draft.segmentId, feedIdentities],
   );
+
 
   return (
     <Card className="p-6">
@@ -773,13 +784,14 @@ export function StepNeeds({
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
 
-  const segmentTax = useMemo(
+  const segmentTaxAll = useMemo(
     () =>
       catalog.taxonomy
         .filter((t) => t.segment_id === draft.segmentId && (t.kind === "need" || t.kind === "both"))
         .slice(0, 10),
     [catalog, draft.segmentId],
   );
+
 
   // Heurísticas — aparecem imediatamente, sem esperar a IA.
   const [heuristicNeeds, setHeuristicNeeds] = useState<SuggestionItem[]>([]);
