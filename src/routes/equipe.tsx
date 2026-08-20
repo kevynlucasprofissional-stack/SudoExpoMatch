@@ -51,6 +51,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Checkbox } from "@/components/ui/checkbox";
 
+import { useStaffParticipantSocial } from "@/features/staff/useParticipantSocial";
+import { readStringList, readText } from "@/features/social/socialProfile";
 import { EVENT_ID } from "@/config/event";
 import type { ConnectionStatus } from "@/lib/types";
 import { useSession } from "@/features/auth/useSession";
@@ -1402,6 +1404,46 @@ function PartyBlock({
           : "Ainda sem pin no mapa"}
       </p>
       {p.summary && <p className="mt-1 text-xs">{p.summary}</p>}
+      <StaffSocialLine profileId={p.id} />
+    </div>
+  );
+}
+
+/**
+ * Contexto profissional/social do participante para a operação.
+ * Sem SELECT direto em `private`: usa a RPC `staff_get_participant_social`,
+ * que valida evento e papel do usuário e nunca devolve análise de IA.
+ */
+function StaffSocialLine({ profileId }: { profileId: string }) {
+  const q = useStaffParticipantSocial(profileId);
+  const data = q.data;
+  if (!data) return null;
+  const prof = data.profile;
+  const social = data.social;
+  const ctx = social?.context_snapshot ?? social?.cache?.extracted_context ?? null;
+  const keywords = readStringList(ctx, "keywords", 6);
+  const category = readText(ctx, "category");
+  return (
+    <div className="mt-2 space-y-1 text-xs text-muted-foreground">
+      <p>
+        Porte: {prof.business_size ?? "—"} · Tipo: {prof.business_type ?? "—"} · Nicho:{" "}
+        {prof.niche ?? "—"}
+      </p>
+      {social && (
+        <p>
+          Instagram:{" "}
+          <a
+            href={social.canonical_url ?? `https://www.instagram.com/${social.handle}/`}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="underline underline-offset-2"
+          >
+            @{social.handle}
+          </a>
+          {category ? ` · ${category}` : ""}
+          {keywords.length ? ` · ${keywords.join(", ")}` : ""}
+        </p>
+      )}
     </div>
   );
 }
