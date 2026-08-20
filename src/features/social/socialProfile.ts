@@ -191,24 +191,3 @@ export function readText(source: unknown, key: string): string | null {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-/** Chaves proibidas em qualquer payload social (HTML bruto, segredos, cookies). */
-const FORBIDDEN_SOCIAL_KEYS = [
-  "raw_html",
-  "html",
-  "cookie",
-  "cookies",
-  "token",
-  "access_token",
-  "secret",
-  "authorization",
-  "password",
-];
-
-export function hasForbiddenSocialKey(value: unknown, depth = 0): boolean {
-  if (depth > 8 || !value || typeof value !== "object") return false;
-  if (Array.isArray(value)) return value.some((v) => hasForbiddenSocialKey(v, depth + 1));
-  return Object.entries(value as Record<string, unknown>).some(
-    ([k, v]) =>
-      FORBIDDEN_SOCIAL_KEYS.includes(k.toLowerCase()) || hasForbiddenSocialKey(v, depth + 1),
-  );
-}
