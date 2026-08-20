@@ -28,9 +28,10 @@ const MOBILE_CATEGORIES = [
 export function Hero() {
   return (
     <section className="relative text-white">
-      <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] md:gap-6 md:px-32 md:py-10 lg:py-12">
+      <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:px-32 md:py-10 lg:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] lg:gap-6 lg:py-12">
         {/* Coluna esquerda — texto e CTAs */}
-        <div className="min-w-0 max-w-xl">
+        <div className="min-w-0 max-w-xl md:max-w-none lg:max-w-xl">
+
           <h1
             className="mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
             style={{ fontSize: "clamp(2rem, 9.5vw, 3.25rem)" }}
