@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, Clock, Star, Users, Package, Handshake } from "lucide-react";
+import { ArrowRight, Clock, Users, Package, Handshake } from "lucide-react";
 import { HeroVisual } from "./HeroVisual";
 import { HeroVisualMobile } from "./HeroVisualMobile";
 
@@ -31,11 +31,6 @@ export function Hero() {
       <div className="relative mx-auto grid max-w-[1480px] grid-cols-[minmax(0,1fr)] items-center gap-6 px-8 py-6 md:grid-cols-[minmax(0,44fr)_minmax(0,56fr)] md:gap-6 md:px-32 md:py-10 lg:py-12">
         {/* Coluna esquerda — texto e CTAs */}
         <div className="min-w-0 max-w-xl">
-          <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1.5 text-[11px] font-medium ring-1 ring-white/15 backdrop-blur">
-            <Star className="h-3.5 w-3.5 fill-warning text-warning" />
-            Ferramenta oficial de conexões da SudoExpo 2026
-          </span>
-
           <h1
             className="mt-4 font-display font-black leading-[1.05] tracking-tight md:leading-[1.02]"
             style={{ fontSize: "clamp(2rem, 9.5vw, 3.25rem)" }}
