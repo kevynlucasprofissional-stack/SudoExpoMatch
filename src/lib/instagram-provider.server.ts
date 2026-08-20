@@ -6,6 +6,7 @@ import {
   extractKeywords,
   extractSignals,
   guardedFetchText,
+  sanitizeRecentMedia,
   parseInstagramPublicHtml,
   sanitizeSocialBusinessContext,
   type RateLimiter,
@@ -39,13 +40,15 @@ export function createGraphInstagramProvider(
   token: string,
   businessAccountId: string,
   fetchImpl: typeof fetch = fetch,
+  mediaLimit = 20,
 ): SocialProvider {
   return {
     id: "instagram_graph",
     async fetchProfile(handle: string): Promise<SocialLookupResult> {
       const fields =
         `business_discovery.username(${handle})` +
-        "{username,name,biography,website,followers_count,media_count}";
+        "{username,name,biography,website,followers_count,media_count,profile_picture_url," +
+        `media.limit(${mediaLimit}){caption,media_type,timestamp,permalink}}`;
       const url =
         `https://graph.facebook.com/v21.0/${encodeURIComponent(businessAccountId)}` +
         `?fields=${encodeURIComponent(fields)}&access_token=${encodeURIComponent(token)}`;
@@ -56,16 +59,48 @@ export function createGraphInstagramProvider(
         if (res.status === 404) return { status: "not_found" };
         if (!res.ok) return { status: "unavailable", reason: "error" };
         const json = (await res.json()) as {
-          business_discovery?: { username?: string; name?: string; biography?: string };
+          business_discovery?: {
+            username?: string;
+            name?: string;
+            biography?: string;
+            website?: string;
+            followers_count?: number;
+            media_count?: number;
+            profile_picture_url?: string;
+            media?: {
+              data?: Array<{
+                caption?: string;
+                media_type?: string;
+                timestamp?: string;
+                permalink?: string;
+              }>;
+            };
+          };
         };
         const bd = json.business_discovery;
         if (!bd?.username) return { status: "not_found" };
-        const text = [bd.name, bd.biography].filter(Boolean).join(". ");
+        const media = sanitizeRecentMedia(
+          (bd.media?.data ?? []).map((m) => ({
+            mediaType: m.media_type,
+            caption: m.caption,
+            timestamp: m.timestamp,
+            permalink: m.permalink,
+          })),
+          mediaLimit,
+        );
+        const text = [bd.name, bd.biography, ...(media ?? []).map((m) => m.caption ?? "")]
+          .filter(Boolean)
+          .join(". ");
         const ctx = sanitizeSocialBusinessContext({
           provider: "instagram_graph",
           handle: bd.username,
           displayName: bd.name,
           bio: bd.biography,
+          website: bd.website,
+          followersCount: bd.followers_count,
+          mediaCount: bd.media_count,
+          profilePictureUrl: bd.profile_picture_url,
+          recentMedia: media,
           keywords: extractKeywords(text),
           signals: extractSignals(text),
           fetchedAt: new Date().toISOString(),
