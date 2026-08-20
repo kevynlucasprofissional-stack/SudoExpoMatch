@@ -7,7 +7,6 @@ const read = (p: string) => readFileSync(resolve(__dirname, "..", "..", p), "utf
 describe("Home mobile UX — estrutura do código", () => {
   const hero = read("src/components/home/Hero.tsx");
   const process = read("src/components/home/ProcessPanel.tsx");
-  const header = read("src/components/home/HomeHeader.tsx");
   const heroMobile = read("src/components/home/HeroVisualMobile.tsx");
 
   it("Hero: visual desktop está oculto em < md (hidden md:block) e mobile visível em < md (md:hidden)", () => {
