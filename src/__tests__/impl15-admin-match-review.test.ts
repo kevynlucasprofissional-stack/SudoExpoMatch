@@ -117,7 +117,7 @@ describe("admin_set_match_reviewed — regras (prova comportamental na migration
     expect(LIST).toContain("_reviewed");
     expect(LIST).toContain("reviewed_at");
     expect(
-      psql(`SELECT pg_get_function_arguments(oid) FROM pg_proc p
+      psql(`SELECT pg_get_function_arguments(p.oid) FROM pg_proc p
              JOIN pg_namespace n ON n.oid=p.pronamespace
             WHERE n.nspname='public' AND p.proname='admin_list_matches'`),
     ).toContain("_reviewed");
