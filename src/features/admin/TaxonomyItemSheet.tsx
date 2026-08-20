@@ -52,7 +52,8 @@ function fmt(iso: string | null): string {
 
 function RelationItem({ r }: { r: TaxonomyRelation }) {
   return (
-    <li className="rounded-md border p-3 text-sm" data-testid="relation-item">
+    <div className="rounded-md border p-3 text-sm" data-testid="relation-item">
+
       <div className="flex flex-wrap items-center gap-2 text-xs">
         {r.direction === "outgoing" ? (
           <>
