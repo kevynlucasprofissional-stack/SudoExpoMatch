@@ -5,7 +5,7 @@ import {
   SOCIAL_ANALYSIS_PROMPT_VERSION,
   buildSocialAnalysisPrompt,
   sanitizeSocialAnalysis,
-  socialBusinessAnalysisSchema,
+  socialAnalysisGenerationSchema,
 } from "./social-analysis";
 import type { SocialAnalyzer, SocialCacheRecord, SocialCacheStore } from "./social-enrichment";
 
@@ -69,7 +69,7 @@ export function createSocialAnalyzer(apiKey: string | undefined): SocialAnalyzer
       const gateway = createLovableAiGatewayProvider(apiKey);
       const call = generateText({
         model: gateway(AI_MODEL),
-        output: Output.object({ schema: socialBusinessAnalysisSchema }),
+        output: Output.object({ schema: socialAnalysisGenerationSchema }),
         prompt: buildSocialAnalysisPrompt(ctx),
       });
       let timer: ReturnType<typeof setTimeout> | null = null;
