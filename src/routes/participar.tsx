@@ -34,6 +34,7 @@ import {
   ApiError,
   saveOwnProfile,
   linkOwnSocialProfile,
+  getOwnSocialProfile,
   setOwnContact,
   rotateOwnRecoveryCode,
 } from "@/features/participant/api";
@@ -242,6 +243,16 @@ function WizardPage() {
     setDraft(mapProfileToWizardDraft(profileQuery.data));
     setMode("edit");
     setShowConflict(false);
+    // Instagram fica em estrutura privada própria: recupera o vínculo atual
+    // para que a edição não apague o @ já informado. Falha aqui é silenciosa.
+    void (async () => {
+      try {
+        const link = await getOwnSocialProfile(EVENT_ID);
+        if (link?.handle) setDraft((d) => ({ ...d, instagram: `@${link.handle}` }));
+      } catch {
+        /* enriquecimento opcional — nunca bloqueia a edição */
+      }
+    })();
   }
   function continueDraft() {
     setMode("edit");
