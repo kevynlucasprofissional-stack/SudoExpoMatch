@@ -37,14 +37,14 @@ const TONES: Record<
   cyan: {
     hex: "#22d3ee",
     border: "rgba(34,211,238,0.38)",
-    wash: "linear-gradient(160deg, rgba(34,211,238,0.20) 0%, rgba(9,20,68,0.30) 46%, rgba(3,9,44,0.55) 100%)",
+    wash: "linear-gradient(160deg, rgba(34,211,238,0.30) 0%, rgba(9,20,68,0.30) 46%, rgba(3,9,44,0.55) 100%)",
     shadow: "0 24px 70px -28px rgba(34,211,238,0.55), inset 0 -60px 90px -70px rgba(34,211,238,0.9)",
     iconBg: "rgba(34,211,238,0.16)",
   },
   violet: {
     hex: "#8f9bff",
     border: "rgba(143,155,255,0.40)",
-    wash: "linear-gradient(160deg, rgba(143,155,255,0.22) 0%, rgba(11,18,82,0.32) 46%, rgba(3,9,44,0.55) 100%)",
+    wash: "linear-gradient(160deg, rgba(143,155,255,0.32) 0%, rgba(11,18,82,0.32) 46%, rgba(3,9,44,0.55) 100%)",
     shadow:
       "0 24px 70px -28px rgba(143,155,255,0.55), inset 0 -60px 90px -70px rgba(143,155,255,0.9)",
     iconBg: "rgba(143,155,255,0.18)",
@@ -52,14 +52,14 @@ const TONES: Record<
   lime: {
     hex: "#a3e635",
     border: "rgba(163,230,53,0.38)",
-    wash: "linear-gradient(160deg, rgba(163,230,53,0.18) 0%, rgba(9,26,44,0.32) 46%, rgba(3,9,44,0.55) 100%)",
+    wash: "linear-gradient(160deg, rgba(163,230,53,0.26) 0%, rgba(9,26,44,0.32) 46%, rgba(3,9,44,0.55) 100%)",
     shadow: "0 24px 70px -28px rgba(163,230,53,0.45), inset 0 -60px 90px -70px rgba(163,230,53,0.8)",
     iconBg: "rgba(163,230,53,0.16)",
   },
   orange: {
     hex: "#ff8a3d",
     border: "rgba(255,138,61,0.38)",
-    wash: "linear-gradient(160deg, rgba(255,138,61,0.20) 0%, rgba(30,16,48,0.32) 46%, rgba(3,9,44,0.55) 100%)",
+    wash: "linear-gradient(160deg, rgba(255,138,61,0.30) 0%, rgba(30,16,48,0.32) 46%, rgba(3,9,44,0.55) 100%)",
     shadow: "0 24px 70px -28px rgba(255,138,61,0.50), inset 0 -60px 90px -70px rgba(255,138,61,0.85)",
     iconBg: "rgba(255,138,61,0.16)",
   },
@@ -251,14 +251,19 @@ function MetricCard({
       {/* ícone decorativo grande, quase transparente */}
       <Icon
         aria-hidden
-        className="pointer-events-none absolute -bottom-6 -right-5 h-36 w-36 opacity-[0.07] xl:h-52 xl:w-52"
+        className="pointer-events-none absolute -bottom-8 -right-7 h-36 w-36 opacity-[0.08] xl:h-52 xl:w-52"
         style={{ color: t.hex }}
         strokeWidth={1}
       />
 
       <span
-        className="inline-flex h-11 w-11 items-center justify-center rounded-full xl:h-12 xl:w-12"
-        style={{ background: t.iconBg, color: t.hex, boxShadow: `0 0 26px -8px ${t.hex}` }}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-full border xl:h-12 xl:w-12"
+        style={{
+          background: t.iconBg,
+          borderColor: t.border,
+          color: t.hex,
+          boxShadow: `0 0 26px -6px ${t.hex}, inset 0 0 18px -10px ${t.hex}`,
+        }}
       >
         <Icon className="h-5 w-5" strokeWidth={1.7} />
       </span>
