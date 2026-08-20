@@ -48,7 +48,10 @@ export type SubmitEvent =
   | { type: "CODE_FAIL"; error: unknown }
   | { type: "MATCH_OK" }
   | { type: "MATCH_FAIL"; error: unknown }
+  | { type: "SOCIAL_OK"; status: string; handle: string | null }
+  | { type: "SOCIAL_FAIL"; error: unknown }
   | { type: "AWAIT_CODE_CONFIRMATION" };
+
 
 /**
  * Executa o pipeline até o ponto em que uma confirmação manual do usuário é
