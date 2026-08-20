@@ -444,9 +444,10 @@ function StaffDashboard({
               Central operacional · SudoExpo 2026
             </p>
             <h1 className="font-display text-2xl font-bold md:text-3xl">Fila de conexões</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {email} · <Badge variant={isAdmin ? "default" : "secondary"}>{role}</Badge>
-            </p>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              <span>{email}</span>
+              <Badge variant={isAdmin ? "default" : "secondary"}>{role}</Badge>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => setPinsOpen(true)}>
