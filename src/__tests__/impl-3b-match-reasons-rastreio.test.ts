@@ -90,7 +90,7 @@ describe("match_reasons — colunas de rastreio (migration aditiva)", () => {
 
 describe("_recompute_matches_for_profile — seleção determinística e persistência", () => {
   it("mantém fórmula, threshold, teto e versão", () => {
-    expect(def).toContain("v_algo text := 'v2.3'");
+    expect(def).toContain("v_algo text := 'v2.4'");
     expect(def).toContain("v_comp_min_weight CONSTANT int := 40");
     expect(def).toContain("v_comp_max_pts CONSTANT int := 30");
     expect(def).toContain("round(v_comp_me * 0.30)");

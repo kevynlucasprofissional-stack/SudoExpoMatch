@@ -1299,6 +1299,18 @@ export type Database = {
         Args: { _c: unknown; _with_ai: boolean }
         Returns: Json
       }
+      _target_fit: {
+        Args: {
+          _o_segment: string
+          _o_size: string
+          _o_type: string
+          _t_segment: string
+          _t_size: string
+          _t_type: string
+        }
+        Returns: Json
+      }
+      _target_fit_label: { Args: { _criteria: Json }; Returns: string }
       _taxonomy_item_json: { Args: { _id: string }; Returns: Json }
       _taxonomy_relation_json: { Args: { _id: string }; Returns: Json }
       _taxonomy_unique_slug: {
@@ -1707,6 +1719,7 @@ export type Database = {
         | "bidirecional"
         | "complementar"
         | "hibrido"
+        | "perfil_desejado"
       match_label:
         | "alta_compatibilidade"
         | "boa_oportunidade"
@@ -1854,6 +1867,7 @@ export const Constants = {
         "bidirecional",
         "complementar",
         "hibrido",
+        "perfil_desejado",
       ],
       match_label: [
         "alta_compatibilidade",

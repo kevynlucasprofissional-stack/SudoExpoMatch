@@ -1,0 +1,1 @@
+ALTER TYPE public.match_kind ADD VALUE IF NOT EXISTS 'perfil_desejado';

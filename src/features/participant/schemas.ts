@@ -20,6 +20,7 @@ export const matchKindSchema = z.enum([
   "bidirecional",
   "complementar",
   "hibrido",
+  "perfil_desejado",
 ]);
 
 export const matchLabelSchema = z.enum([

@@ -198,7 +198,7 @@ describe("revisão transversal da Fase 1", () => {
     expect(matcherDef).toContain("INSERT INTO public.match_reasons");
     expect(matcherDef).toContain("score_for_a");
     expect(matcherDef).toContain("score_for_b");
-    expect(matcherDef).toContain("v2.3");
+    expect(matcherDef).toContain("v2.4");
   });
 
   it("list_own_matches_v2 classifica por perspectiva", () => {
