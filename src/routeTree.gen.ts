@@ -13,7 +13,6 @@ import { Route as PublicoRouteImport } from './routes/publico'
 import { Route as ParticiparRouteImport } from './routes/participar'
 import { Route as ParticipanteRouteImport } from './routes/participante'
 import { Route as EquipeRouteImport } from './routes/equipe'
-import { Route as ComoFuncionaRouteImport } from './routes/como-funciona'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminTaxonomiaRouteImport } from './routes/admin_.taxonomia'
@@ -38,11 +37,6 @@ const ParticipanteRoute = ParticipanteRouteImport.update({
 const EquipeRoute = EquipeRouteImport.update({
   id: '/equipe',
   path: '/equipe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ComoFuncionaRoute = ComoFuncionaRouteImport.update({
-  id: '/como-funciona',
-  path: '/como-funciona',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -74,7 +68,6 @@ const AdminMatchesRoute = AdminMatchesRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/como-funciona': typeof ComoFuncionaRoute
   '/equipe': typeof EquipeRoute
   '/participante': typeof ParticipanteRoute
   '/participar': typeof ParticiparRoute
@@ -86,7 +79,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/como-funciona': typeof ComoFuncionaRoute
   '/equipe': typeof EquipeRoute
   '/participante': typeof ParticipanteRoute
   '/participar': typeof ParticiparRoute
@@ -99,7 +91,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/admin': typeof AdminRoute
-  '/como-funciona': typeof ComoFuncionaRoute
   '/equipe': typeof EquipeRoute
   '/participante': typeof ParticipanteRoute
   '/participar': typeof ParticiparRoute
@@ -113,7 +104,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
-    | '/como-funciona'
     | '/equipe'
     | '/participante'
     | '/participar'
@@ -125,7 +115,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
-    | '/como-funciona'
     | '/equipe'
     | '/participante'
     | '/participar'
@@ -137,7 +126,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/admin'
-    | '/como-funciona'
     | '/equipe'
     | '/participante'
     | '/participar'
@@ -150,7 +138,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AdminRoute: typeof AdminRoute
-  ComoFuncionaRoute: typeof ComoFuncionaRoute
   EquipeRoute: typeof EquipeRoute
   ParticipanteRoute: typeof ParticipanteRoute
   ParticiparRoute: typeof ParticiparRoute
@@ -188,13 +175,6 @@ declare module '@tanstack/react-router' {
       path: '/equipe'
       fullPath: '/equipe'
       preLoaderRoute: typeof EquipeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/como-funciona': {
-      id: '/como-funciona'
-      path: '/como-funciona'
-      fullPath: '/como-funciona'
-      preLoaderRoute: typeof ComoFuncionaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -238,7 +218,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRoute,
-  ComoFuncionaRoute: ComoFuncionaRoute,
   EquipeRoute: EquipeRoute,
   ParticipanteRoute: ParticipanteRoute,
   ParticiparRoute: ParticiparRoute,
