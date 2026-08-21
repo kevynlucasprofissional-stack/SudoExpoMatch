@@ -104,7 +104,7 @@ export function ProcessPanel() {
                   className="relative flex h-full flex-col gap-2 rounded-lg bg-white/[0.06] p-3 text-left ring-1 ring-white/10"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary font-display text-xs font-black text-[#0b1252]">
+                    <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#eaff00] font-display text-xs font-black text-[#0b1252]">
                       {i + 1}
                     </span>
                   </div>
