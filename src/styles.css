@@ -172,10 +172,10 @@ body:has(.brand-navy) {
   --popover-foreground: oklch(0.99 0.005 260);
 
   --primary: oklch(0.68 0.16 235);
-  --primary-foreground: oklch(0.18 0.09 272);
+  --primary-foreground: oklch(1 0 0);
 
   --secondary: oklch(0.68 0.16 235);
-  --secondary-foreground: oklch(0.18 0.09 272);
+  --secondary-foreground: oklch(1 0 0);
 
   --muted: oklch(1 0 0 / 8%);
   --muted-foreground: oklch(0.99 0.005 260 / 68%);
