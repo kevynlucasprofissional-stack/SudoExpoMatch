@@ -17,9 +17,26 @@ export interface SocialConfig {
   maxRecentMedia: number;
   /** Teto de caracteres por caption armazenada. */
   maxCaptionChars: number;
+  /**
+   * Quantas publicações recentes alimentam a IA (bio + N posts).
+   * NÃO limita a persistência: o backend guarda tudo que a Apify devolveu.
+   */
+  recentPostsForAi: number;
+  /** Teto defensivo (bytes) do payload bruto saneado do provider. */
+  maxProviderPayloadBytes: number;
   /** Intervalo mínimo entre refreshes administrativos do mesmo perfil. */
   adminRefreshCooldownMs: number;
 }
+
+/** Limites duros do N usado pela IA (experimento controlado 0/3/6/9). */
+export const SOCIAL_RECENT_POSTS_MIN = 3;
+export const SOCIAL_RECENT_POSTS_MAX = 9;
+/**
+ * Valor validado empiricamente (6 perfis reais, 24 execuções):
+ * 6 posts ≈ 9 posts em ofertas/necessidades/confiança, com ~21% menos tokens
+ * de entrada. 3 posts fica claramente atrás. Portanto: 6.
+ */
+export const SOCIAL_RECENT_POSTS_DEFAULT = 6;
 
 export const DEFAULT_SOCIAL_CONFIG: SocialConfig = {
   memoryTtlMs: 10 * 60 * 1000, // 10 min
@@ -27,6 +44,10 @@ export const DEFAULT_SOCIAL_CONFIG: SocialConfig = {
   analysisTtlMs: 30 * 24 * 60 * 60 * 1000, // 30 dias
   maxRecentMedia: 12,
   maxCaptionChars: 200,
+  recentPostsForAi: SOCIAL_RECENT_POSTS_DEFAULT,
+  // Medição real (6 perfis, 12 posts cada): média 75 KB, máximo 179 KB.
+  // 256 KB cobre com folga um perfil normal completo.
+  maxProviderPayloadBytes: 256 * 1024,
   adminRefreshCooldownMs: 10 * 60 * 1000, // espelha o gate do banco
 };
 
@@ -35,10 +56,18 @@ function positiveInt(raw: string | undefined, fallback: number): number {
   return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
 }
 
+/** Aplica o intervalo permitido do N da IA (3..9). */
+export function clampRecentPostsForAi(raw: unknown): number {
+  const n = Math.floor(Number(raw));
+  if (!Number.isFinite(n)) return SOCIAL_RECENT_POSTS_DEFAULT;
+  return Math.min(SOCIAL_RECENT_POSTS_MAX, Math.max(SOCIAL_RECENT_POSTS_MIN, n));
+}
+
 /** Lê overrides de ambiente (server-only). Valores inválidos caem no default. */
 export function resolveSocialConfig(
   env: Record<string, string | undefined> = {},
 ): SocialConfig {
+  const rawPosts = env["SOCIAL_RECENT_POSTS_LIMIT"];
   return {
     memoryTtlMs: positiveInt(env["SOCIAL_MEMORY_TTL_MS"], DEFAULT_SOCIAL_CONFIG.memoryTtlMs),
     fetchTtlMs: positiveInt(env["SOCIAL_FETCH_TTL_MS"], DEFAULT_SOCIAL_CONFIG.fetchTtlMs),
@@ -48,9 +77,19 @@ export function resolveSocialConfig(
       env["SOCIAL_MAX_CAPTION_CHARS"],
       DEFAULT_SOCIAL_CONFIG.maxCaptionChars,
     ),
+    recentPostsForAi: clampRecentPostsForAi(
+      rawPosts === undefined || rawPosts === "" || !Number.isFinite(Number(rawPosts))
+        ? SOCIAL_RECENT_POSTS_DEFAULT
+        : rawPosts,
+    ),
+    maxProviderPayloadBytes: positiveInt(
+      env["SOCIAL_MAX_PROVIDER_PAYLOAD_BYTES"],
+      DEFAULT_SOCIAL_CONFIG.maxProviderPayloadBytes,
+    ),
     adminRefreshCooldownMs: DEFAULT_SOCIAL_CONFIG.adminRefreshCooldownMs,
   };
 }
+
 
 /**
  * Versão da Graph API usada pelo provider oficial (Business Discovery).
