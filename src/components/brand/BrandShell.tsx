@@ -1,12 +1,22 @@
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import { Home } from "lucide-react";
 import { DotTexture, PaperFragments } from "@/components/home/decor";
+import { clearWizardDraft, purgeLegacyDraft } from "@/features/onboarding/draft";
 
 export function BrandHeader() {
+  const navigate = useNavigate();
+
+  function goHome() {
+    clearWizardDraft();
+    purgeLegacyDraft();
+    void navigate({ to: "/" });
+  }
+
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/85 text-white backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-end px-4">
-        <nav className="hidden gap-6 text-sm md:flex">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-center px-4">
+        <nav className="flex items-center justify-center gap-4 text-sm sm:gap-6">
           <Link
             to="/participar"
             className="text-white/70 transition-colors hover:text-white"
@@ -14,6 +24,14 @@ export function BrandHeader() {
           >
             Participar
           </Link>
+          <button
+            type="button"
+            onClick={goHome}
+            className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+          >
+            <Home className="h-4 w-4" aria-hidden />
+            Início
+          </button>
           <Link to="/publico" className="text-white/70 transition-colors hover:text-white">
             Painel público
           </Link>
