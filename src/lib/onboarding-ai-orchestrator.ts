@@ -302,7 +302,7 @@ export async function runOnboardingAi(args: {
       fallbackUsed: true,
       model: null,
       latencyMs: deps.now() - start,
-      error: limiterError ? "ai_rate_limited:limiter_error" : "ai_rate_limited",
+      error: limiterError ? "limiter_error" : "rate_limited",
     });
     return fb;
   }

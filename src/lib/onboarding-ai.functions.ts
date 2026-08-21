@@ -10,7 +10,7 @@ import {
   buildAiRunInput,
 
   coerceNeedKind,
-  modelOutputSchema,
+  modelOutputStrictSchema,
   suggestOnboardingInputSchema,
   type AiSuggestionItem,
   type AiSuggestionResult,
@@ -79,7 +79,7 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
       const model = gateway(AI_MODEL);
       const call = generateText({
         model,
-        output: Output.object({ schema: modelOutputSchema }),
+        output: Output.object({ schema: modelOutputStrictSchema }),
         prompt,
       });
       let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
