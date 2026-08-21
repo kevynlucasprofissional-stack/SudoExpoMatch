@@ -235,7 +235,19 @@ describe("pipeline: persiste tudo, IA usa N", () => {
       promptVersion: "v-test",
       async analyze(ctx: { recentMedia?: unknown[] }) {
         seen.push(ctx.recentMedia?.length ?? 0);
-        return { positioning: "loja de materiais" };
+        return {
+          businessSummary: "loja de materiais de construcao",
+          mainActivities: ["venda de materiais"],
+          productsServices: ["cimento"],
+          targetAudiences: ["construtoras"],
+          commercialSignals: ["promocoes"],
+          differentiators: ["entrega rapida"],
+          keywords: ["construcao"],
+          likelyOffers: ["materiais de construcao"],
+          likelyNeeds: ["logistica"],
+          confidence: 0.8,
+          evidences: ["bio"],
+        };
       },
     };
   }
