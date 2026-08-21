@@ -1045,7 +1045,6 @@ export type Database = {
           neighborhood: string | null
           niche: string | null
           owner_id: string | null
-          pin_code: string | null
           pin_placed_at: string | null
           pin_placed_by: string | null
           segment_id: string
@@ -1065,7 +1064,6 @@ export type Database = {
           neighborhood?: string | null
           niche?: string | null
           owner_id?: string | null
-          pin_code?: string | null
           pin_placed_at?: string | null
           pin_placed_by?: string | null
           segment_id: string
@@ -1085,7 +1083,6 @@ export type Database = {
           neighborhood?: string | null
           niche?: string | null
           owner_id?: string | null
-          pin_code?: string | null
           pin_placed_at?: string | null
           pin_placed_by?: string | null
           segment_id?: string
@@ -1518,7 +1515,6 @@ export type Database = {
         Returns: boolean
       }
       hash_phone: { Args: { _phone_e164: string }; Returns: string }
-      hash_recovery_code: { Args: { _code: string }; Returns: string }
       is_staff: { Args: { _user_id: string }; Returns: boolean }
       link_own_social_profile: { Args: { _payload: Json }; Returns: Json }
       list_event_segments_and_taxonomy: {
@@ -1544,13 +1540,6 @@ export type Database = {
         }
         Returns: Json
       }
-      recover_profile_v2: {
-        Args: { _code: string; _event_id: string; _phone_e164: string }
-        Returns: {
-          new_recovery_code: string
-          profile_id: string
-        }[]
-      }
       reveal_contact_for_match: {
         Args: { _match_id: string }
         Returns: {
@@ -1560,7 +1549,6 @@ export type Database = {
           phone_e164: string
         }[]
       }
-      rotate_own_recovery_code: { Args: never; Returns: string }
       save_own_profile_v2: { Args: { _payload: Json }; Returns: string }
       service_get_profile_social_handle: {
         Args: { _network?: string; _profile_id: string }
