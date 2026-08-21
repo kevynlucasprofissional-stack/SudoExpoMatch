@@ -739,6 +739,7 @@ function WizardPage() {
             mode={mode}
             phone={phone}
             onPhoneChange={setPhone}
+            resetAction={resetAction}
           />
         )}
         {step === 1 && (
