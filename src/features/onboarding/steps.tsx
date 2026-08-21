@@ -580,7 +580,7 @@ export function StepOffers({
 
   function addCustom(label: string) {
     const clean = label.trim();
-    if (!clean || draft.offers.length >= 5) return;
+    if (clean.length < 2 || draft.offers.length >= 5) return;
     if (draft.offers.some((o) => o.label.toLowerCase() === clean.toLowerCase())) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
@@ -705,26 +705,33 @@ export function StepOffers({
         </div>
       )}
 
-      <div className="mt-6 flex gap-2">
-        <Input
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          placeholder="Outro: descreva o que você oferece"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustom(custom);
-            }
-          }}
-        />
-        <Button
-          type="button"
-          onClick={() => addCustom(custom)}
-          disabled={!custom.trim() || draft.offers.length >= 5}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+      <div className="mt-6">
+        <div className="flex gap-2">
+          <Input
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            placeholder="Outro: descreva o que você oferece"
+            aria-invalid={custom.trim().length === 1}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustom(custom);
+              }
+            }}
+          />
+          <Button
+            type="button"
+            onClick={() => addCustom(custom)}
+            disabled={custom.trim().length < 2 || draft.offers.length >= 5}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        {custom.trim().length === 1 && (
+          <p className="mt-1.5 text-sm text-destructive">Descreva com pelo menos 2 caracteres</p>
+        )}
       </div>
+
 
       <div className="mt-6">
         <p className="mb-2 text-sm font-medium">Seus itens ({draft.offers.length}/5)</p>
@@ -901,7 +908,7 @@ export function StepNeeds({
 
   function addCustom() {
     const clean = label.trim();
-    if (!clean || draft.needs.length >= 5) return;
+    if (clean.length < 2 || draft.needs.length >= 5) return;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: clean,
@@ -1036,6 +1043,7 @@ export function StepNeeds({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Descreva o que procura"
+            aria-invalid={label.trim().length === 1}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -1046,11 +1054,14 @@ export function StepNeeds({
           <Button
             type="button"
             onClick={addCustom}
-            disabled={!label.trim() || draft.needs.length >= 5}
+            disabled={label.trim().length < 2 || draft.needs.length >= 5}
           >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        {label.trim().length === 1 && (
+          <p className="mt-1.5 text-sm text-destructive">Descreva com pelo menos 2 caracteres</p>
+        )}
       </div>
 
       <div className="mt-6">
