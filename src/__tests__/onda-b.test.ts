@@ -435,15 +435,13 @@ describe("schemas: criar vs editar", () => {
 // submitMachine.ts
 // ==================================================================
 describe("submitMachine: fluxo criar", () => {
-  it("saving_profile → saving_contact → awaiting_phone_verification → recomputing → completed", () => {
+  it("saving_profile → saving_contact → recomputing → completed (WhatsApp já confirmado na revisão)", () => {
     let s = initialSubmitState();
     s = submitReducer(s, { type: "START", mode: "create", withContact: true });
     expect(s.stage).toBe("saving_profile");
     s = submitReducer(s, { type: "PROFILE_OK" });
     expect(s.stage).toBe("saving_contact");
     s = submitReducer(s, { type: "CONTACT_OK" });
-    expect(s.stage).toBe("awaiting_phone_verification");
-    s = submitReducer(s, { type: "PHONE_VERIFIED" });
     expect(s.stage).toBe("recomputing_matches");
     s = submitReducer(s, { type: "MATCH_OK" });
     expect(s.stage).toBe("completed");
@@ -480,15 +478,12 @@ describe("submitMachine: falhas parciais", () => {
     s = submitReducer(s, { type: "RETRY_CONTACT" });
     expect(s.stage).toBe("saving_contact");
   });
-  it("PHONE_VERIFIED só avança a partir da verificação pendente", () => {
+  it("create não passa mais por verificação após salvar (acontece antes, na revisão)", () => {
     let s = initialSubmitState();
     s = submitReducer(s, { type: "START", mode: "create", withContact: true });
     s = submitReducer(s, { type: "PROFILE_OK" });
-    // Ainda em saving_contact: verificação não pode pular o contato.
-    s = submitReducer(s, { type: "PHONE_VERIFIED" });
     expect(s.stage).toBe("saving_contact");
     s = submitReducer(s, { type: "CONTACT_OK" });
-    s = submitReducer(s, { type: "PHONE_VERIFIED" });
     expect(s.stage).toBe("recomputing_matches");
   });
   it("matching_failed → aceita RETRY_MATCH ou navegação ao painel", () => {

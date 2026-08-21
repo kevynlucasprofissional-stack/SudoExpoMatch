@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { PhoneVerificationDialog } from "@/features/access/PhoneVerificationDialog";
 
 import { EVENT_ID } from "@/config/event";
 import {
@@ -122,6 +121,7 @@ function WizardPage() {
   const [hydrated, setHydrated] = useState(false);
   const [mode, setMode] = useState<WizardMode>("create");
   const [showConflict, setShowConflict] = useState(false);
+  const [phoneVerified, setPhoneVerified] = useState(false);
   const [submit, dispatch] = useReducer(submitReducer, initialSubmitState());
 
   const runningRef = useRef(false);
@@ -302,6 +302,7 @@ function WizardPage() {
     });
     setMode("create");
     setShowConflict(false);
+    setPhoneVerified(false);
     toast.success("Formulário limpo. Pode começar um novo cadastro.");
   }, [aiAnalysis.reset, qc]);
 
@@ -374,6 +375,10 @@ function WizardPage() {
   // ------------------------------------------------------------------
   const startSubmit = useCallback(async () => {
     if (runningRef.current) return;
+    if (mode === "create" && !phoneVerified) {
+      toast.error("Confirme seu WhatsApp para concluir o cadastro.");
+      return;
+    }
     runningRef.current = true;
     try {
       const withContactUpfront = mode === "create" ? true : !!phone.trim();
@@ -410,8 +415,6 @@ function WizardPage() {
           dispatch({ type: "CONTACT_FAIL" });
           toast.error(errorToUserMessage(evt.error, "Perfil salvo, contato não."));
           return;
-        } else if (evt.type === "AWAIT_PHONE_VERIFICATION") {
-          return;
         } else if (evt.type === "MATCH_OK") {
           qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
           dispatch({ type: "MATCH_OK" });
@@ -430,7 +433,7 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result]);
+  }, [draft, mode, phone, phoneVerified, qc, navigate, goToIdentity, social.result]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -470,22 +473,24 @@ function WizardPage() {
     }
   }, [runRecompute]);
 
-  const phoneVerified = useCallback(async () => {
-    if (runningRef.current) return;
-    runningRef.current = true;
+  /**
+   * OTP confirmado na etapa de revisão — ainda nada foi gravado. Se já existe
+   * perfil para esse telefone (participante que voltou), reaproveitamos o
+   * caminho de edição em vez de criar duplicado.
+   */
+  const handlePhoneVerified = useCallback(async () => {
+    setPhoneVerified(true);
+    toast.success("WhatsApp confirmado.");
     try {
-      dispatch({ type: "PHONE_VERIFIED" });
-      // Descoberta automática já rodou dentro de save_own_profile_v2.
-      // Apenas invalida cache e navega para o painel.
-      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
-      dispatch({ type: "MATCH_OK" });
-      clearWizardDraft();
-      toast.success("Perfil criado! Buscando conexões…");
-      navigate({ to: "/participante" });
-    } finally {
-      runningRef.current = false;
+      const res = await profileQuery.refetch();
+      if (res.data) {
+        setMode("edit");
+        setShowConflict(true);
+      }
+    } catch {
+      /* revalidação opcional — o envio segue normalmente */
     }
-  }, [qc, navigate]);
+  }, [profileQuery]);
 
   const goToPanel = useCallback(() => {
     clearWizardDraft();
@@ -770,15 +775,12 @@ function WizardPage() {
             catalog={catalog}
             validation={validation}
             catalogFallback={manualCatalogMode}
+            phone={phone}
+            phoneVerified={phoneVerified}
+            onPhoneVerified={() => void handlePhoneVerified()}
           />
         )}
       </section>
-
-      <PhoneVerificationDialog
-        open={submit.stage === "awaiting_phone_verification"}
-        phone={phone}
-        onVerified={() => void phoneVerified()}
-      />
 
       <AlertDialog open={showReset} onOpenChange={setShowReset}>
         <AlertDialogContent>

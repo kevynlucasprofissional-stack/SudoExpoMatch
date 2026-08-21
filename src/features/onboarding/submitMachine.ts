@@ -6,7 +6,6 @@ export type SubmitAction =
   | { type: "PROFILE_FAIL" }
   | { type: "CONTACT_OK" }
   | { type: "CONTACT_FAIL" }
-  | { type: "PHONE_VERIFIED" }
   | { type: "MATCH_OK" }
   | { type: "MATCH_FAIL" }
   | { type: "RETRY_CONTACT" }
@@ -45,19 +44,16 @@ export function submitReducer(state: SubmitState, action: SubmitAction): SubmitS
     case "PROFILE_FAIL":
       return { ...state, stage: "profile_failed" };
 
-    case "CONTACT_OK": {
-      if (state.mode === "create") return { ...state, stage: "awaiting_phone_verification" };
+    case "CONTACT_OK":
+      // WhatsApp já foi confirmado na etapa de revisão, antes de qualquer
+      // gravação — o contato salvo aqui é apenas persistência.
       return { ...state, stage: "recomputing_matches" };
-    }
     case "CONTACT_FAIL":
       return { ...state, stage: "contact_failed" };
     case "RETRY_CONTACT":
       if (state.stage !== "contact_failed") return state;
       return { ...state, stage: "saving_contact" };
 
-    case "PHONE_VERIFIED":
-      if (state.stage !== "awaiting_phone_verification") return state;
-      return { ...state, stage: "recomputing_matches" };
 
     case "MATCH_OK":
       return { ...state, stage: "completed" };

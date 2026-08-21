@@ -53,6 +53,11 @@ export interface WhatsappAccessCardProps {
   initialPhone?: string;
   /** Impede editar o número (verificação do cadastro). */
   lockPhone?: boolean;
+  /**
+   * `true` quando ainda não existe perfil (cadastro novo): apenas verifica o
+   * telefone, sem tentar assumir titularidade de um perfil inexistente.
+   */
+  skipClaim?: boolean;
   /** Texto do botão de confirmação do código. */
   confirmLabel?: string;
   /** Mensagem do topo do cartão. */
@@ -68,6 +73,7 @@ export function WhatsappAccessCard({
   capability,
   initialPhone,
   lockPhone = false,
+  skipClaim = false,
   confirmLabel = "Entrar",
   
   onVerified,
@@ -161,7 +167,9 @@ export function WhatsappAccessCard({
     verifyLimiter.record(key);
     try {
       await verifyPhoneOtp(phone, code);
-      const res = await claimProfileByVerifiedPhone(EVENT_ID);
+      const res = skipClaim
+        ? { profileId: "", claimed: false }
+        : await claimProfileByVerifiedPhone(EVENT_ID);
       verifyLimiter.reset(key);
       if (!lockPhone) setPhone("");
       setCode("");
@@ -183,7 +191,7 @@ export function WhatsappAccessCard({
     } finally {
       if (mounted.current) setBusy(false);
     }
-  }, [phone, code, key, qc, navigate, onVerified, lockPhone]);
+  }, [phone, code, key, qc, navigate, onVerified, lockPhone, skipClaim]);
 
   if (!capability.otpEnabled) return null;
 

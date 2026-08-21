@@ -46,8 +46,7 @@ export type SubmitEvent =
   | { type: "MATCH_OK" }
   | { type: "MATCH_FAIL"; error: unknown }
   | { type: "SOCIAL_OK"; status: string; handle: string | null }
-  | { type: "SOCIAL_FAIL"; error: unknown }
-  | { type: "AWAIT_PHONE_VERIFICATION" };
+  | { type: "SOCIAL_FAIL"; error: unknown };
 
 
 /**
@@ -113,12 +112,6 @@ export async function runWizardSubmit(args: {
   }
 
 
-
-  if (args.mode === "create") {
-    // Cadastro só termina depois que o WhatsApp é confirmado por OTP.
-    events.push({ type: "AWAIT_PHONE_VERIFICATION" });
-    return events;
-  }
 
   // Descoberta automática: save_own_profile_v2 já dispara o recálculo
   // transacional no banco (_recompute_matches_for_profile). Não chamamos

@@ -50,7 +50,6 @@ export type SubmitStage =
   | "idle"
   | "saving_profile"
   | "saving_contact"
-  | "awaiting_phone_verification"
   | "recomputing_matches"
   | "completed"
   | "profile_failed"

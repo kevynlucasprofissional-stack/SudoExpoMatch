@@ -198,7 +198,7 @@ describe("runWizardSubmit", () => {
     expect(deps.recomputeOwnMatches).not.toHaveBeenCalled();
   });
 
-  it("create feliz: perfil -> contato -> aguarda verificação do WhatsApp (sem recompute)", async () => {
+  it("create feliz: perfil -> contato -> matches (WhatsApp confirmado antes, na revisão)", async () => {
     const deps = noopDeps();
     const events = await runWizardSubmit({
       draft: baseDraft(),
@@ -207,11 +207,7 @@ describe("runWizardSubmit", () => {
       eventId: "evt",
       deps,
     });
-    expect(events.map((e) => e.type)).toEqual([
-      "PROFILE_OK",
-      "CONTACT_OK",
-      "AWAIT_PHONE_VERIFICATION",
-    ]);
+    expect(events.map((e) => e.type)).toEqual(["PROFILE_OK", "CONTACT_OK", "MATCH_OK"]);
     expect(deps.recomputeOwnMatches).not.toHaveBeenCalled();
   });
 
