@@ -991,7 +991,7 @@ export function StepNeeds({
 
       <div className="mt-6 space-y-4">
         <div>
-          <Label>Categoria</Label>
+          <Label>Qual a CATEGORIA daquilo que procura?</Label>
           <div className="mt-2 flex flex-wrap gap-2">
             {NEED_KIND_OPTIONS.map((o) => (
               <button
