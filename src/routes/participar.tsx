@@ -817,7 +817,7 @@ function WizardPage() {
       <AlertDialog open={showReset} onOpenChange={setShowReset}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>{WIZARD_RESET_COPY.title}</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">{WIZARD_RESET_COPY.title}</AlertDialogTitle>
             <AlertDialogDescription>{WIZARD_RESET_COPY.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
