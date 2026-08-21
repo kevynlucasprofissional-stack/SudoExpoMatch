@@ -244,8 +244,8 @@ describe("pipeline UI → payload de submit", () => {
       segmentId: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
       instagram: "",
-      targetBusinessSize: "any",
-      targetBusinessType: "any",
+      targetBusinessSize: "any" as const,
+      targetBusinessType: "any" as const,
       targetSegmentId: "any",
       offers: [
         {

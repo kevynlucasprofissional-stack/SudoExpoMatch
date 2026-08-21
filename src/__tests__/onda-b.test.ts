@@ -75,8 +75,8 @@ function goodDraft(overrides?: Partial<WizardDraft>): WizardDraft {
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
     instagram: "",
-    targetBusinessSize: "any",
-    targetBusinessType: "any",
+    targetBusinessSize: "any" as const,
+    targetBusinessType: "any" as const,
     targetSegmentId: "any",
     offers: [
       {
