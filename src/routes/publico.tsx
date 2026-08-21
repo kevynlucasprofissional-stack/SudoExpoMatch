@@ -179,7 +179,9 @@ function PublicBoard() {
         {/* RODAPÉ VISUAL (sem box) */}
         <footer className="pb-3 pt-2 text-center">
           <p className="font-display text-2xl font-bold tracking-tight md:text-4xl xl:text-[2.6rem]">
-            <span className="text-white">Aqui, ninguém cresce isolado.</span>{" "}
+            <span className="text-white">
+              Aqui, ninguém cresce <span className="text-[#039de3]">isolado</span>.
+            </span>{" "}
             <span className="text-white">A gente cresce</span>{" "}
             <span className="text-[#a3e635]">conectado.</span>
           </p>
