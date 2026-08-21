@@ -46,8 +46,12 @@ export function BrandFooter() {
     <footer className="border-t border-white/10 text-white">
       <div className="mx-auto max-w-[1480px] px-8 py-6 md:px-32">
         <p className="text-center font-display text-sm font-semibold">
-          Aqui, ninguém cresce <span className="text-[#039de3]">isolado</span>. A gente cresce{" "}
-          <span className="text-success">conectado</span>.
+          <span className="block md:inline">
+            Aqui, ninguém cresce <span className="text-[#039de3]">isolado</span>.
+          </span>{" "}
+          <span className="block md:inline">
+            A gente cresce <span className="text-success">conectado</span>.
+          </span>
         </p>
         <p className="mt-1 text-center text-xs text-white/60">
           SudoExpo · realização <span className="font-semibold text-white/85">ACIRV</span>
