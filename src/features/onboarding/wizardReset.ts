@@ -42,7 +42,7 @@ export async function runWizardReset(deps: WizardResetDeps): Promise<WizardDraft
 }
 
 export const WIZARD_RESET_COPY = {
-  trigger: "Resetar formulário",
+  trigger: "Resetar",
   title: "Limpar este cadastro?",
   description:
     "Todo o preenchimento atual deste dispositivo será apagado e o formulário voltará ao início. Use esta opção se outra pessoa for começar um novo cadastro.",

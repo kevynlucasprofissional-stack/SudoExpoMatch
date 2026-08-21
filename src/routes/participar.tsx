@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { RotateCcw } from "lucide-react";
+import { ChevronLeft, RotateCcw } from "lucide-react";
 
 import { analyzeSocialProfile } from "@/lib/social-context.functions";
 import { socialLookupMessage } from "@/lib/social-context";
@@ -701,13 +701,26 @@ function WizardPage() {
           </div>
         )}
 
-        {/* Ação secundária/perigosa: fica ao lado do "Voltar" em cada etapa;
-            na primeira etapa (sem "Voltar") permanece no cabeçalho. */}
+        {/* Ação secundária/perigosa: vive no rodapé de cada etapa;
+            na primeira etapa (sem rodapé com ações) permanece no cabeçalho. */}
         {step === 0 && <div className="mb-4 flex justify-end">{resetAction}</div>}
 
         <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between text-xs text-muted-foreground">
-            <span>
+          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-2">
+              {step > 0 && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={back}
+                  aria-label="Voltar para a etapa anterior"
+                  data-testid="wizard-back"
+                  className="h-7 w-7 shrink-0"
+                >
+                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+                </Button>
+              )}
               Etapa {step + 1} de {STEPS.length}
             </span>
             <span>{STEPS[step]}</span>
