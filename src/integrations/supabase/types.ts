@@ -1045,6 +1045,7 @@ export type Database = {
           neighborhood: string | null
           niche: string | null
           owner_id: string | null
+          pin_code: string | null
           pin_placed_at: string | null
           pin_placed_by: string | null
           segment_id: string
@@ -1064,6 +1065,7 @@ export type Database = {
           neighborhood?: string | null
           niche?: string | null
           owner_id?: string | null
+          pin_code?: string | null
           pin_placed_at?: string | null
           pin_placed_by?: string | null
           segment_id: string
@@ -1083,6 +1085,7 @@ export type Database = {
           neighborhood?: string | null
           niche?: string | null
           owner_id?: string | null
+          pin_code?: string | null
           pin_placed_at?: string | null
           pin_placed_by?: string | null
           segment_id?: string
