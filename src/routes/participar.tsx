@@ -801,13 +801,17 @@ function WizardPage() {
       <AlertDialog open={showConflict}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Você já tem um perfil neste evento</AlertDialogTitle>
+            <AlertDialogTitle className="text-white">
+              Você já tem um perfil neste evento
+            </AlertDialogTitle>
             <AlertDialogDescription>
               Encontramos um rascunho salvo neste dispositivo. O que deseja fazer?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={continueDraft}>Continuar rascunho</AlertDialogCancel>
+            <AlertDialogCancel className="text-white" onClick={continueDraft}>
+              Continuar rascunho
+            </AlertDialogCancel>
             <AlertDialogAction onClick={loadServerProfile}>Carregar meu perfil</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
