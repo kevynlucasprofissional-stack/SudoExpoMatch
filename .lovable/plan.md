@@ -1,37 +1,30 @@
-# Por que o SMS não chega — e como destravar
+# Trocar a verificação por OTP por uma confirmação simples do número
 
-## Diagnóstico (confirmado agora)
+## Contexto
 
-Chamei o endpoint real de envio de OTP do backend com um número válido. A resposta foi:
+O envio de código não funciona porque o backend não tem provedor de SMS com credenciais (o endpoint de OTP responde "Unable to get SMS provider"). Em vez de esperar a Twilio, o cadastro deixa de depender de código: no fim do fluxo aparece um pop-up pedindo apenas para conferir o número digitado, evitando telefone errado.
 
-```text
-500 unexpected_failure — "Unable to get SMS provider"
-```
+## Como fica o /participar
 
-Ou seja: o app está fazendo tudo certo. O login por telefone está **ligado** no backend, mas **não há provedor de SMS com credenciais configuradas** (Twilio). Sem credenciais, o backend nem tenta enviar — devolve erro 500, que a tela traduz para a mensagem genérica "Não foi possível concluir o acesso. Tente novamente."
+1. Etapa 1 continua pedindo o WhatsApp normalmente.
+2. Na etapa de Revisão, o bloco "Confirme seu WhatsApp" com envio de código some.
+3. Ao clicar em "Finalizar cadastro", abre um pop-up:
+   - título "Confirme seu WhatsApp";
+   - o número completo, formatado e bem visível;
+   - texto curto: é por esse número que os contatos vão te encontrar;
+   - botões "Corrigir número" (volta para a etapa 1, com foco no campo) e "Está correto, finalizar".
+4. Confirmando, o perfil é salvo, o contato gravado, o Instagram vinculado e os matches calculados — como já acontece hoje.
+5. No modo edição o pop-up também aparece quando o número foi alterado; se não mudou, salva direto.
 
-Isso não é bug de código do wizard, do `WhatsappAccessCard` nem da nova confirmação inline. Nenhuma alteração de frontend faz o código chegar.
+## Impacto que você deve saber
 
-## O que precisa ser feito para funcionar de verdade
-
-1. Conta Twilio ativa (ou Twilio Verify) com número remetente de SMS para o Brasil.
-2. Cadastrar no provedor de autenticação do backend: Account SID, Auth Token (ou API Key SID/Secret) e Message Service SID / número remetente — ou o Verify Service SID.
-3. Para o canal WhatsApp: sender WhatsApp Business aprovado + template de OTP aprovado pela Meta, e as flags `PHONE_OTP_WHATSAPP_ENABLED` / `TWILIO_WHATSAPP_FROM` no ambiente do servidor.
-4. Teste E2E real: pedir código → receber → confirmar → concluir cadastro.
-
-Sem o item 1–2 nada muda. Posso conduzir a configuração assim que você tiver as credenciais Twilio.
-
-## O que eu posso ajustar no app enquanto isso
-
-Melhorar o diagnóstico e não deixar o participante travado:
-
-- **Mensagem honesta**: quando o backend responder "provedor de SMS indisponível", mostrar "Envio de código temporariamente indisponível" em vez de "Tente novamente" (que sugere erro do usuário e leva a repetição inútil).
-- **Detecção de capacidade real**: hoje `derivePhoneAuthCapability` considera SMS disponível só porque o provedor de telefone está ligado, sem saber se há credenciais. Passar a marcar o canal como indisponível após uma falha de provedor, escondendo o botão em vez de oferecer algo que sempre falha.
-- **Saída para o participante**: na etapa de Revisão, quando o envio estiver indisponível, permitir concluir o cadastro sem verificação (perfil salvo, contato pendente de confirmação) — ou manter bloqueado, se você preferir integridade do contato acima de tudo.
+Sem OTP, o participante não ganha mais uma identidade vinculada ao telefone. Ele continua acessando o painel pelo mesmo aparelho/navegador (sessão automática). Recuperar o perfil em outro aparelho ficará indisponível até o provedor de SMS/WhatsApp ser configurado — o código já existente para isso fica preservado e desligado, pronto para religar depois.
 
 ## Detalhes técnicos
 
-- `src/lib/phone-auth.ts`: novo código de erro `provider_unavailable` no `mapOtpError` para `unexpected_failure` / "Unable to get SMS provider", com texto próprio.
-- `src/features/access/WhatsappAccessCard.tsx`: estado de canal indisponível — desabilita o botão de envio e exibe aviso, sem loop de retry.
-- `src/features/onboarding/steps.tsx` + `src/routes/participar.tsx`: comportamento do botão final quando a verificação estiver indisponível (conforme sua escolha acima).
-- Testes em `src/__tests__/impl18-passwordless-multicanal.test.ts` cobrindo o novo mapeamento de erro.
+- `src/features/onboarding/steps.tsx`: remover `PhoneConfirmBlock` e o uso de `WhatsappAccessCard` na revisão; o botão final volta a ficar habilitado pela validação do formulário.
+- `src/routes/participar.tsx`: substituir o estado `phoneVerified` por `pendingConfirm`; o clique em finalizar abre um `AlertDialog` de confirmação e só então chama `startSubmit`. "Corrigir número" usa o `goToIdentity()` existente.
+- Guard atual `if (mode === "create" && !phoneVerified)` em `startSubmit` passa a exigir apenas número válido (normalização E.164 já existente).
+- `handlePhoneVerified` e a revalidação de perfil pós-OTP saem do fluxo de cadastro.
+- Nada é removido de `src/features/access/*` (`WhatsappAccessCard`, `api.ts`, capability): continuam servindo a tela de acesso/recuperação, que só aparece quando a capability estiver habilitada.
+- Testes: atualizar `src/__tests__/onda-b.test.ts` e `onda-b-hardening-2.test.ts` (ordem verificação → salvamento) e ajustar os casos de `impl14`/`impl18` que assumem OTP obrigatório no cadastro.
