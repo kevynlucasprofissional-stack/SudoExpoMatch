@@ -135,12 +135,45 @@ export const aiSuggestionResultSchema = z.object({
 export type AiSuggestionResult = z.infer<typeof aiSuggestionResultSchema>;
 
 /**
- * Schema plano que enviamos ao modelo em modo STRICT (`json_schema`).
- * Regra do modo strict: objeto na raiz e TODA propriedade obrigatória —
- * campos "opcionais" precisam ser `.nullable()`, nunca `.optional()`.
- * Validação/normalização de domínio acontece depois.
+ * Schema TOLERANTE usado para LER a resposta do modelo.
+ * Nunca derruba a chamada por campo ausente que a normalização sabe coagir.
  */
 export const modelOutputSchema = z.object({
+  understanding: z.object({
+    summary: z.string(),
+    mainActivity: z.string(),
+    keywords: z.array(z.string()),
+    clarifyingQuestion: z.string().nullish(),
+  }),
+  offers: z.array(
+    z.object({
+      taxonomyItemId: z.string().nullable(),
+      label: z.string(),
+      confidence: z.number(),
+      rationale: z.string(),
+    }),
+  ),
+  needs: z.array(
+    z.object({
+      taxonomyItemId: z.string().nullable(),
+      label: z.string(),
+      /** IMPL 6 — coagido para `outro` quando ausente/inválido. */
+      needKind: z.string().nullish(),
+      confidence: z.number(),
+      rationale: z.string(),
+    }),
+  ),
+});
+export type ModelOutput = z.infer<typeof modelOutputSchema>;
+
+/**
+ * Schema ESTRITO enviado ao Gateway (`json_schema` strict).
+ * Regra do modo strict: objeto na raiz e TODA propriedade obrigatória —
+ * campos "opcionais" são `.nullable()`, nunca `.optional()`.
+ * CAUSA B do diagnóstico: sem isto o modelo respondia fora do contrato e
+ * 100% das execuções caíam na heurística.
+ */
+export const modelOutputStrictSchema = z.object({
   understanding: z.object({
     summary: z.string(),
     mainActivity: z.string(),
@@ -159,18 +192,13 @@ export const modelOutputSchema = z.object({
     z.object({
       taxonomyItemId: z.string().nullable(),
       label: z.string(),
-      /**
-       * IMPL 6 — exigido no prompt, mas tolerante no schema de fio: valor
-       * fora do domínio NÃO derruba a chamada; a normalização coage p/ `outro`.
-       * `nullable` (e não `optional`) por causa do modo strict.
-       */
       needKind: z.string().nullable(),
       confidence: z.number(),
       rationale: z.string(),
     }),
   ),
 });
-export type ModelOutput = z.infer<typeof modelOutputSchema>;
+
 
 /**
  * Desfecho observável de uma execução de IA de onboarding.
