@@ -267,8 +267,17 @@ describe("presentation labels", () => {
       ["agora_nao", "interesse", "sem_decisao"].sort(),
     );
   });
-  it("KIND_TEXT cobre todos os MatchKind", () => {
-    expect(Object.keys(KIND_TEXT).length).toBe(5);
+  it("KIND_TEXT cobre todos os MatchKind (inclui perfil_desejado do v2.4)", () => {
+    expect(Object.keys(KIND_TEXT).sort()).toEqual(
+      [
+        "direto",
+        "inverso",
+        "bidirecional",
+        "complementar",
+        "hibrido",
+        "perfil_desejado",
+      ].sort(),
+    );
   });
   it("isMutualInterest usa decisões, não connection", () => {
     expect(isMutualInterest("interesse", "interesse")).toBe(true);
