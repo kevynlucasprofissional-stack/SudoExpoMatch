@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { CheckCircle2, Loader2, Plus, ShieldCheck, Sparkles, Star, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
 import {
   AI_SUGGESTION_BADGE,
   buildSuggestionFeed,
@@ -24,9 +24,6 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
-import { WhatsappAccessCard } from "@/features/access/WhatsappAccessCard";
-import { usePhoneAuthCapability } from "@/features/access/usePhoneAuthCapability";
-import { maskPhone } from "@/lib/phone-auth";
 
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 import type { NeedKind } from "@/lib/types";
@@ -1149,9 +1146,6 @@ export function StepReview({
   validation,
   catalogFallback,
   resetAction,
-  phone,
-  phoneVerified,
-  onPhoneVerified,
 }: {
   draft: WizardDraft;
   resetAction?: ReactNode;
@@ -1166,18 +1160,12 @@ export function StepReview({
   catalog: EventCatalog;
   validation: WizardValidation;
   catalogFallback: boolean;
-  /** WhatsApp informado na etapa de identificação. */
-  phone: string;
-  /** `true` depois que o OTP foi confirmado (obrigatório no cadastro). */
-  phoneVerified: boolean;
-  onPhoneVerified: () => void;
 }) {
   const seg = catalog.segments.find((s) => s.id === draft.segmentId);
   const submitting = isSubmitting(submit);
   const canSubmit = reviewIsActionable(submit);
   const validationOk = validation.ok;
   const isPhoneMissing = !validationOk && validation.reason === "phone";
-  const needsVerification = mode === "create" && !phoneVerified;
   const validationError = validationOk ? null : validation.message;
 
   // Requisito: no create, contact_failed NÃO deve oferecer saída ao painel
@@ -1294,16 +1282,6 @@ export function StepReview({
           </p>
         )}
 
-        {mode === "create" && (
-          <PhoneConfirmBlock
-            phone={phone}
-            verified={phoneVerified}
-            onVerified={onPhoneVerified}
-            onChangePhone={onGoToIdentity}
-            disabled={!validationOk && !isPhoneMissing}
-          />
-        )}
-
         <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
             {resetAction}
@@ -1311,9 +1289,9 @@ export function StepReview({
           <Button
             size="lg"
             onClick={onSubmit}
-            disabled={submitting || !canSubmit || !validationOk || needsVerification}
+            disabled={submitting || !canSubmit || !validationOk}
             aria-busy={submitting}
-            aria-disabled={submitting || !canSubmit || !validationOk || needsVerification}
+            aria-disabled={submitting || !canSubmit || !validationOk}
           >
             {submitting ? (
               <>
@@ -1331,82 +1309,6 @@ export function StepReview({
         </div>
       </div>
     </Card>
-  );
-}
-
-/**
- * Confirmação obrigatória do WhatsApp na etapa final: nada é gravado antes de
- * o código de uso único ser confirmado.
- */
-function PhoneConfirmBlock({
-  phone,
-  verified,
-  onVerified,
-  onChangePhone,
-  disabled,
-}: {
-  phone: string;
-  verified: boolean;
-  onVerified: () => void;
-  onChangePhone: () => void;
-  disabled: boolean;
-}) {
-  const capability = usePhoneAuthCapability();
-
-  if (verified) {
-    return (
-      <div
-        className="flex items-center gap-3 rounded-lg border border-success/40 bg-success/5 p-3 text-sm"
-        data-testid="phone-confirm-done"
-      >
-        <CheckCircle2 className="h-5 w-5 shrink-0 text-success" aria-hidden="true" />
-        <p>
-          WhatsApp confirmado: <span className="font-medium">{maskPhone(phone)}</span>
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-lg border border-primary/30 bg-primary/5 p-4" data-testid="phone-confirm-block">
-      <div className="mb-2 flex items-center gap-2">
-        <ShieldCheck className="h-5 w-5 text-primary" aria-hidden="true" />
-        <p className="font-medium">Confirme seu WhatsApp</p>
-      </div>
-      <p className="mb-3 text-sm text-muted-foreground">
-        Enviaremos um código de uso único para {phone ? maskPhone(phone) : "seu número"}. Ele é a
-        forma de entrar no seu perfil em qualquer aparelho.
-      </p>
-
-      {!phone ? (
-        <Button size="sm" variant="outline" onClick={onChangePhone}>
-          Informar WhatsApp
-        </Button>
-      ) : capability.otpEnabled ? (
-        <div className={disabled ? "pointer-events-none opacity-60" : undefined}>
-          <WhatsappAccessCard
-            capability={capability}
-            initialPhone={phone}
-            lockPhone
-            skipClaim
-            confirmLabel="Confirmar WhatsApp"
-            onVerified={onVerified}
-          />
-          <div className="mt-2">
-            <Button size="sm" variant="ghost" onClick={onChangePhone}>
-              Alterar número
-            </Button>
-          </div>
-        </div>
-      ) : (
-        <p
-          role="alert"
-          className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
-        >
-          O envio de código está indisponível no momento. Tente novamente em alguns minutos.
-        </p>
-      )}
-    </div>
   );
 }
 
