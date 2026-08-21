@@ -11,10 +11,12 @@ import {
 } from "@/features/social/cacheStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  readRecentPosts,
   readStringList,
   readText,
   type ParticipantSocial,
 } from "@/features/social/socialProfile";
+
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
 
 function fmt(d: string | null | undefined) {
@@ -182,7 +184,23 @@ export function ParticipantSocialPanel({
           <dt className="text-xs text-muted-foreground">Última atualização</dt>
           <dd>{fmt(social.updated_at ?? social.linked_at)}</dd>
         </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Publicações recebidas / guardadas</dt>
+          <dd data-testid="social-posts-counts">
+            {postsReceived ?? "—"} / {postsPersisted ?? "—"}
+            {payloadTruncated && (
+              <Badge variant="outline" className="ml-2">
+                payload truncado
+              </Badge>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Publicações usadas na análise</dt>
+          <dd data-testid="social-posts-used">{postsUsed ?? "—"}</dd>
+        </div>
       </dl>
+
 
       <div>
         <p className="text-xs text-muted-foreground">Bio pública</p>
