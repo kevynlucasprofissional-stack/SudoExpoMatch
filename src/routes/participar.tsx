@@ -821,7 +821,7 @@ function WizardPage() {
             <AlertDialogDescription>{WIZARD_RESET_COPY.description}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>{WIZARD_RESET_COPY.cancel}</AlertDialogCancel>
+            <AlertDialogCancel className="text-white">{WIZARD_RESET_COPY.cancel}</AlertDialogCancel>
             <AlertDialogAction
               data-testid="wizard-reset-confirm"
               onClick={() => void confirmReset()}
