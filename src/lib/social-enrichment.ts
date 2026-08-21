@@ -64,7 +64,10 @@ export interface SocialEntry {
   promptVersion: string | null;
   model: string | null;
   provider: string;
+  /** Shape do registro lido do cache (v1 = legado snake_case). */
+  schemaVersion?: number;
 }
+
 
 export type SocialEnrichmentSource = "memory" | "database" | "provider";
 
