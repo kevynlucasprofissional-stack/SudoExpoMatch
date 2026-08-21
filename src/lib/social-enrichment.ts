@@ -1,5 +1,7 @@
 import { DEFAULT_SOCIAL_CONFIG, type SocialConfig } from "@/config/social";
 import {
+  SOCIAL_CONTEXT_SCHEMA_VERSION,
+  isLegacySocialContextShape,
   normalizeInstagramInput,
   sanitizeSocialBusinessContext,
   socialContextFingerprint,
@@ -14,6 +16,7 @@ import {
   sanitizeSocialAnalysis,
   type SocialBusinessAnalysis,
 } from "./social-analysis";
+
 
 /**
  * Pipeline cache-first do enriquecimento social.
