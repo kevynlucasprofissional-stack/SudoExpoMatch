@@ -701,9 +701,9 @@ function WizardPage() {
           </div>
         )}
 
-        {/* Ação secundária/perigosa: vive no rodapé de cada etapa;
-            na primeira etapa (sem rodapé com ações) permanece no cabeçalho. */}
-        {step === 0 && <div className="mb-4 flex justify-end">{resetAction}</div>}
+        {/* Ação secundária/perigosa: vive no rodapé de cada etapa. */}
+
+
 
         <div className="mb-6 flex h-8 items-start gap-2">
           {step > 0 && (
