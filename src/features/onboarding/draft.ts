@@ -22,6 +22,9 @@ export function createEmptyDraft(): WizardDraft {
     businessType: "",
     segmentId: "",
     niche: "",
+    targetBusinessSize: "",
+    targetBusinessType: "",
+    targetSegmentId: "",
     summary: "",
     instagram: "",
     offers: [],
@@ -104,12 +107,29 @@ export function sanitizeWizardDraft(raw: unknown): WizardDraft {
         : "",
     segmentId: typeof r.segmentId === "string" ? r.segmentId.slice(0, 60) : "",
     niche: typeof r.niche === "string" ? r.niche.slice(0, 120) : "",
+    targetBusinessSize: sanitizeTargetSize(r.targetBusinessSize),
+    targetBusinessType: sanitizeTargetType(r.targetBusinessType),
+    targetSegmentId: typeof r.targetSegmentId === "string" ? r.targetSegmentId.slice(0, 60) : "",
     summary: typeof r.summary === "string" ? r.summary.slice(0, 500) : "",
     instagram: normalizeDraftInstagram(r.instagram),
     offers,
     needs,
     consent: r.consent === true,
   };
+}
+
+function sanitizeTargetSize(raw: unknown): WizardDraft["targetBusinessSize"] {
+  if (raw === "any") return "any";
+  return typeof raw === "string" && BUSINESS_SIZES.has(raw as BusinessSize)
+    ? (raw as BusinessSize)
+    : "";
+}
+
+function sanitizeTargetType(raw: unknown): WizardDraft["targetBusinessType"] {
+  if (raw === "any") return "any";
+  return typeof raw === "string" && BUSINESS_TYPES.has(raw as BusinessType)
+    ? (raw as BusinessType)
+    : "";
 }
 
 /** Persistimos apenas o handle normalizado — nunca conteúdo raspado. */
@@ -158,7 +178,7 @@ export function saveWizardDraft(
     storage.setItem(
       WIZARD_DRAFT_KEY,
       JSON.stringify({
-        version: 4 as const,
+        version: 5 as const,
         savedAt: new Date(now).toISOString(),
         draft: clean,
       }),
@@ -240,6 +260,9 @@ export function draftAllowedKeys(): ReadonlyArray<keyof WizardDraft> {
     "businessType",
     "segmentId",
     "niche",
+    "targetBusinessSize",
+    "targetBusinessType",
+    "targetSegmentId",
     "summary",
     "instagram",
     "offers",

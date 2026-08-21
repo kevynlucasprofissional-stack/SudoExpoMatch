@@ -34,6 +34,9 @@ export const wizardDraftSchema = z.object({
   businessType: z.union([businessTypeSchema, z.literal("")]),
   segmentId: z.string().max(60),
   niche: z.string().max(120),
+  targetBusinessSize: z.union([businessSizeSchema, z.literal("any"), z.literal("")]),
+  targetBusinessType: z.union([businessTypeSchema, z.literal("any"), z.literal("")]),
+  targetSegmentId: z.string().max(60),
   summary: z.string().max(500),
   instagram: z.string().max(300),
   offers: z.array(wizardOfferSchema).max(5),
@@ -43,13 +46,16 @@ export const wizardDraftSchema = z.object({
 
 /** Envelope persistido (aceita rascunhos v2 antigos; grava sempre v3). */
 export const persistedDraftSchema = z.object({
-  version: z.union([z.literal(2), z.literal(3), z.literal(4)]),
+  version: z.union([z.literal(2), z.literal(3), z.literal(4), z.literal(5)]),
   savedAt: z.string(),
   draft: wizardDraftSchema.partial({
     businessSize: true,
     businessType: true,
     niche: true,
     instagram: true,
+    targetBusinessSize: true,
+    targetBusinessType: true,
+    targetSegmentId: true,
   }),
 });
 
