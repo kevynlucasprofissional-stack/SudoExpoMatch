@@ -7,7 +7,6 @@ import type { SocialBusinessContext } from "@/lib/social-context";
 export interface SubmitOrchestratorDeps {
   saveOwnProfile: (input: ReturnType<typeof mapWizardToSaveProfileInput>) => Promise<unknown>;
   setOwnContact: (input: { phone_e164: string; sharing: boolean }) => Promise<unknown>;
-  rotateOwnRecoveryCode: () => Promise<string>;
   /**
    * Persistência do @Instagram + contexto social. Opcional e NUNCA bloqueante:
    * qualquer falha vira um evento informativo e o cadastro continua.
@@ -44,18 +43,16 @@ export type SubmitEvent =
   | { type: "PROFILE_FAIL"; error: unknown }
   | { type: "CONTACT_OK" }
   | { type: "CONTACT_FAIL"; error: unknown }
-  | { type: "CODE_OK"; code: string }
-  | { type: "CODE_FAIL"; error: unknown }
   | { type: "MATCH_OK" }
   | { type: "MATCH_FAIL"; error: unknown }
   | { type: "SOCIAL_OK"; status: string; handle: string | null }
   | { type: "SOCIAL_FAIL"; error: unknown }
-  | { type: "AWAIT_CODE_CONFIRMATION" };
+  | { type: "AWAIT_PHONE_VERIFICATION" };
 
 
 /**
  * Executa o pipeline até o ponto em que uma confirmação manual do usuário é
- * necessária (confirmação do código) ou até completar (edição). Retorna a
+ * necessária (verificação do WhatsApp) ou até completar (edição). Retorna a
  * lista de eventos emitidos, para o chamador aplicar no reducer/UI.
  * Injetável para testes — sem tocar em toast/navegação.
  */
@@ -118,15 +115,9 @@ export async function runWizardSubmit(args: {
 
 
   if (args.mode === "create") {
-    try {
-      const code = await args.deps.rotateOwnRecoveryCode();
-      events.push({ type: "CODE_OK", code });
-      events.push({ type: "AWAIT_CODE_CONFIRMATION" });
-      return events;
-    } catch (error) {
-      events.push({ type: "CODE_FAIL", error });
-      return events;
-    }
+    // Cadastro só termina depois que o WhatsApp é confirmado por OTP.
+    events.push({ type: "AWAIT_PHONE_VERIFICATION" });
+    return events;
   }
 
   // Descoberta automática: save_own_profile_v2 já dispara o recálculo

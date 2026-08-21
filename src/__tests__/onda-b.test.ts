@@ -435,37 +435,32 @@ describe("schemas: criar vs editar", () => {
 // submitMachine.ts
 // ==================================================================
 describe("submitMachine: fluxo criar", () => {
-  it("saving_profile → saving_contact → generating_code → awaiting → recomputing → completed", () => {
+  it("saving_profile → saving_contact → awaiting_phone_verification → recomputing → completed", () => {
     let s = initialSubmitState();
     s = submitReducer(s, { type: "START", mode: "create", withContact: true });
     expect(s.stage).toBe("saving_profile");
     s = submitReducer(s, { type: "PROFILE_OK" });
     expect(s.stage).toBe("saving_contact");
     s = submitReducer(s, { type: "CONTACT_OK" });
-    expect(s.stage).toBe("generating_code");
-    s = submitReducer(s, { type: "CODE_OK", code: "ABC12345" });
-    expect(s.stage).toBe("awaiting_code_confirmation");
-    expect(s.recoveryCode).toBe("ABC12345");
-    s = submitReducer(s, { type: "CODE_CONFIRMED" });
+    expect(s.stage).toBe("awaiting_phone_verification");
+    s = submitReducer(s, { type: "PHONE_VERIFIED" });
     expect(s.stage).toBe("recomputing_matches");
-    // Código sai da memória depois da confirmação
-    expect(s.recoveryCode).toBeNull();
     s = submitReducer(s, { type: "MATCH_OK" });
     expect(s.stage).toBe("completed");
     expect(isCompleted(s)).toBe(true);
   });
 });
 
-describe("submitMachine: fluxo editar pula rotação de código", () => {
+describe("submitMachine: fluxo editar pula verificação de telefone", () => {
   it("edit sem contato: saving_profile → recomputing → completed", () => {
     let s = initialSubmitState();
     s = submitReducer(s, { type: "START", mode: "edit", withContact: false });
     s = submitReducer(s, { type: "PROFILE_OK" });
-    expect(s.stage).toBe("recomputing_matches"); // nunca passou por contato/código
+    expect(s.stage).toBe("recomputing_matches"); // nunca passou por contato/verificação
     s = submitReducer(s, { type: "MATCH_OK" });
     expect(s.stage).toBe("completed");
   });
-  it("edit COM contato: saving_profile → saving_contact → recomputing (nunca generating_code)", () => {
+  it("edit COM contato: saving_profile → saving_contact → recomputing (nunca verificação)", () => {
     let s = initialSubmitState();
     s = submitReducer(s, { type: "START", mode: "edit", withContact: true });
     s = submitReducer(s, { type: "PROFILE_OK" });
@@ -485,15 +480,16 @@ describe("submitMachine: falhas parciais", () => {
     s = submitReducer(s, { type: "RETRY_CONTACT" });
     expect(s.stage).toBe("saving_contact");
   });
-  it("code_failed → RETRY_CODE continua do código (não do perfil/contato)", () => {
+  it("PHONE_VERIFIED só avança a partir da verificação pendente", () => {
     let s = initialSubmitState();
     s = submitReducer(s, { type: "START", mode: "create", withContact: true });
     s = submitReducer(s, { type: "PROFILE_OK" });
+    // Ainda em saving_contact: verificação não pode pular o contato.
+    s = submitReducer(s, { type: "PHONE_VERIFIED" });
+    expect(s.stage).toBe("saving_contact");
     s = submitReducer(s, { type: "CONTACT_OK" });
-    s = submitReducer(s, { type: "CODE_FAIL" });
-    expect(s.stage).toBe("code_failed");
-    s = submitReducer(s, { type: "RETRY_CODE" });
-    expect(s.stage).toBe("generating_code");
+    s = submitReducer(s, { type: "PHONE_VERIFIED" });
+    expect(s.stage).toBe("recomputing_matches");
   });
   it("matching_failed → aceita RETRY_MATCH ou navegação ao painel", () => {
     let s = initialSubmitState();

@@ -6,13 +6,10 @@ export type SubmitAction =
   | { type: "PROFILE_FAIL" }
   | { type: "CONTACT_OK" }
   | { type: "CONTACT_FAIL" }
-  | { type: "CODE_OK"; code: string }
-  | { type: "CODE_FAIL" }
-  | { type: "CODE_CONFIRMED" }
+  | { type: "PHONE_VERIFIED" }
   | { type: "MATCH_OK" }
   | { type: "MATCH_FAIL" }
   | { type: "RETRY_CONTACT" }
-  | { type: "RETRY_CODE" }
   | { type: "RETRY_MATCH" }
   | { type: "RESET" };
 
@@ -21,7 +18,6 @@ export function initialSubmitState(): SubmitState {
     stage: "idle",
     mode: "create",
     withContact: false,
-    recoveryCode: null,
   };
 }
 
@@ -33,16 +29,15 @@ export function submitReducer(state: SubmitState, action: SubmitAction): SubmitS
         stage: "saving_profile",
         mode: action.mode,
         withContact: action.withContact,
-        recoveryCode: null,
       };
     case "RESET":
       return initialSubmitState();
 
     case "PROFILE_OK": {
       if (state.stage !== "saving_profile") return state;
-      // Novo perfil sempre precisa de contato (obrigatório) e código.
-      // Edição só chama contato se o usuário informou WhatsApp;
-      // edição nunca rotaciona código.
+      // Novo perfil sempre precisa de contato (obrigatório) + verificação do
+      // WhatsApp. Edição só chama contato se o usuário informou WhatsApp e
+      // nunca exige nova verificação.
       if (state.mode === "create") return { ...state, stage: "saving_contact" };
       if (state.withContact) return { ...state, stage: "saving_contact" };
       return { ...state, stage: "recomputing_matches" };
@@ -51,7 +46,7 @@ export function submitReducer(state: SubmitState, action: SubmitAction): SubmitS
       return { ...state, stage: "profile_failed" };
 
     case "CONTACT_OK": {
-      if (state.mode === "create") return { ...state, stage: "generating_code" };
+      if (state.mode === "create") return { ...state, stage: "awaiting_phone_verification" };
       return { ...state, stage: "recomputing_matches" };
     }
     case "CONTACT_FAIL":
@@ -60,20 +55,9 @@ export function submitReducer(state: SubmitState, action: SubmitAction): SubmitS
       if (state.stage !== "contact_failed") return state;
       return { ...state, stage: "saving_contact" };
 
-    case "CODE_OK":
-      return {
-        ...state,
-        stage: "awaiting_code_confirmation",
-        recoveryCode: action.code,
-      };
-    case "CODE_FAIL":
-      return { ...state, stage: "code_failed" };
-    case "RETRY_CODE":
-      if (state.stage !== "code_failed") return state;
-      return { ...state, stage: "generating_code" };
-    case "CODE_CONFIRMED":
-      if (state.stage !== "awaiting_code_confirmation") return state;
-      return { ...state, stage: "recomputing_matches", recoveryCode: null };
+    case "PHONE_VERIFIED":
+      if (state.stage !== "awaiting_phone_verification") return state;
+      return { ...state, stage: "recomputing_matches" };
 
     case "MATCH_OK":
       return { ...state, stage: "completed" };
@@ -87,12 +71,7 @@ export function submitReducer(state: SubmitState, action: SubmitAction): SubmitS
 
 /** Retorna `true` se a UI deve bloquear inputs enquanto uma etapa executa. */
 export function isSubmitting(state: SubmitState): boolean {
-  const running: SubmitStage[] = [
-    "saving_profile",
-    "saving_contact",
-    "generating_code",
-    "recomputing_matches",
-  ];
+  const running: SubmitStage[] = ["saving_profile", "saving_contact", "recomputing_matches"];
   return running.includes(state.stage);
 }
 
