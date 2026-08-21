@@ -104,10 +104,12 @@ export function StepIdentity({
   mode,
   phone,
   onPhoneChange,
+  resetAction,
 }: BaseProps & {
   mode: WizardMode;
   phone: string;
   onPhoneChange: (v: string) => void;
+  resetAction?: ReactNode;
 }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
