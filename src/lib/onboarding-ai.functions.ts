@@ -148,7 +148,12 @@ async function buildProductionDeps(apiKey: string | undefined): Promise<Orchestr
           run_kind: "onboarding_suggest",
           input: buildAiRunInput(row.input, row.inputHash),
 
-          output: row.outputSummary ?? {},
+          output: {
+            outcome: row.outcome,
+            ...(typeof row.outputSummary === "object" && row.outputSummary
+              ? (row.outputSummary as Record<string, unknown>)
+              : {}),
+          },
           model: row.model,
           latency_ms: row.latencyMs,
           succeeded: row.succeeded,
@@ -207,7 +212,7 @@ export const suggestOnboardingItems = createServerFn({ method: "POST" })
             run_kind: "onboarding_suggest",
             input: buildAiRunInput(data, "catalog_unavailable"),
 
-            output: {},
+            output: { outcome: "catalog_unavailable" },
             model: null,
             latency_ms: 0,
             succeeded: false,
