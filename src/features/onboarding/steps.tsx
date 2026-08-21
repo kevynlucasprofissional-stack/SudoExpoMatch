@@ -44,13 +44,13 @@ import { isSubmitting, reviewIsActionable } from "./submitMachine";
 import { currentPriorityId, type WizardValidation } from "./validate";
 
 const NEED_KIND_OPTIONS: { value: NeedKind; label: string }[] = [
-  { value: "servico", label: "Um serviço" },
-  { value: "fornecedor", label: "Um fornecedor" },
-  { value: "parceiro", label: "Um parceiro" },
-  { value: "compradores", label: "Compradores" },
-  { value: "distribuidores", label: "Distribuidores" },
-  { value: "profissionais", label: "Profissionais" },
-  { value: "produtos", label: "Produtos" },
+  { value: "servico", label: "Serviço" },
+  { value: "fornecedor", label: "Fornecedor" },
+  { value: "parceiro", label: "Parceiro" },
+  { value: "compradores", label: "Comprador" },
+  { value: "distribuidores", label: "Distribuidor" },
+  { value: "profissionais", label: "Profissional" },
+  { value: "produtos", label: "Produto" },
   { value: "outro", label: "Outro" },
 ];
 const NEED_LABEL: Record<NeedKind, string> = Object.fromEntries(
