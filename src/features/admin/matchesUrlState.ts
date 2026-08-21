@@ -15,6 +15,7 @@ export const MATCH_KINDS = [
   "bidirecional",
   "complementar",
   "hibrido",
+  "perfil_desejado",
 ] as const;
 export const MATCH_LABELS = [
   "alta_compatibilidade",

@@ -4,7 +4,14 @@
 
 export type UUID = string;
 
-export type MatchKind = "direto" | "inverso" | "bidirecional" | "complementar" | "hibrido";
+export type MatchKind =
+  | "direto"
+  | "inverso"
+  | "bidirecional"
+  | "complementar"
+  | "hibrido"
+  /** v2.4: dupla criada porque o outro corresponde ao perfil declarado em "quem eu procuro". */
+  | "perfil_desejado";
 
 export type MatchLabel = "alta_compatibilidade" | "boa_oportunidade" | "conexao_possivel";
 
@@ -72,6 +79,13 @@ export interface Profile {
   createdAt: string;
   updatedAt: string;
   recoveryCode: string; // in real backend, only the hash is stored
+  // v2.4: classificadores de "quem eu sou" e de "quem eu procuro".
+  // `null`/ausente em target significa "Qualquer" (critério ignorado).
+  businessSize?: string | null;
+  businessType?: string | null;
+  targetBusinessSize?: string | null;
+  targetBusinessType?: string | null;
+  targetSegmentId?: string | null;
 }
 
 export interface MatchReason {
@@ -81,7 +95,9 @@ export interface MatchReason {
     | "prioridade"
     | "complementaridade"
     | "atualidade"
-    | "proximidade";
+    | "proximidade"
+    | "perfil_desejado"
+    | "perfil_desejado_mutuo";
   weight: number;
   detail: string;
 }

@@ -2,7 +2,7 @@
  * ESPECIFICAÇÃO DE REFERÊNCIA DO MATCHING — USO EXCLUSIVO EM TESTES.
  *
  * Este módulo NÃO é executado em produção. O matching real roda inteiramente no
- * banco (Matcher v2.3, funções `_recompute_matches_for_profile` /
+ * banco (Matcher v2.4, funções `_recompute_matches_for_profile` /
  * `match_label_for_score`). Aqui vive apenas um espelho legível dos pesos e das
  * regras de classificação, usado pelas suítes para conferir que o SQL continua
  * aderente à especificação. Nenhum arquivo em src/routes, src/components ou
@@ -13,6 +13,7 @@ import type { Match, MatchKind, MatchLabel, MatchReason, Profile } from "@/lib/t
 // Pesos oficiais da especificação:
 // 55 outro oferece o que procuro | 25 outro procura o que ofereço
 // 10 prioridade | 5 complementaridade | 3 atualidade | 2 proximidade
+// v2.4: perfil_desejado = 10 + 10*specified_count (só com full fit) | mútuo +10
 export const WEIGHTS = {
   offersWhatINeed: 55,
   needsWhatIOffer: 25,
@@ -20,7 +21,57 @@ export const WEIGHTS = {
   complementarity: 5,
   recency: 3,
   proximity: 2,
+  targetBase: 10,
+  targetPerCriterion: 10,
+  targetMutual: 10,
 } as const;
+
+export interface TargetFit {
+  specifiedCount: number;
+  matchedCount: number;
+  full: boolean;
+  points: number;
+  criteria: ("porte" | "tipo" | "segmento")[];
+}
+
+/**
+ * Target fit da perspectiva de `me` sobre `other`.
+ * `null`/`undefined` no target = "Qualquer" => critério ignorado.
+ */
+export function targetFit(me: Profile, other: Profile): TargetFit {
+  const pairs: [string | null | undefined, string | null | undefined, TargetFit["criteria"][number]][] =
+    [
+      [me.targetBusinessSize, other.businessSize, "porte"],
+      [me.targetBusinessType, other.businessType, "tipo"],
+      [me.targetSegmentId, other.segmentId, "segmento"],
+    ];
+  let specifiedCount = 0;
+  const criteria: TargetFit["criteria"] = [];
+  for (const [target, actual, name] of pairs) {
+    if (target == null) continue;
+    specifiedCount += 1;
+    if (actual != null && actual === target) criteria.push(name);
+  }
+  const matchedCount = criteria.length;
+  const full = specifiedCount > 0 && matchedCount === specifiedCount;
+  return {
+    specifiedCount,
+    matchedCount,
+    full,
+    points: full ? WEIGHTS.targetBase + WEIGHTS.targetPerCriterion * specifiedCount : 0,
+    criteria,
+  };
+}
+
+const CRITERIA_TEXT = { porte: "porte", tipo: "tipo", segmento: "segmento" } as const;
+
+export function targetFitLabel(fit: TargetFit): string {
+  if (fit.criteria.length === 0) return "Esta empresa corresponde ao perfil que você procura";
+  const parts = fit.criteria.map((c) => CRITERIA_TEXT[c]);
+  const text =
+    parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(", ")} e ${parts[parts.length - 1]}`;
+  return `Corresponde ao ${text} que você procura`;
+}
 
 const norm = (s: string) =>
   s
@@ -76,6 +127,22 @@ export function scorePerspective(me: Profile, other: Profile): PerspectiveScore 
       code: "outro_procura_o_que_ofereco",
       weight: WEIGHTS.needsWhatIOffer,
       detail: `Procura o que você oferece: ${otherNeedsWhatIOffer.matched.slice(0, 3).join(", ")}`,
+    });
+  }
+
+  // v2.4: perfil desejado (só com full target fit) e afinidade mútua de perfil.
+  const fitMe = targetFit(me, other);
+  const fitOther = targetFit(other, me);
+  if (fitMe.full) {
+    total += fitMe.points;
+    reasons.push({ code: "perfil_desejado", weight: fitMe.points, detail: targetFitLabel(fitMe) });
+  }
+  if (fitMe.full && fitOther.full) {
+    total += WEIGHTS.targetMutual;
+    reasons.push({
+      code: "perfil_desejado_mutuo",
+      weight: WEIGHTS.targetMutual,
+      detail: "Vocês correspondem ao perfil de empresa procurado um pelo outro",
     });
   }
 
@@ -139,6 +206,10 @@ export function classifyKind(me: Profile, other: Profile): { kind: MatchKind; ha
   }
   if (otherOffersWhatINeed) return { kind: "direto", hasSignal: true };
   if (otherNeedsWhatIOffer) return { kind: "inverso", hasSignal: true };
+  // v2.4: full target fit em qualquer direção é sinal legítimo de criação da dupla.
+  if (targetFit(me, other).full || targetFit(other, me).full) {
+    return { kind: "perfil_desejado", hasSignal: true };
+  }
   if (differentSegment) return { kind: "complementar", hasSignal: false };
   return { kind: "direto", hasSignal: false };
 }

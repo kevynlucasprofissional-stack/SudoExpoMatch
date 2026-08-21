@@ -42,6 +42,7 @@ export const KIND_TEXT: Record<MatchKind, string> = {
   bidirecional: "Bidirecional",
   complementar: "Complementar",
   hibrido: "Híbrido",
+  perfil_desejado: "Perfil desejado",
 };
 
 export const DECISION_TEXT: Record<Decision, string> = {

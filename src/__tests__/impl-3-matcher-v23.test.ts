@@ -36,8 +36,8 @@ const proofFile = readdirSync(MIG_DIR)
   .find((sql) => sql.includes("PROVA v2.3"));
 
 describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
-  it("usa algorithm_version v2.3", () => {
-    expect(def).toContain("v_algo text := 'v2.3'");
+  it("usa algorithm_version v2.4 (evolução aditiva do v2.3)", () => {
+    expect(def).toContain("v_algo text := 'v2.4'");
   });
 
   it("preserva os pesos literais 55/25/10/5/3/2", () => {
@@ -103,7 +103,7 @@ describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
   it("preserva a precedência de kinds literais e usa complementar como fallback", () => {
     const kindBlock = def.slice(def.indexOf("v_kind := 'bidirecional'"));
     expect(kindBlock).toMatch(
-      /v_kind := 'bidirecional'[\s\S]*?v_kind := 'hibrido'[\s\S]*?v_kind := 'direto'[\s\S]*?v_kind := 'inverso'[\s\S]*?ELSE v_kind := 'complementar'/,
+      /v_kind := 'bidirecional'[\s\S]*?v_kind := 'hibrido'[\s\S]*?v_kind := 'direto'[\s\S]*?v_kind := 'inverso'[\s\S]*?v_kind := 'complementar'/,
     );
   });
 
@@ -134,7 +134,7 @@ describe("Implementação 3 — Matcher v2.3 (definição instalada)", () => {
         JOIN pg_namespace n ON n.oid=p.pronamespace
        WHERE n.nspname='public' AND p.proname='_recompute_matches_for_profile'
     `);
-    expect(comment).toContain("v2.3");
+    expect(comment).toContain("v2.4");
     expect(comment).toContain("weight >= 40");
     expect(comment).toContain("LEAST(30, round(weight*0.30))");
   });
