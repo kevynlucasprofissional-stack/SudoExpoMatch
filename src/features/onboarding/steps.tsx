@@ -47,7 +47,11 @@ import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
 import { OTHER_SEGMENT_ID, phoneCreateSchema, phoneEditSchema } from "./schemas";
 import { isSubmitting, reviewIsActionable } from "./submitMachine";
-import { currentPriorityId, type WizardValidation } from "./validate";
+import {
+  currentPriorityId,
+  targetProfileAnswered,
+  type WizardValidation,
+} from "./validate";
 
 const NEED_KIND_OPTIONS: { value: NeedKind; label: string }[] = [
   { value: "servico", label: "Serviço" },
@@ -710,6 +714,10 @@ export function StepNeeds({
   socialContext,
   socialAnalysis,
   resetAction,
+  title,
+  subtitle,
+  eyebrow,
+  nextBlocked = false,
 }: BaseProps & {
   catalog: EventCatalog;
   resetAction?: ReactNode;
@@ -717,6 +725,12 @@ export function StepNeeds({
   aiAnalysis?: SharedAiAnalysis;
   socialContext?: SocialBusinessContext | null;
   socialAnalysis?: SocialBusinessAnalysis | null;
+  /** Rótulos contextuais — a lógica de sugestões/IA permanece intacta. */
+  title?: string;
+  subtitle?: string;
+  eyebrow?: ReactNode;
+  /** Bloqueia "Continuar" enquanto o perfil desejado não estiver respondido. */
+  nextBlocked?: boolean;
 }) {
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
@@ -877,9 +891,12 @@ export function StepNeeds({
 
   return (
     <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">O que você procura</h2>
+      {eyebrow}
+      <h2 className="mt-1 font-display text-2xl font-semibold">
+        {title ?? "O que você procura"}
+      </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Adicione o que faria diferença na sua visita à feira (até 5).
+        {subtitle ?? "Adicione o que faria diferença na sua visita à feira (até 5)."}
       </p>
 
       {feed.length > 0 && (
@@ -1043,11 +1060,108 @@ export function StepNeeds({
         <div className="flex flex-wrap items-center gap-2">
           {resetAction}
         </div>
-        <Button onClick={onNext} disabled={draft.needs.length === 0 || !priorityId}>
+        <Button
+          onClick={onNext}
+          data-testid="needs-continue"
+          disabled={draft.needs.length === 0 || !priorityId || nextBlocked}
+        >
           Continuar
         </Button>
       </div>
     </Card>
+  );
+}
+
+// ============================================================================
+// StepWhoISeek — Etapa 4: "Quem eu procuro" (perfil desejado) + refino das
+// necessidades. O bloco de necessidades reaproveita integralmente StepNeeds
+// (heurísticas, IA, selo, categoria, itens comuns, manual, prioridade).
+// ============================================================================
+export function StepWhoISeek({
+  draft,
+  update,
+  onNext,
+  onBack,
+  catalog,
+  eventId,
+  aiAnalysis,
+  socialContext,
+  socialAnalysis,
+  resetAction,
+}: BaseProps & {
+  catalog: EventCatalog;
+  resetAction?: ReactNode;
+  eventId?: string;
+  aiAnalysis?: SharedAiAnalysis;
+  socialContext?: SocialBusinessContext | null;
+  socialAnalysis?: SocialBusinessAnalysis | null;
+}) {
+  const targetAnswered = targetProfileAnswered(draft);
+
+  return (
+    <div className="space-y-4">
+      <Card
+        className="border-t-4 border-t-success bg-gradient-to-b from-success/10 to-transparent p-6"
+        data-testid="who-i-seek-card"
+      >
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-success">
+          <Target className="h-3.5 w-3.5" aria-hidden="true" /> Etapa 4 · Perfil que quero encontrar
+        </p>
+        <h2 className="mt-1 font-display text-2xl font-semibold">Quem eu procuro</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Agora descreva o perfil de empresa com quem você quer se conectar.
+        </p>
+
+        <div className="mt-6">
+          <BusinessProfileCriteria
+            mode="target"
+            segments={catalog.segments}
+            size={draft.targetBusinessSize}
+            type={draft.targetBusinessType}
+            segmentId={draft.targetSegmentId}
+            onSizeChange={(v) => update("targetBusinessSize", v)}
+            onTypeChange={(v) => update("targetBusinessType", v)}
+            onSegmentChange={(v) => update("targetSegmentId", v)}
+            sizeLabel="Porte que procuro"
+            typeLabel="Tipo principal que procuro"
+            segmentLabel="Segmento que procuro"
+            hints={{
+              size: "Escolha um porte ou marque Qualquer.",
+              type: "Comércio, indústria ou serviço — ou Qualquer.",
+              segment: "Setor da empresa que você quer encontrar — ou Qualquer.",
+            }}
+          />
+        </div>
+
+        {!targetAnswered && (
+          <p className="mt-5 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+            Responda os três campos acima. "Qualquer" é uma resposta válida — significa que você não
+            tem preferência.
+          </p>
+        )}
+      </Card>
+
+      <StepNeeds
+        draft={draft}
+        update={update}
+        onNext={onNext}
+        onBack={onBack}
+        catalog={catalog}
+        eventId={eventId}
+        aiAnalysis={aiAnalysis}
+        socialContext={socialContext}
+        socialAnalysis={socialAnalysis}
+        resetAction={resetAction}
+        nextBlocked={!targetAnswered}
+        eyebrow={
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Search className="h-3.5 w-3.5" aria-hidden="true" /> Refino
+          </p>
+        }
+        title="Refine o que você procura"
+        subtitle="O que faria essa conexão ser ainda mais útil? Adicione até 5 necessidades (elas podem ser de outros segmentos)."
+      />
+    </div>
   );
 }
 
