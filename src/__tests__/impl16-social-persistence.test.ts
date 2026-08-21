@@ -64,10 +64,10 @@ describe("payload de vínculo social", () => {
     const p = buildSocialLinkPayload({ eventId: EVENT, instagram: "@EmpresaXYZ" });
     expect(p.handle).toBe("empresaxyz");
     expect(p.last_status).toBe("informed");
-    expect(p.extracted_context).toBeNull();
+    expect("extracted_context" in p).toBe(false);
   });
 
-  it("Instagram informado COM contexto persiste o contexto estruturado", () => {
+  it("com contexto do MESMO handle o payload apenas referencia o cache do servidor", () => {
     const p = buildSocialLinkPayload({
       eventId: EVENT,
       instagram: "https://www.instagram.com/empresaxyz/",
@@ -75,17 +75,18 @@ describe("payload de vínculo social", () => {
     });
     expect(p.handle).toBe("empresaxyz");
     expect(p.last_status).toBe("ok");
-    expect(readStringList(p.extracted_context, "keywords")).toContain("delivery");
-    expect(readText(p.public_profile, "display_name")).toBe("Empresa XYZ");
-    expect(p.content_fingerprint).toBeTruthy();
+    // CAUSA A: o cliente NUNCA envia snapshot de contexto/perfil público.
+    expect("extracted_context" in p).toBe(false);
+    expect("public_profile" in p).toBe(false);
+    expect("content_fingerprint" in p).toBe(false);
   });
 
   it("contexto de outro handle não é reaproveitado", () => {
     const p = buildSocialLinkPayload({ eventId: EVENT, instagram: "@outraempresa", context: ctx });
     expect(p.handle).toBe("outraempresa");
-    expect(p.extracted_context).toBeNull();
     expect(p.last_status).toBe("informed");
   });
+
 
   it("remoção do Instagram gera payload de desvínculo", () => {
     const p = buildSocialLinkPayload({ eventId: EVENT, instagram: "   " });
