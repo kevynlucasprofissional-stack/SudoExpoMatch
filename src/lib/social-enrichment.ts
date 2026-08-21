@@ -422,15 +422,20 @@ async function analyzeAndPersist(args: {
   context: SocialBusinessContext;
   fingerprint: string;
   fetchedAt: string;
+  providerPayload?: SocialEntryPayloadMeta | undefined;
   deps: SocialEnrichmentDeps;
   cfg: SocialConfig;
   now: () => number;
 }): Promise<SocialEntry> {
   const { deps, cfg, now } = args;
+  // A IA recebe bio + N publicações (N configurável, 3..9). A persistência
+  // segue guardando tudo o que o provider devolveu.
+  const aiContext = limitRecentMedia(args.context, cfg.recentPostsForAi);
+  const aiPostsUsed = aiContext.recentMedia?.length ?? 0;
   let analysis: SocialBusinessAnalysis | null = null;
   if (deps.analyzer) {
     try {
-      analysis = sanitizeSocialAnalysis(await deps.analyzer.analyze(args.context));
+      analysis = sanitizeSocialAnalysis(await deps.analyzer.analyze(aiContext));
     } catch {
       analysis = null; // análise é enriquecimento: falha nunca quebra o fluxo
     }
@@ -444,10 +449,17 @@ async function analyzeAndPersist(args: {
     promptVersion: analysis ? (deps.analyzer?.promptVersion ?? null) : null,
     model: analysis ? (deps.analyzer?.model ?? null) : null,
     provider: args.context.provider,
+    aiPostsUsed: analysis ? aiPostsUsed : (args.base?.aiPostsUsed ?? null),
+    ...(args.providerPayload
+      ? { providerPayload: args.providerPayload }
+      : args.base?.providerPayload
+        ? { providerPayload: args.base.providerPayload }
+        : {}),
   };
   await persist(entry, deps, cfg, now);
   return entry;
 }
+
 
 async function persist(
   entry: SocialEntry,
