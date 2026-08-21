@@ -47,12 +47,31 @@ export interface SocialCacheRecord {
   expires_at: string | null;
   last_status: string | null;
   last_error_code: string | null;
+  /** Payload bruto saneado do provider (só é enviado quando há coleta nova). */
+  provider_payload?: Record<string, unknown> | null;
+  provider_payload_version?: string | null;
+  provider_payload_bytes?: number | null;
+  provider_payload_truncated?: boolean | null;
+  provider_posts_received?: number | null;
+  provider_posts_persisted?: number | null;
+  ai_posts_used?: number | null;
+  context_schema_version?: string | null;
 }
 
 /** L2 — armazenamento persistente (Supabase, injetável em teste). */
 export interface SocialCacheStore {
   read(network: string, handle: string): Promise<SocialCacheRecord | null>;
   write(record: SocialCacheRecord): Promise<void>;
+}
+
+/** Metadados do snapshot bruto do provider associado a esta entrada. */
+export interface SocialEntryPayloadMeta {
+  payload?: Record<string, unknown> | null;
+  version: string | null;
+  bytes: number | null;
+  truncated: boolean;
+  postsReceived: number | null;
+  postsPersisted: number | null;
 }
 
 export interface SocialEntry {
@@ -66,7 +85,12 @@ export interface SocialEntry {
   provider: string;
   /** Shape do registro lido do cache (v1 = legado snake_case). */
   schemaVersion?: number;
+  /** Snapshot bruto do provider (patrimônio do backend). */
+  providerPayload?: SocialEntryPayloadMeta;
+  /** Quantas publicações efetivamente alimentaram a IA. */
+  aiPostsUsed?: number | null;
 }
+
 
 
 export type SocialEnrichmentSource = "memory" | "database" | "provider";
