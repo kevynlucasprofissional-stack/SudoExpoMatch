@@ -1,4 +1,6 @@
-import { resolveGraphApiVersion } from "@/config/social";
+import { DEFAULT_SOCIAL_CONFIG, resolveGraphApiVersion } from "@/config/social";
+import { buildProviderPayloadSnapshot } from "./social-provider-payload";
+
 import {
   MAX_RESPONSE_BYTES,
   SOCIAL_FETCH_TIMEOUT_MS,
@@ -332,8 +334,12 @@ export function createApifyInstagramProvider(
   auth: ApifyAuth | string,
   fetchImpl: typeof fetch = fetch,
   timeoutMs = APIFY_TIMEOUT_MS,
+  opts: { resultsLimit?: number; maxPayloadBytes?: number; keepPosts?: number } = {},
 ): SocialProvider {
   const credentials: ApifyAuth = typeof auth === "string" ? { mode: "direct", token: auth } : auth;
+  const resultsLimit = opts.resultsLimit ?? APIFY_RESULTS_LIMIT;
+  const maxPayloadBytes = opts.maxPayloadBytes ?? DEFAULT_SOCIAL_CONFIG.maxProviderPayloadBytes;
+  const keepPosts = opts.keepPosts ?? DEFAULT_SOCIAL_CONFIG.recentPostsForAi;
   return {
     id: "instagram_apify",
     async fetchProfile(handle: string): Promise<SocialLookupResult> {
@@ -355,7 +361,7 @@ export function createApifyInstagramProvider(
           method: "POST",
           signal: controller.signal,
           headers,
-          body: JSON.stringify({ usernames: [handle], resultsLimit: 12 }),
+          body: JSON.stringify({ usernames: [handle], resultsLimit }),
         });
         if (res.status === 401 || res.status === 403) {
           return { status: "unavailable", reason: "config_error" };
@@ -379,10 +385,17 @@ export function createApifyInstagramProvider(
         if (errText) return { status: "unavailable", reason: "error" };
         const ctx = mapApifyItemToContext(first, handle);
         if (!ctx) return { status: "unavailable", reason: "empty" };
-        return { status: "ok", context: ctx };
+        // Patrimônio do backend: TODOS os posts recebidos, sem segredo algum.
+        const providerPayload = buildProviderPayloadSnapshot(first, {
+          maxBytes: maxPayloadBytes,
+          keepPosts,
+          fetchedAt: ctx.fetchedAt,
+        });
+        return { status: "ok", context: ctx, providerPayload };
       } catch (err) {
         const name = (err as { name?: string } | null)?.name ?? "";
         return { status: "unavailable", reason: name === "AbortError" ? "timeout" : "error" };
+
       } finally {
         clearTimeout(timer);
       }
