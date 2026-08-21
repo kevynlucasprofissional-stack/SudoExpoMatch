@@ -705,7 +705,7 @@ function WizardPage() {
             na primeira etapa (sem rodapé com ações) permanece no cabeçalho. */}
         {step === 0 && <div className="mb-4 flex justify-end">{resetAction}</div>}
 
-        <div className="mb-6 flex items-start gap-2">
+        <div className="mb-6 flex items-stretch gap-2">
           {step > 0 && (
             <Button
               type="button"
@@ -714,7 +714,7 @@ function WizardPage() {
               onClick={back}
               aria-label="Voltar para a etapa anterior"
               data-testid="wizard-back"
-              className="h-7 w-7 shrink-0"
+              className="h-auto w-7 shrink-0 self-stretch"
             >
               <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             </Button>
