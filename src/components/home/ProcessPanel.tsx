@@ -107,7 +107,6 @@ export function ProcessPanel() {
                     <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-secondary font-display text-xs font-black text-[#0b1252]">
                       {i + 1}
                     </span>
-                    <s.Icon aria-hidden className="h-4 w-4 shrink-0 text-white/70" />
                   </div>
                   <span className="min-w-0 text-[13px] font-medium leading-snug text-white/90">
                     {s.label}
