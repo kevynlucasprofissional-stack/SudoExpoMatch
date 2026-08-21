@@ -165,7 +165,7 @@ describe("prompt", () => {
 
 describe("validação server-side dos IDs", () => {
   function model(taxonomyItemId: string | null, kind: "offer" | "need"): ModelOutput {
-    const item = { taxonomyItemId, label: "Marketing digital", confidence: 0.8, rationale: "x" };
+    const item = { taxonomyItemId, label: "Marketing digital", needKind: null, confidence: 0.8, rationale: "x" };
     return {
       understanding: { summary: "s", mainActivity: "a", keywords: [], clarifyingQuestion: null },
       offers: kind === "offer" ? [item] : [],

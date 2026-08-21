@@ -369,7 +369,7 @@ describe("(6) resposta incompleta e needKind inválido usam coerção segura", (
       needs: [
         need("tx-mkt", "Marketing digital", "consultoria_estrategica"),
         need("tx-crm", "CRM", null),
-        { taxonomyItemId: "tx-bpo", label: "BPO financeiro", confidence: NaN, rationale: "" },
+        { taxonomyItemId: "tx-bpo", label: "BPO financeiro", needKind: null, confidence: NaN, rationale: "" },
       ],
     }),
     { segmentId: "alimentacao", catalog: activeCatalog },
