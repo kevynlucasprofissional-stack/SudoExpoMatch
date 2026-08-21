@@ -117,6 +117,9 @@ describe("Entrega B — múltiplos interesses (auditoria: já suportado)", () =>
       niche: "",
       summary: "Padaria artesanal com produção própria de pães e doces para eventos.",
       instagram: "",
+      targetBusinessSize: "any" as const,
+      targetBusinessType: "any" as const,
+      targetSegmentId: "any",
       consent: true as const,
       offers: [1, 2, 3].map((i) => ({
         localId: `o${i}`,

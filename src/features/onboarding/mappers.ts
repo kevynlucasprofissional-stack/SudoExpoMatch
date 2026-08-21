@@ -48,11 +48,29 @@ export function mapWizardToSaveProfileInput(
     businessSize: draft.businessSize || null,
     businessType: draft.businessType || null,
     niche: draft.niche.trim() || null,
+    targetBusinessSize: normalizeTargetPreference(draft.targetBusinessSize),
+    targetBusinessType: normalizeTargetPreference(draft.targetBusinessType),
+    targetSegmentId: normalizeTargetPreference(draft.targetSegmentId),
     summary: draft.summary.trim(),
     consent: draft.consent === true,
     offers,
     needs,
   };
+}
+
+/**
+ * Fronteira do backend: `""` (não respondeu) e `"any"` (Qualquer) viram NULL.
+ * Qualquer outro valor é enviado como preferência específica.
+ */
+export function normalizeTargetPreference<T extends string>(value: T | "any" | ""): T | null {
+  const v = (value ?? "").trim();
+  if (!v || v === "any") return null;
+  return v as T;
+}
+
+/** Backend → draft: NULL vira `"any"` (Qualquer, escolha consciente já salva). */
+export function targetPreferenceToDraft<T extends string>(value: T | null | undefined): T | "any" {
+  return value ?? "any";
 }
 
 function normalizeOffer(o: WizardOffer, fallbackSegment: string) {
@@ -90,6 +108,9 @@ export function mapProfileToWizardDraft(profile: OwnProfileDTO): WizardDraft {
     businessSize: profile.business_size ?? "",
     businessType: profile.business_type ?? "",
     niche: profile.niche ?? "",
+    targetBusinessSize: targetPreferenceToDraft(profile.target_business_size),
+    targetBusinessType: targetPreferenceToDraft(profile.target_business_type),
+    targetSegmentId: targetPreferenceToDraft(profile.target_segment_id),
     summary: profile.summary ?? "",
     consent: profile.consent === true,
     offers: profile.offers.map((o) => ({

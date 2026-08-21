@@ -1050,6 +1050,9 @@ export type Database = {
           pin_placed_by: string | null
           segment_id: string
           summary: string
+          target_business_size: string | null
+          target_business_type: string | null
+          target_segment_id: string | null
           updated_at: string
         }
         Insert: {
@@ -1070,6 +1073,9 @@ export type Database = {
           pin_placed_by?: string | null
           segment_id: string
           summary: string
+          target_business_size?: string | null
+          target_business_type?: string | null
+          target_segment_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -1090,6 +1096,9 @@ export type Database = {
           pin_placed_by?: string | null
           segment_id?: string
           summary?: string
+          target_business_size?: string | null
+          target_business_type?: string | null
+          target_segment_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -1107,6 +1116,13 @@ export type Database = {
             referencedRelation: "segments"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profiles_target_segment_id_fkey"
+            columns: ["target_segment_id"]
+            isOneToOne: false
+            referencedRelation: "segments"
+            referencedColumns: ["id"]
+          },
         ]
       }
       segments: {
@@ -1115,6 +1131,7 @@ export type Database = {
           emoji: string | null
           id: string
           label: string
+          profile_selectable: boolean
           sort_order: number
         }
         Insert: {
@@ -1122,6 +1139,7 @@ export type Database = {
           emoji?: string | null
           id: string
           label: string
+          profile_selectable?: boolean
           sort_order?: number
         }
         Update: {
@@ -1129,6 +1147,7 @@ export type Database = {
           emoji?: string | null
           id?: string
           label?: string
+          profile_selectable?: boolean
           sort_order?: number
         }
         Relationships: []

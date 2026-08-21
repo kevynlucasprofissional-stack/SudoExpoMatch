@@ -28,8 +28,8 @@ const TX_SEMSEG = "33333333-3333-3333-3333-333333333333";
 
 const catalog: EventCatalog = {
   segments: [
-    { id: "alimentacao", label: "Alimentação", emoji: null },
-    { id: "marketing", label: "Marketing", emoji: null },
+    { id: "alimentacao", label: "Alimentação", emoji: null, profile_selectable: true },
+    { id: "marketing", label: "Marketing", emoji: null, profile_selectable: true },
   ],
   taxonomy: [
     {
@@ -202,6 +202,9 @@ function draftWith(offers: WizardOffer[], needs: WizardNeed[]): WizardDraft {
     segmentId: "alimentacao",
     summary: "Restaurante familiar com buffet corporativo diário.",
     instagram: "",
+    targetBusinessSize: "any" as const,
+    targetBusinessType: "any" as const,
+    targetSegmentId: "any",
     offers,
     needs,
     consent: true,
@@ -260,9 +263,15 @@ describe("aceitar sugestão na UI preserva o segmento da taxonomia", () => {
       business_size: "pequeno",
       business_type: "servico",
       niche: null,
+      target_business_size: null,
+      target_business_type: null,
+      target_segment_id: null,
       segment_id: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
       instagram: "",
+      targetBusinessSize: "any" as const,
+      targetBusinessType: "any" as const,
+      targetSegmentId: "any",
       consent: true,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),

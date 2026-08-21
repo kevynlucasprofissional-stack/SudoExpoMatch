@@ -75,6 +75,9 @@ function goodDraft(overrides?: Partial<WizardDraft>): WizardDraft {
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
     instagram: "",
+    targetBusinessSize: "any" as const,
+    targetBusinessType: "any" as const,
+    targetSegmentId: "any",
     offers: [
       {
         localId: "o1",
@@ -347,6 +350,9 @@ describe("mappers: mapProfileToWizardDraft", () => {
       business_size: "pequeno",
       business_type: "servico",
       niche: null,
+      target_business_size: null,
+      target_business_type: null,
+      target_segment_id: null,
       segment_id: "servicos",
       summary: "resumo",
       consent: true,
@@ -511,7 +517,7 @@ describe("submitMachine: falhas parciais", () => {
 // suggestions.ts
 // ==================================================================
 const CATALOG: EventCatalog = {
-  segments: [{ id: "servicos", label: "Serviços", emoji: null }],
+  segments: [{ id: "servicos", label: "Serviços", emoji: null, profile_selectable: true }],
   taxonomy: [
     {
       id: "srv-off-1",

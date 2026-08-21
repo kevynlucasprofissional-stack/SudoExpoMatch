@@ -24,6 +24,16 @@ export type BusinessSize = "pequeno" | "medio" | "grande";
 /** Tipo principal de atuação (seleção única) — "" = ainda não escolhido. */
 export type BusinessType = "comercio" | "industria" | "servico";
 
+/**
+ * Preferência de contraparte no rascunho de UI:
+ * `""` = ainda não respondeu, `"any"` = Qualquer, valor = preferência específica.
+ * `"any"` é normalizado para NULL na fronteira do backend.
+ */
+export const ANY_PREFERENCE = "any" as const;
+export type TargetBusinessSize = BusinessSize | "any" | "";
+export type TargetBusinessType = BusinessType | "any" | "";
+export type TargetSegmentId = string;
+
 export interface WizardDraft {
   step: number;
   name: string;
@@ -34,6 +44,11 @@ export interface WizardDraft {
   businessType: BusinessType | "";
   segmentId: string;
   niche: string;
+  /** Perfil desejado — ver `ANY_PREFERENCE`. */
+  targetBusinessSize: TargetBusinessSize;
+  targetBusinessType: TargetBusinessType;
+  /** `""` = não respondeu, `"any"` = Qualquer, id de segmento = específico. */
+  targetSegmentId: TargetSegmentId;
   summary: string;
   /** Handle/URL do Instagram informado (opcional; guardado normalizado). */
   instagram: string;

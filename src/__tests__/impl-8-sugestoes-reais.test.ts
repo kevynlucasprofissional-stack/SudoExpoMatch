@@ -36,12 +36,12 @@ import type { WizardDraft, WizardNeed, WizardOffer } from "@/features/onboarding
 
 const catalog: EventCatalog = {
   segments: [
-    { id: "alimentacao", label: "Alimentação", emoji: null },
-    { id: "marketing", label: "Marketing", emoji: null },
-    { id: "tecnologia", label: "Tecnologia", emoji: null },
-    { id: "financas", label: "Finanças", emoji: null },
-    { id: "logistica", label: "Logística", emoji: null },
-    { id: "servicos", label: "Serviços", emoji: null },
+    { id: "alimentacao", label: "Alimentação", emoji: null, profile_selectable: true },
+    { id: "marketing", label: "Marketing", emoji: null, profile_selectable: true },
+    { id: "tecnologia", label: "Tecnologia", emoji: null, profile_selectable: true },
+    { id: "financas", label: "Finanças", emoji: null, profile_selectable: true },
+    { id: "logistica", label: "Logística", emoji: null, profile_selectable: true },
+    { id: "servicos", label: "Serviços", emoji: null, profile_selectable: true },
   ] as EventCatalog["segments"],
   taxonomy: [
     // alimentação

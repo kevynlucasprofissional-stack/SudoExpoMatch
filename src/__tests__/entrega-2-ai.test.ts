@@ -11,8 +11,8 @@ import type { EventCatalog } from "@/features/participant/types";
 
 const catalog: EventCatalog = {
   segments: [
-    { id: "tecnologia", label: "Tecnologia", emoji: null },
-    { id: "servicos", label: "Serviços", emoji: null },
+    { id: "tecnologia", label: "Tecnologia", emoji: null, profile_selectable: true },
+    { id: "servicos", label: "Serviços", emoji: null, profile_selectable: true },
   ],
   taxonomy: [
     {

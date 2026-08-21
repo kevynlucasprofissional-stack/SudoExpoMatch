@@ -28,6 +28,10 @@ export interface OwnProfileDTO {
   business_size: BusinessSize | null;
   business_type: BusinessType | null;
   niche: string | null;
+  /** Perfil desejado (contraparte). `null` = Qualquer / sem preferência. */
+  target_business_size: BusinessSize | null;
+  target_business_type: BusinessType | null;
+  target_segment_id: string | null;
   summary: string;
   consent: boolean;
   created_at: string;
@@ -121,6 +125,10 @@ export interface SaveOwnProfileInput {
   businessSize?: BusinessSize | null;
   businessType?: BusinessType | null;
   niche?: string | null;
+  /** Perfil desejado — `null` significa "Qualquer". */
+  targetBusinessSize?: BusinessSize | null;
+  targetBusinessType?: BusinessType | null;
+  targetSegmentId?: string | null;
   summary: string;
   consent: boolean;
   offers: SaveOfferInput[];
@@ -132,6 +140,8 @@ export interface CatalogSegment {
   id: string;
   label: string;
   emoji: string | null;
+  /** `false` = segmento histórico/taxonômico: não oferecer na escolha de perfil. */
+  profile_selectable: boolean;
 }
 export interface CatalogTaxonomyItem {
   id: string;
@@ -177,6 +187,9 @@ export type ErrorCode =
   | "invalid_business_size"
   | "invalid_business_type"
   | "invalid_niche"
+  | "invalid_target_business_size"
+  | "invalid_target_business_type"
+  | "invalid_target_segment"
   | "invalid_offers_count"
   | "invalid_needs_count"
   | "invalid_offer_label"

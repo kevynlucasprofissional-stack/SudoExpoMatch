@@ -18,6 +18,9 @@ function baseDraft(overrides?: Partial<WizardDraft>): WizardDraft {
     segmentId: "servicos",
     summary: "Oferecemos consultoria contábil para pequenas empresas locais",
     instagram: "",
+    targetBusinessSize: "any" as const,
+    targetBusinessType: "any" as const,
+    targetSegmentId: "any",
     offers: [
       {
         localId: "o1",
@@ -55,7 +58,7 @@ function noopDeps(overrides?: Partial<Parameters<typeof runWizardSubmit>[0]["dep
 // resolveCatalogAvailability
 // ---------------------------------------------------------------------------
 describe("resolveCatalogAvailability", () => {
-  const cat = { segments: [{ id: "s", label: "S", emoji: null }], taxonomy: [] };
+  const cat = { segments: [{ id: "s", label: "S", emoji: null, profile_selectable: true }], taxonomy: [] };
 
   it("ready + cache com refresh falho — não é modo manual", () => {
     const r = resolveCatalogAvailability({

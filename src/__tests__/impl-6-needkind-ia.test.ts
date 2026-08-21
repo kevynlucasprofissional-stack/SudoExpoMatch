@@ -20,7 +20,7 @@ import type { WizardDraft, WizardNeed } from "@/features/onboarding/types";
 /** IMPL 6 — needKind na saída da IA (independente do seletor da UI). */
 
 const catalog: EventCatalog = {
-  segments: [{ id: "alimentacao", label: "Alimentação", emoji: null }] as EventCatalog["segments"],
+  segments: [{ id: "alimentacao", label: "Alimentação", emoji: null, profile_selectable: true }] as EventCatalog["segments"],
   taxonomy: [
     {
       id: "tx-emb",
@@ -244,6 +244,9 @@ describe("pipeline UI → payload de submit", () => {
       segmentId: "alimentacao",
       summary: "Restaurante familiar com buffet corporativo diário.",
       instagram: "",
+      targetBusinessSize: "any" as const,
+      targetBusinessType: "any" as const,
+      targetSegmentId: "any",
       offers: [
         {
           localId: "o1",
