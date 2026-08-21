@@ -705,28 +705,31 @@ function WizardPage() {
             na primeira etapa (sem rodapé com ações) permanece no cabeçalho. */}
         {step === 0 && <div className="mb-4 flex justify-end">{resetAction}</div>}
 
-        <div className="mb-6">
-          <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
-            <span className="flex items-center gap-2">
-              {step > 0 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon"
-                  onClick={back}
-                  aria-label="Voltar para a etapa anterior"
-                  data-testid="wizard-back"
-                  className="h-7 w-7 shrink-0"
-                >
-                  <ChevronLeft className="h-4 w-4" aria-hidden="true" />
-                </Button>
-              )}
-              Etapa {step + 1} de {STEPS.length}
-            </span>
-            <span>{STEPS[step]}</span>
+        <div className="mb-6 flex items-start gap-2">
+          {step > 0 && (
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              onClick={back}
+              aria-label="Voltar para a etapa anterior"
+              data-testid="wizard-back"
+              className="h-7 w-7 shrink-0"
+            >
+              <ChevronLeft className="h-4 w-4" aria-hidden="true" />
+            </Button>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 flex items-center justify-between gap-2 text-xs text-muted-foreground">
+              <span>
+                Etapa {step + 1} de {STEPS.length}
+              </span>
+              <span className="truncate">{STEPS[step]}</span>
+            </div>
+            <Progress value={progress} className="h-2" />
           </div>
-          <Progress value={progress} className="h-2" />
         </div>
+
 
         {step === 0 && (
           <StepIdentity
