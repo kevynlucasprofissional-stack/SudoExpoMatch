@@ -51,7 +51,21 @@ export function createSupabaseSocialCacheStore(admin: {
           expires_at: record.expires_at,
           last_status: record.last_status ?? "ok",
           last_error_code: record.last_error_code,
+          context_schema_version: record.context_schema_version ?? null,
+          ai_posts_used: record.ai_posts_used ?? null,
+          // Ausente = preserva o snapshot já guardado (COALESCE na RPC).
+          ...(record.provider_payload !== undefined
+            ? {
+                provider_payload: record.provider_payload,
+                provider_payload_version: record.provider_payload_version ?? null,
+                provider_payload_bytes: record.provider_payload_bytes ?? null,
+                provider_payload_truncated: record.provider_payload_truncated ?? false,
+                provider_posts_received: record.provider_posts_received ?? null,
+                provider_posts_persisted: record.provider_posts_persisted ?? null,
+              }
+            : {}),
         },
+
       });
       if (error) console.warn("[social-cache] falha ao gravar L2");
     },

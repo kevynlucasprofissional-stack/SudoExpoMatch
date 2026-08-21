@@ -4,7 +4,9 @@ import {
   isLegacySocialContextShape,
   normalizeInstagramInput,
   sanitizeSocialBusinessContext,
+  limitRecentMedia,
   socialContextFingerprint,
+
   type RateLimiter,
   type SocialBusinessContext,
   type SocialLookupFailure,
@@ -47,12 +49,31 @@ export interface SocialCacheRecord {
   expires_at: string | null;
   last_status: string | null;
   last_error_code: string | null;
+  /** Payload bruto saneado do provider (só é enviado quando há coleta nova). */
+  provider_payload?: Record<string, unknown> | null;
+  provider_payload_version?: string | null;
+  provider_payload_bytes?: number | null;
+  provider_payload_truncated?: boolean | null;
+  provider_posts_received?: number | null;
+  provider_posts_persisted?: number | null;
+  ai_posts_used?: number | null;
+  context_schema_version?: string | null;
 }
 
 /** L2 — armazenamento persistente (Supabase, injetável em teste). */
 export interface SocialCacheStore {
   read(network: string, handle: string): Promise<SocialCacheRecord | null>;
   write(record: SocialCacheRecord): Promise<void>;
+}
+
+/** Metadados do snapshot bruto do provider associado a esta entrada. */
+export interface SocialEntryPayloadMeta {
+  payload?: Record<string, unknown> | null;
+  version: string | null;
+  bytes: number | null;
+  truncated: boolean;
+  postsReceived: number | null;
+  postsPersisted: number | null;
 }
 
 export interface SocialEntry {
@@ -66,7 +87,12 @@ export interface SocialEntry {
   provider: string;
   /** Shape do registro lido do cache (v1 = legado snake_case). */
   schemaVersion?: number;
+  /** Snapshot bruto do provider (patrimônio do backend). */
+  providerPayload?: SocialEntryPayloadMeta;
+  /** Quantas publicações efetivamente alimentaram a IA. */
+  aiPostsUsed?: number | null;
 }
+
 
 
 export type SocialEnrichmentSource = "memory" | "database" | "provider";
@@ -136,6 +162,20 @@ export function entryToRecord(entry: SocialEntry, expiresAt: string | null): Soc
     expires_at: expiresAt,
     last_status: "ok",
     last_error_code: null,
+    context_schema_version: String(SOCIAL_CONTEXT_SCHEMA_VERSION),
+    ai_posts_used: entry.aiPostsUsed ?? null,
+    // Só enviamos payload bruto quando houve coleta nova; sem ele o store
+    // preserva (COALESCE) o snapshot já guardado.
+    ...(entry.providerPayload
+      ? {
+          provider_payload: entry.providerPayload.payload ?? null,
+          provider_payload_version: entry.providerPayload.version,
+          provider_payload_bytes: entry.providerPayload.bytes,
+          provider_payload_truncated: entry.providerPayload.truncated,
+          provider_posts_received: entry.providerPayload.postsReceived,
+          provider_posts_persisted: entry.providerPayload.postsPersisted,
+        }
+      : {}),
   };
 }
 
@@ -146,6 +186,10 @@ export function recordToEntry(record: SocialCacheRecord | null): SocialEntry | n
   const ctx = sanitizeSocialBusinessContext(record.extracted_context);
   if (!ctx) return null;
   const legacy = isLegacySocialContextShape(record.extracted_context);
+  const hasPayloadMeta =
+    record.provider_payload_version != null ||
+    record.provider_payload_bytes != null ||
+    record.provider_posts_received != null;
   return {
     context: ctx,
     analysis: sanitizeSocialAnalysis(record.ai_analysis),
@@ -156,8 +200,22 @@ export function recordToEntry(record: SocialCacheRecord | null): SocialEntry | n
     model: record.ai_model,
     provider: record.provider ?? ctx.provider,
     schemaVersion: legacy ? 1 : SOCIAL_CONTEXT_SCHEMA_VERSION,
+    aiPostsUsed: record.ai_posts_used ?? null,
+    ...(hasPayloadMeta
+      ? {
+          providerPayload: {
+            payload: (record.provider_payload ?? null) as Record<string, unknown> | null,
+            version: record.provider_payload_version ?? null,
+            bytes: record.provider_payload_bytes ?? null,
+            truncated: record.provider_payload_truncated ?? false,
+            postsReceived: record.provider_posts_received ?? null,
+            postsPersisted: record.provider_posts_persisted ?? null,
+          },
+        }
+      : {}),
   };
 }
+
 
 function ageMs(iso: string | null | undefined, now: number): number {
   if (!iso) return Number.POSITIVE_INFINITY;
@@ -324,6 +382,17 @@ export async function runSocialEnrichment(args: {
 
   const fingerprint = socialContextFingerprint(context);
   const fetchedAt = new Date(now()).toISOString();
+  const rawSnapshot = fetched.providerPayload;
+  const payloadMeta: SocialEntryPayloadMeta | undefined = rawSnapshot
+    ? {
+        payload: rawSnapshot.payload,
+        version: rawSnapshot.version,
+        bytes: rawSnapshot.bytes,
+        truncated: rawSnapshot.truncated,
+        postsReceived: rawSnapshot.postsReceived,
+        postsPersisted: rawSnapshot.postsPersisted,
+      }
+    : undefined;
 
   // Conteúdo idêntico ao já analisado → reaproveita a análise (IA = 0).
   if (
@@ -342,6 +411,7 @@ export async function runSocialEnrichment(args: {
       fingerprint,
       fetchedAt,
       provider: context.provider,
+      ...(payloadMeta ? { providerPayload: payloadMeta } : {}),
     };
     await persist(entry, deps, cfg, now);
     deps.memory?.set(key, entry);
@@ -353,10 +423,12 @@ export async function runSocialEnrichment(args: {
     context,
     fingerprint,
     fetchedAt,
+    providerPayload: payloadMeta,
     deps,
     cfg,
     now,
   });
+
   deps.memory?.set(key, entry);
   return ok(entry, "provider", false, 1, deps.analyzer ? 1 : 0);
 }
@@ -366,15 +438,20 @@ async function analyzeAndPersist(args: {
   context: SocialBusinessContext;
   fingerprint: string;
   fetchedAt: string;
+  providerPayload?: SocialEntryPayloadMeta | undefined;
   deps: SocialEnrichmentDeps;
   cfg: SocialConfig;
   now: () => number;
 }): Promise<SocialEntry> {
   const { deps, cfg, now } = args;
+  // A IA recebe bio + N publicações (N configurável, 3..9). A persistência
+  // segue guardando tudo o que o provider devolveu.
+  const aiContext = limitRecentMedia(args.context, cfg.recentPostsForAi);
+  const aiPostsUsed = aiContext.recentMedia?.length ?? 0;
   let analysis: SocialBusinessAnalysis | null = null;
   if (deps.analyzer) {
     try {
-      analysis = sanitizeSocialAnalysis(await deps.analyzer.analyze(args.context));
+      analysis = sanitizeSocialAnalysis(await deps.analyzer.analyze(aiContext));
     } catch {
       analysis = null; // análise é enriquecimento: falha nunca quebra o fluxo
     }
@@ -388,10 +465,17 @@ async function analyzeAndPersist(args: {
     promptVersion: analysis ? (deps.analyzer?.promptVersion ?? null) : null,
     model: analysis ? (deps.analyzer?.model ?? null) : null,
     provider: args.context.provider,
+    aiPostsUsed: analysis ? aiPostsUsed : (args.base?.aiPostsUsed ?? null),
+    ...(args.providerPayload
+      ? { providerPayload: args.providerPayload }
+      : args.base?.providerPayload
+        ? { providerPayload: args.base.providerPayload }
+        : {}),
   };
   await persist(entry, deps, cfg, now);
   return entry;
 }
+
 
 async function persist(
   entry: SocialEntry,

@@ -11,10 +11,12 @@ import {
 } from "@/features/social/cacheStatus";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  readRecentPosts,
   readStringList,
   readText,
   type ParticipantSocial,
 } from "@/features/social/socialProfile";
+
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
 
 function fmt(d: string | null | undefined) {
@@ -90,13 +92,21 @@ export function ParticipantSocialPanel({
   const analysis = social.analysis_snapshot ?? social.cache?.ai_analysis ?? null;
   const keywords = readStringList(ctx, "keywords");
   const signals = readStringList(ctx, "signals");
-  const displayName = readText(ctx, "display_name") ?? readText(pub, "display_name");
+  const displayName =
+    readText(ctx, "displayName") ?? readText(ctx, "display_name") ?? readText(pub, "display_name");
   const category = readText(ctx, "category") ?? readText(pub, "category");
   const bio = readText(ctx, "bio") ?? readText(pub, "bio");
   const website = readText(ctx, "website") ?? readText(pub, "website");
   const freshness = computeSocialFreshness(social.cache ?? null);
-  const followers = (ctx as Record<string, unknown> | null)?.["followers_count"];
-  const media = (ctx as Record<string, unknown> | null)?.["media_count"];
+  const ctxRec = ctx as Record<string, unknown> | null;
+  const followers = ctxRec?.["followersCount"] ?? ctxRec?.["followers_count"];
+  const media = ctxRec?.["mediaCount"] ?? ctxRec?.["media_count"];
+  const recentPosts = readRecentPosts(ctx);
+  const postsReceived = social.cache?.provider_posts_received ?? null;
+  const postsPersisted = social.cache?.provider_posts_persisted ?? null;
+  const postsUsed = social.cache?.ai_posts_used ?? null;
+  const payloadTruncated = social.cache?.provider_payload_truncated ?? false;
+
 
   return (
     <div className="space-y-4 text-sm" data-testid="social-panel">
@@ -174,7 +184,23 @@ export function ParticipantSocialPanel({
           <dt className="text-xs text-muted-foreground">Última atualização</dt>
           <dd>{fmt(social.updated_at ?? social.linked_at)}</dd>
         </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Publicações recebidas / guardadas</dt>
+          <dd data-testid="social-posts-counts">
+            {postsReceived ?? "—"} / {postsPersisted ?? "—"}
+            {payloadTruncated && (
+              <Badge variant="outline" className="ml-2">
+                payload truncado
+              </Badge>
+            )}
+          </dd>
+        </div>
+        <div>
+          <dt className="text-xs text-muted-foreground">Publicações usadas na análise</dt>
+          <dd data-testid="social-posts-used">{postsUsed ?? "—"}</dd>
+        </div>
       </dl>
+
 
       <div>
         <p className="text-xs text-muted-foreground">Bio pública</p>
@@ -206,6 +232,48 @@ export function ParticipantSocialPanel({
           )}
         </ul>
       </div>
+
+      <div data-testid="social-recent-posts">
+        <p className="text-xs text-muted-foreground">Publicações recentes analisadas</p>
+        {recentPosts.length === 0 ? (
+          <p className="mt-1 text-muted-foreground">—</p>
+        ) : (
+          <ul className="mt-1 space-y-2">
+            {recentPosts.map((p) => (
+              <li key={p.key} className="rounded-md border p-2">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>{fmt(p.timestamp)}</span>
+                  <Badge variant="outline">{p.mediaType}</Badge>
+                  {p.permalink && (
+                    <a
+                      href={p.permalink}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="underline underline-offset-2"
+                    >
+                      abrir publicação
+                    </a>
+                  )}
+                </div>
+                <p className="mt-1">
+                  {p.caption
+                    ? p.caption.length > 140
+                      ? `${p.caption.slice(0, 140)}…`
+                      : p.caption
+                    : "(sem legenda)"}
+                </p>
+                {p.hashtags.length > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {p.hashtags.map((h) => `#${h}`).join(" ")}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+
 
       {analysis && (
         <div className="rounded-md border bg-muted/40 p-3">

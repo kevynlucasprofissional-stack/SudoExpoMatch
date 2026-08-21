@@ -1,4 +1,6 @@
-import { resolveGraphApiVersion } from "@/config/social";
+import { DEFAULT_SOCIAL_CONFIG, resolveGraphApiVersion } from "@/config/social";
+import { buildProviderPayloadSnapshot } from "./social-provider-payload";
+
 import {
   MAX_RESPONSE_BYTES,
   SOCIAL_FETCH_TIMEOUT_MS,
@@ -217,6 +219,8 @@ export function createGraphInstagramProvider(
 export const APIFY_ACTOR = "apify~instagram-profile-scraper";
 export const APIFY_GATEWAY_URL = "https://connector-gateway.lovable.dev/apify";
 export const APIFY_TIMEOUT_MS = 45_000;
+/** Posts pedidos ao Actor: coletamos o máximo útil e persistimos todos. */
+export const APIFY_RESULTS_LIMIT = 12;
 
 interface ApifyItem {
   username?: unknown;
@@ -262,8 +266,28 @@ export function cleanApifyText(value: unknown): unknown {
   return trimmed;
 }
 
-/** Mapeia o payload do Apify para o nosso domínio — nada bruto é guardado. */
+/**
+ * Tipos de mídia reais devolvidos pela Apify: `Image`, `Video`, `Sidecar`
+ * (carrossel). Mapeamos para o vocabulário canônico do contexto.
+ */
+export function normalizeApifyMediaType(raw: unknown): string {
+  const t = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (t === "sidecar" || t === "carousel" || t === "carousel_album") return "CAROUSEL_ALBUM";
+  if (t === "video" || t === "reel" || t === "clip") return "VIDEO";
+  if (t === "image" || t === "photo" || t === "graphimage") return "IMAGE";
+  return "OTHER";
+}
 
+/** Lista de strings curtas (hashtags/menções) tolerante a lixo do provider. */
+function stringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+}
+
+/**
+ * Mapeia o payload do Apify para o CONTEXTO da IA (compacto). O payload bruto
+ * completo é persistido em separado (ver `buildProviderPayloadSnapshot`).
+ */
 export function mapApifyItemToContext(item: unknown, handle: string): SocialBusinessContext | null {
   if (!item || typeof item !== "object") return null;
   const it = item as ApifyItem;
@@ -271,11 +295,21 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
   const media = sanitizeRecentMedia(
     posts.map((p) => {
       const post = (p ?? {}) as Record<string, unknown>;
+      const engagement = {
+        likes: post["likesCount"],
+        comments: post["commentsCount"],
+        views: post["videoViewCount"] ?? post["videoPlayCount"],
+      };
       return {
-        mediaType: typeof post["type"] === "string" ? String(post["type"]).toUpperCase() : undefined,
+        postId: post["id"],
+        shortCode: post["shortCode"],
+        mediaType: normalizeApifyMediaType(post["type"]),
         caption: post["caption"],
+        hashtags: stringList(post["hashtags"]),
+        mentions: stringList(post["mentions"]),
         timestamp: post["timestamp"],
         permalink: post["url"],
+        engagement,
       };
     }),
   );
@@ -293,6 +327,7 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
   });
 }
 
+
 /**
  * Provider gerenciado (Apify official Instagram Profile Scraper).
  * Recebe apenas o handle normalizado; nunca recebe credenciais do Instagram.
@@ -301,8 +336,12 @@ export function createApifyInstagramProvider(
   auth: ApifyAuth | string,
   fetchImpl: typeof fetch = fetch,
   timeoutMs = APIFY_TIMEOUT_MS,
+  opts: { resultsLimit?: number; maxPayloadBytes?: number; keepPosts?: number } = {},
 ): SocialProvider {
   const credentials: ApifyAuth = typeof auth === "string" ? { mode: "direct", token: auth } : auth;
+  const resultsLimit = opts.resultsLimit ?? APIFY_RESULTS_LIMIT;
+  const maxPayloadBytes = opts.maxPayloadBytes ?? DEFAULT_SOCIAL_CONFIG.maxProviderPayloadBytes;
+  const keepPosts = opts.keepPosts ?? DEFAULT_SOCIAL_CONFIG.recentPostsForAi;
   return {
     id: "instagram_apify",
     async fetchProfile(handle: string): Promise<SocialLookupResult> {
@@ -324,7 +363,7 @@ export function createApifyInstagramProvider(
           method: "POST",
           signal: controller.signal,
           headers,
-          body: JSON.stringify({ usernames: [handle], resultsLimit: 12 }),
+          body: JSON.stringify({ usernames: [handle], resultsLimit }),
         });
         if (res.status === 401 || res.status === 403) {
           return { status: "unavailable", reason: "config_error" };
@@ -348,10 +387,17 @@ export function createApifyInstagramProvider(
         if (errText) return { status: "unavailable", reason: "error" };
         const ctx = mapApifyItemToContext(first, handle);
         if (!ctx) return { status: "unavailable", reason: "empty" };
-        return { status: "ok", context: ctx };
+        // Patrimônio do backend: TODOS os posts recebidos, sem segredo algum.
+        const providerPayload = buildProviderPayloadSnapshot(first, {
+          maxBytes: maxPayloadBytes,
+          keepPosts,
+          fetchedAt: ctx.fetchedAt,
+        });
+        return { status: "ok", context: ctx, providerPayload };
       } catch (err) {
         const name = (err as { name?: string } | null)?.name ?? "";
         return { status: "unavailable", reason: name === "AbortError" ? "timeout" : "error" };
+
       } finally {
         clearTimeout(timer);
       }

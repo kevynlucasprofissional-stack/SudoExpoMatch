@@ -113,7 +113,16 @@ export const socialCacheViewSchema = z.object({
   last_status: z.string().nullable().default(null),
   last_error_code: z.string().nullable().default(null),
   updated_at: z.string().nullable().default(null),
+  // Métricas do patrimônio bruto guardado no backend (nunca o JSON completo).
+  provider_posts_received: z.number().int().nullable().default(null).optional(),
+  provider_posts_persisted: z.number().int().nullable().default(null).optional(),
+  ai_posts_used: z.number().int().nullable().default(null).optional(),
+  provider_payload_version: z.string().nullable().default(null).optional(),
+  provider_payload_bytes: z.number().int().nullable().default(null).optional(),
+  provider_payload_truncated: z.boolean().nullable().default(null).optional(),
+  context_schema_version: z.string().nullable().default(null).optional(),
 });
+
 
 export const socialLinkViewSchema = z.object({
   network: z.string(),
@@ -166,4 +175,42 @@ export function readText(source: unknown, key: string): string | null {
   const value = (source as Record<string, unknown>)[key];
   return typeof value === "string" && value.trim() ? value : null;
 }
+
+/** Publicação recente já saneada, pronta para exibição administrativa. */
+export interface AdminRecentPost {
+  key: string;
+  mediaType: string;
+  caption: string | null;
+  timestamp: string | null;
+  permalink: string | null;
+  hashtags: string[];
+}
+
+/**
+ * Lê `recentMedia` de um contexto social, tolerando registros legados em
+ * snake_case. Nunca devolve JSON bruto — só os campos exibíveis.
+ */
+export function readRecentPosts(source: unknown, max = 12): AdminRecentPost[] {
+  if (!source || typeof source !== "object") return [];
+  const rec = source as Record<string, unknown>;
+  const raw = rec["recentMedia"] ?? rec["recent_media"];
+  if (!Array.isArray(raw)) return [];
+  const out: AdminRecentPost[] = [];
+  for (const item of raw) {
+    if (!item || typeof item !== "object") continue;
+    const m = item as Record<string, unknown>;
+    const type = m["mediaType"] ?? m["media_type"];
+    out.push({
+      key: String(m["postId"] ?? m["post_id"] ?? m["shortCode"] ?? m["permalink"] ?? out.length),
+      mediaType: typeof type === "string" && type ? type : "OTHER",
+      caption: readText(m, "caption"),
+      timestamp: readText(m, "timestamp"),
+      permalink: readText(m, "permalink"),
+      hashtags: readStringList(m, "hashtags", 8),
+    });
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
 
