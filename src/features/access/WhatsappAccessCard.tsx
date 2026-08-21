@@ -47,11 +47,35 @@ const verifyLimiter = createAttemptLimiter(OTP_VERIFY_MAX, OTP_VERIFY_WINDOW_MS)
 
 type Phase = "phone" | "code";
 
-export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapability }) {
+export interface WhatsappAccessCardProps {
+  capability: PhoneAuthCapability;
+  /** Número já conhecido (fluxo de cadastro) — pré-preenche o campo. */
+  initialPhone?: string;
+  /** Impede editar o número (verificação do cadastro). */
+  lockPhone?: boolean;
+  /** Texto do botão de confirmação do código. */
+  confirmLabel?: string;
+  /** Mensagem do topo do cartão. */
+  hint?: string;
+  /**
+   * Quando informado, assume o pós-sucesso (sem toast nem navegação padrão).
+   * Usado pela verificação obrigatória do cadastro.
+   */
+  onVerified?: (result: { profileId: string; claimed: boolean }) => void;
+}
+
+export function WhatsappAccessCard({
+  capability,
+  initialPhone,
+  lockPhone = false,
+  confirmLabel = "Entrar",
+  hint = "Sem senha: confirmamos seu WhatsApp com um código de uso único.",
+  onVerified,
+}: WhatsappAccessCardProps) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [phase, setPhase] = useState<Phase>("phone");
-  const [phone, setPhone] = useState("");
+  const [phone, setPhone] = useState(initialPhone ?? "");
   const [code, setCode] = useState("");
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -139,11 +163,15 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
       await verifyPhoneOtp(phone, code);
       const res = await claimProfileByVerifiedPhone(EVENT_ID);
       verifyLimiter.reset(key);
-      setPhone("");
+      if (!lockPhone) setPhone("");
       setCode("");
       if (!mounted.current) return;
       qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
       qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      if (onVerified) {
+        onVerified(res);
+        return;
+      }
       toast.success(res.claimed ? "Bem-vindo(a) de volta!" : "Acesso liberado.");
       navigate({ to: "/participante" });
     } catch (err) {
@@ -155,7 +183,7 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
     } finally {
       if (mounted.current) setBusy(false);
     }
-  }, [phone, code, key, qc, navigate]);
+  }, [phone, code, key, qc, navigate, onVerified, lockPhone]);
 
   if (!capability.otpEnabled) return null;
 
@@ -163,9 +191,7 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
     <div className="space-y-4" data-testid="whatsapp-access">
       <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <p className="text-muted-foreground">
-          Sem senha: confirmamos seu WhatsApp com um código de uso único.
-        </p>
+        <p className="text-muted-foreground">{hint}</p>
       </div>
 
       {phase === "phone" ? (
@@ -178,6 +204,8 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
             placeholder="(64) 99999-9999"
             inputMode="tel"
             autoComplete="tel"
+            readOnly={lockPhone}
+            disabled={lockPhone}
           />
           {capability.channels.length > 1 && (
             <div className="mt-3">
@@ -261,7 +289,7 @@ export function WhatsappAccessCard({ capability }: { capability: PhoneAuthCapabi
             aria-busy={busy}
           >
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Entrar
+            {confirmLabel}
           </Button>
           <Button
             variant="ghost"

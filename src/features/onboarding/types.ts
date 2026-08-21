@@ -50,13 +50,11 @@ export type SubmitStage =
   | "idle"
   | "saving_profile"
   | "saving_contact"
-  | "generating_code"
-  | "awaiting_code_confirmation"
+  | "awaiting_phone_verification"
   | "recomputing_matches"
   | "completed"
   | "profile_failed"
   | "contact_failed"
-  | "code_failed"
   | "matching_failed";
 
 export interface SubmitState {
@@ -64,8 +62,6 @@ export interface SubmitState {
   mode: WizardMode;
   /** `true` se o WhatsApp foi informado no envio atual. */
   withContact: boolean;
-  /** Código de recuperação em memória — nunca persistido. */
-  recoveryCode: string | null;
 }
 
 export interface SuggestionItem {

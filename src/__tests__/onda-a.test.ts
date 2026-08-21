@@ -12,7 +12,6 @@ import {
   saveOwnProfilePayloadSchema,
 } from "@/features/participant/schemas";
 import { eventCatalogSchema } from "@/features/taxonomy/schemas";
-import { recoverProfileResponseSchema } from "@/features/recovery/schemas";
 import {
   LABEL_TEXT,
   DECISION_TEXT,
@@ -20,7 +19,6 @@ import {
   isMutualInterest,
 } from "@/features/matching/presentation";
 import { extractErrorCode, ApiError } from "@/features/participant/api";
-import { translateRecoverErrorCode } from "@/features/recovery/api";
 import type { ErrorCode } from "@/features/participant/types";
 
 // ---------- Query keys ----------
@@ -214,19 +212,6 @@ describe("revealedContactSchema", () => {
   });
 });
 
-// ---------- Recover ----------
-describe("recoverProfileResponseSchema", () => {
-  it("aceita array de um elemento", () => {
-    expect(
-      recoverProfileResponseSchema.safeParse([{ profile_id: "p", new_recovery_code: "ABC12345" }])
-        .success,
-    ).toBe(true);
-  });
-  it("rejeita array vazio", () => {
-    expect(recoverProfileResponseSchema.safeParse([]).success).toBe(false);
-  });
-});
-
 // ---------- Save payload ----------
 describe("saveOwnProfilePayloadSchema", () => {
   const ok = {
@@ -306,33 +291,6 @@ describe("extractErrorCode", () => {
     const code = extractErrorCode("secret payload data 1234");
     expect(code).toBe("unknown");
     expect(code).not.toContain("secret");
-  });
-});
-
-// ---------- Recovery translations ----------
-describe("translateRecoverErrorCode", () => {
-  const codes: ErrorCode[] = [
-    "not_found",
-    "invalid_code",
-    "no_recovery",
-    "locked",
-    "rate_limited",
-    "demo_not_recoverable",
-    "current_user_already_has_profile",
-    "recovery_not_configured",
-    "not_authenticated",
-    "sign_in_failed",
-    "event_not_active",
-    "invalid_input",
-    "network",
-    "unknown",
-  ];
-  it("traduz TODOS os códigos exigidos sem devolver o próprio código", () => {
-    for (const c of codes) {
-      const msg = translateRecoverErrorCode(c);
-      expect(msg.length).toBeGreaterThan(4);
-      expect(msg).not.toBe(c);
-    }
   });
 });
 

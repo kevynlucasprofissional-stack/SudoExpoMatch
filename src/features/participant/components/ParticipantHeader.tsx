@@ -6,7 +6,6 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { RotateRecoveryButton } from "./RotateRecoveryButton";
 
 interface Props {
   firstName: string;
@@ -96,7 +95,6 @@ export function ParticipantHeader({
           )}
           Atualizar
         </Button>
-        <RotateRecoveryButton />
         <Button
           variant="ghost"
           size="sm"

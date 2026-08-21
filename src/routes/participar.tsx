@@ -26,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { RecoveryCodeDialog } from "@/components/RecoveryCodeDialog";
+import { PhoneVerificationDialog } from "@/features/access/PhoneVerificationDialog";
 
 import { EVENT_ID } from "@/config/event";
 import {
@@ -42,7 +42,6 @@ import {
   linkOwnSocialProfile,
   getOwnSocialProfile,
   setOwnContact,
-  rotateOwnRecoveryCode,
 } from "@/features/participant/api";
 import { recomputeOwnMatches } from "@/features/matching/api";
 import { useQueryClient } from "@tanstack/react-query";
@@ -388,7 +387,6 @@ function WizardPage() {
         deps: {
           saveOwnProfile,
           setOwnContact,
-          rotateOwnRecoveryCode,
           linkSocialProfile: linkOwnSocialProfile,
         },
       });
@@ -412,13 +410,7 @@ function WizardPage() {
           dispatch({ type: "CONTACT_FAIL" });
           toast.error(errorToUserMessage(evt.error, "Perfil salvo, contato não."));
           return;
-        } else if (evt.type === "CODE_OK") {
-          dispatch({ type: "CODE_OK", code: evt.code });
-        } else if (evt.type === "CODE_FAIL") {
-          dispatch({ type: "CODE_FAIL" });
-          toast.error(errorToUserMessage(evt.error, "Não gerou código."));
-          return;
-        } else if (evt.type === "AWAIT_CODE_CONFIRMATION") {
+        } else if (evt.type === "AWAIT_PHONE_VERIFICATION") {
           return;
         } else if (evt.type === "MATCH_OK") {
           qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
@@ -459,38 +451,13 @@ function WizardPage() {
         return;
       }
       dispatch({ type: "CONTACT_OK" });
-      if (mode === "create") {
-        try {
-          const code = await rotateOwnRecoveryCode();
-          dispatch({ type: "CODE_OK", code });
-        } catch (err) {
-          dispatch({ type: "CODE_FAIL" });
-          toast.error(errorToUserMessage(err, "Não gerou código."));
-        }
-      } else {
+      if (mode !== "create") {
         await runRecompute();
       }
     } finally {
       runningRef.current = false;
     }
   }, [phone, mode, runRecompute]);
-
-  const retryCode = useCallback(async () => {
-    if (runningRef.current) return;
-    runningRef.current = true;
-    try {
-      dispatch({ type: "RETRY_CODE" });
-      try {
-        const code = await rotateOwnRecoveryCode();
-        dispatch({ type: "CODE_OK", code });
-      } catch (err) {
-        dispatch({ type: "CODE_FAIL" });
-        toast.error(errorToUserMessage(err, "Não gerou código."));
-      }
-    } finally {
-      runningRef.current = false;
-    }
-  }, []);
 
   const retryMatch = useCallback(async () => {
     if (runningRef.current) return;
@@ -503,11 +470,11 @@ function WizardPage() {
     }
   }, [runRecompute]);
 
-  const codeConfirmed = useCallback(async () => {
+  const phoneVerified = useCallback(async () => {
     if (runningRef.current) return;
     runningRef.current = true;
     try {
-      dispatch({ type: "CODE_CONFIRMED" });
+      dispatch({ type: "PHONE_VERIFIED" });
       // Descoberta automática já rodou dentro de save_own_profile_v2.
       // Apenas invalida cache e navega para o painel.
       qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
@@ -794,7 +761,6 @@ function WizardPage() {
             onBack={back}
             onSubmit={() => void startSubmit()}
             onRetryContact={() => void retryContact()}
-            onRetryCode={() => void retryCode()}
             onRetryMatch={() => void retryMatch()}
             onGoToPanel={goToPanel}
             onGoToIdentity={goToIdentity}
@@ -808,10 +774,10 @@ function WizardPage() {
         )}
       </section>
 
-      <RecoveryCodeDialog
-        open={submit.stage === "awaiting_code_confirmation"}
-        code={submit.recoveryCode}
-        onConfirm={() => void codeConfirmed()}
+      <PhoneVerificationDialog
+        open={submit.stage === "awaiting_phone_verification"}
+        phone={phone}
+        onVerified={() => void phoneVerified()}
       />
 
       <AlertDialog open={showReset} onOpenChange={setShowReset}>

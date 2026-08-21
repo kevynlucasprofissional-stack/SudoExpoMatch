@@ -128,9 +128,9 @@ describe("capability e fallback", () => {
     expect(card).toContain("if (!capability.otpEnabled) return null;");
     const view = read("src/features/participant/components/RecoveryView.tsx");
     expect(view).toContain("capability.otpEnabled");
-    // fallback antigo preservado
-    expect(view).toContain("Código pessoal");
-    expect(view).toContain("useRecoverProfile");
+    // Acesso é exclusivamente por WhatsApp: sem código pessoal em lugar nenhum.
+    expect(view).not.toContain("Código pessoal");
+    expect(view).not.toContain("useRecoverProfile");
   });
 });
 

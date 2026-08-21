@@ -41,8 +41,6 @@ const PARTICIPANT_RPCS = [
   "public.get_own_profile_v2(text)",
   "public.save_own_profile_v2(jsonb)",
   "public.set_own_contact(text,text,boolean)",
-  "public.rotate_own_recovery_code()",
-  "public.recover_profile_v2(text,text,text)",
   "public.list_own_matches_v2(text)",
   "public.record_match_decision_v2(uuid,public.decision)",
   "public.recompute_own_matches(text)",

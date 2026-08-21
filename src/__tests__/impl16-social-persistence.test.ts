@@ -117,7 +117,6 @@ describe("submit do wizard persiste o Instagram", () => {
       deps: {
         saveOwnProfile: async () => "profile-1",
         setOwnContact: async () => undefined,
-        rotateOwnRecoveryCode: async () => "AAAA-BBBB",
         linkSocialProfile: async (payload) => {
           calls.push(payload);
           return { status: "linked" };
@@ -164,7 +163,6 @@ describe("submit do wizard persiste o Instagram", () => {
       deps: {
         saveOwnProfile: async () => "profile-1",
         setOwnContact: async () => undefined,
-        rotateOwnRecoveryCode: async () => "AAAA-BBBB",
         linkSocialProfile: async () => {
           throw new Error("boom");
         },
@@ -183,7 +181,6 @@ describe("submit do wizard persiste o Instagram", () => {
       deps: {
         saveOwnProfile: async () => "profile-1",
         setOwnContact: async () => undefined,
-        rotateOwnRecoveryCode: async () => "AAAA-BBBB",
       },
     });
     expect(events.some((e) => e.type.startsWith("SOCIAL"))).toBe(false);

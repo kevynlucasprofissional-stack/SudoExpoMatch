@@ -1137,7 +1137,6 @@ export function StepReview({
   draft,
   onSubmit,
   onRetryContact,
-  onRetryCode,
   onRetryMatch,
   onGoToPanel,
   onGoToIdentity,
@@ -1153,7 +1152,6 @@ export function StepReview({
   onBack: () => void;
   onSubmit: () => void;
   onRetryContact: () => void;
-  onRetryCode: () => void;
   onRetryMatch: () => void;
   onGoToPanel: () => void;
   onGoToIdentity: () => void;
@@ -1270,13 +1268,6 @@ export function StepReview({
             onGoToPanel={contactFailedGoToPanel}
           />
         )}
-        {submit.stage === "code_failed" && (
-          <PartialFailureBanner
-            title="Perfil salvo. Não foi possível gerar o código de recuperação."
-            action="Gerar código novamente"
-            onAction={onRetryCode}
-          />
-        )}
         {submit.stage === "matching_failed" && (
           <PartialFailureBanner
             title="Seu perfil está salvo. Não conseguimos calcular seus matches agora."
@@ -1307,7 +1298,6 @@ export function StepReview({
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />{" "}
                 {submit.stage === "saving_profile" && "Salvando perfil…"}
                 {submit.stage === "saving_contact" && "Salvando contato…"}
-                {submit.stage === "generating_code" && "Gerando código…"}
                 {submit.stage === "recomputing_matches" && "Buscando conexões…"}
               </>
             ) : mode === "edit" ? (

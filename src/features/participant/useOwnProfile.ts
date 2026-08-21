@@ -2,7 +2,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { qk } from "./queryKeys";
 import {
   getOwnProfile,
-  rotateOwnRecoveryCode,
   saveOwnProfile,
   setOwnContact,
   ApiError,
@@ -79,7 +78,6 @@ export interface SaveOwnProfileInput {
 
 export interface SaveOwnProfileResult {
   profileId: string;
-  recoveryCode: string | null;
 }
 
 function toCode(err: unknown): ErrorCode {
@@ -135,15 +133,6 @@ export function useSaveOwnProfile() {
         }
       }
 
-      let recoveryCode: string | null = null;
-      try {
-        recoveryCode = await rotateOwnRecoveryCode();
-      } catch {
-        // Onda B trata via máquina de submit; aqui mantemos comportamento
-        // atual (código opcional) sem persistir mensagens sensíveis.
-        recoveryCode = null;
-      }
-
       try {
         await recomputeOwnMatches(input.eventId);
       } catch {
@@ -151,7 +140,7 @@ export function useSaveOwnProfile() {
         // exibirá painel de retry dedicado.
       }
 
-      return { profileId, recoveryCode };
+      return { profileId };
     },
     onSuccess: (_r, input) => {
       qc.invalidateQueries({ queryKey: qk.ownProfile(input.eventId) });

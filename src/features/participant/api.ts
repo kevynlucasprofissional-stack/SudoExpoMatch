@@ -128,21 +128,6 @@ export async function setOwnContact(input: {
   if (error) throw new ApiError(extractErrorCode(error.message));
 }
 
-export async function rotateOwnRecoveryCode(): Promise<string> {
-  await ensureParticipantSession();
-  const { data, error } = await supabase.rpc("rotate_own_recovery_code");
-  if (error) throw new ApiError(extractErrorCode(error.message));
-  if (typeof data !== "string" || data.length < 4) {
-    throw new ApiError("invalid_response");
-  }
-  return data;
-}
-
-// ---------------------------------------------------------------- social
-/**
- * Persiste (ou remove) o vínculo do @Instagram do participante.
- * Nunca deve bloquear o cadastro: o chamador trata a falha como aviso.
- */
 export async function linkOwnSocialProfile(
   payload: import("@/features/social/socialProfile").SocialLinkPayload,
 ): Promise<{ status: string; handle?: string }> {
