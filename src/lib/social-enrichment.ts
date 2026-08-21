@@ -123,7 +123,10 @@ export function entryToRecord(entry: SocialEntry, expiresAt: string | null): Soc
       media_count: ctx.mediaCount ?? null,
       profile_picture_url: ctx.profilePictureUrl ?? null,
     },
-    extracted_context: ctx as unknown as Record<string, unknown>,
+    extracted_context: {
+      ...(ctx as unknown as Record<string, unknown>),
+      schemaVersion: SOCIAL_CONTEXT_SCHEMA_VERSION,
+    },
     ai_analysis: (entry.analysis as unknown as Record<string, unknown>) ?? null,
     content_fingerprint: entry.fingerprint,
     ai_prompt_version: entry.promptVersion,
@@ -138,8 +141,11 @@ export function entryToRecord(entry: SocialEntry, expiresAt: string | null): Soc
 
 export function recordToEntry(record: SocialCacheRecord | null): SocialEntry | null {
   if (!record) return null;
+  // Leitura tolerante: registros legados em snake_case são normalizados
+  // para o contrato canônico camelCase antes de qualquer uso.
   const ctx = sanitizeSocialBusinessContext(record.extracted_context);
   if (!ctx) return null;
+  const legacy = isLegacySocialContextShape(record.extracted_context);
   return {
     context: ctx,
     analysis: sanitizeSocialAnalysis(record.ai_analysis),
@@ -149,6 +155,7 @@ export function recordToEntry(record: SocialCacheRecord | null): SocialEntry | n
     promptVersion: record.ai_prompt_version,
     model: record.ai_model,
     provider: record.provider ?? ctx.provider,
+    schemaVersion: legacy ? 1 : SOCIAL_CONTEXT_SCHEMA_VERSION,
   };
 }
 
@@ -158,14 +165,22 @@ function ageMs(iso: string | null | undefined, now: number): number {
   return Number.isFinite(t) ? now - t : Number.POSITIVE_INFINITY;
 }
 
-/** A coleta ainda está fresca? */
+/**
+ * A coleta ainda está fresca?
+ * Registro em shape legado NUNCA é considerado fresco: ele é candidato
+ * obrigatório a refresh (item 8 do plano de correção).
+ */
 export function isFetchFresh(entry: SocialEntry, cfg: SocialConfig, now: number): boolean {
+  if ((entry.schemaVersion ?? SOCIAL_CONTEXT_SCHEMA_VERSION) < SOCIAL_CONTEXT_SCHEMA_VERSION) {
+    return false;
+  }
   return ageMs(entry.fetchedAt, now) < cfg.fetchTtlMs;
 }
 
 /**
  * A análise de IA continua válida? Depende de conteúdo (fingerprint),
  * versão do prompt e modelo — e só então de tempo.
+ * Análise mais VELHA que a coleta é sempre stale.
  */
 export function isAnalysisValid(
   entry: SocialEntry,
@@ -175,8 +190,14 @@ export function isAnalysisValid(
   if (entry.fingerprint !== args.fingerprint) return false;
   if (entry.promptVersion !== args.promptVersion) return false;
   if (entry.model !== args.model) return false;
+  if (!entry.analyzedAt) return false;
+  const analyzed = Date.parse(entry.analyzedAt);
+  const fetched = Date.parse(entry.fetchedAt);
+  if (Number.isFinite(analyzed) && Number.isFinite(fetched) && analyzed < fetched) return false;
   return ageMs(entry.analyzedAt, args.now) < args.cfg.analysisTtlMs;
 }
+
+
 
 // -------------------------------------------------------------- pipeline
 export async function runSocialEnrichment(args: {
