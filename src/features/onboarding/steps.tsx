@@ -580,7 +580,7 @@ export function StepOffers({
 
   function addCustom(label: string) {
     const clean = label.trim();
-    if (!clean || draft.offers.length >= 5) return;
+    if (clean.length < 2 || draft.offers.length >= 5) return;
     if (draft.offers.some((o) => o.label.toLowerCase() === clean.toLowerCase())) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
