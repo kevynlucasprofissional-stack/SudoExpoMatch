@@ -189,10 +189,8 @@ export function WhatsappAccessCard({
 
   return (
     <div className="space-y-4" data-testid="whatsapp-access">
-      <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <p className="text-muted-foreground">{hint}</p>
-      </div>
+
+
 
       {phase === "phone" ? (
         <div>
