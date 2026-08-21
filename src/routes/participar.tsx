@@ -121,7 +121,7 @@ function WizardPage() {
   const [hydrated, setHydrated] = useState(false);
   const [mode, setMode] = useState<WizardMode>("create");
   const [showConflict, setShowConflict] = useState(false);
-  const [phoneVerified, setPhoneVerified] = useState(false);
+  const [showPhoneConfirm, setShowPhoneConfirm] = useState(false);
   const [submit, dispatch] = useReducer(submitReducer, initialSubmitState());
 
   const runningRef = useRef(false);
@@ -302,7 +302,7 @@ function WizardPage() {
     });
     setMode("create");
     setShowConflict(false);
-    setPhoneVerified(false);
+    setShowPhoneConfirm(false);
     toast.success("Formulário limpo. Pode começar um novo cadastro.");
   }, [aiAnalysis.reset, qc]);
 
@@ -375,10 +375,6 @@ function WizardPage() {
   // ------------------------------------------------------------------
   const startSubmit = useCallback(async () => {
     if (runningRef.current) return;
-    if (mode === "create" && !phoneVerified) {
-      toast.error("Confirme seu WhatsApp para concluir o cadastro.");
-      return;
-    }
     runningRef.current = true;
     try {
       const withContactUpfront = mode === "create" ? true : !!phone.trim();
@@ -433,7 +429,7 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, phoneVerified, qc, navigate, goToIdentity, social.result]);
+  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -472,25 +468,6 @@ function WizardPage() {
       runningRef.current = false;
     }
   }, [runRecompute]);
-
-  /**
-   * OTP confirmado na etapa de revisão — ainda nada foi gravado. Se já existe
-   * perfil para esse telefone (participante que voltou), reaproveitamos o
-   * caminho de edição em vez de criar duplicado.
-   */
-  const handlePhoneVerified = useCallback(async () => {
-    setPhoneVerified(true);
-    toast.success("WhatsApp confirmado.");
-    try {
-      const res = await profileQuery.refetch();
-      if (res.data) {
-        setMode("edit");
-        setShowConflict(true);
-      }
-    } catch {
-      /* revalidação opcional — o envio segue normalmente */
-    }
-  }, [profileQuery]);
 
   const goToPanel = useCallback(() => {
     clearWizardDraft();
@@ -764,7 +741,7 @@ function WizardPage() {
           <StepReview
             draft={draft}
             onBack={back}
-            onSubmit={() => void startSubmit()}
+            onSubmit={() => setShowPhoneConfirm(true)}
             onRetryContact={() => void retryContact()}
             onRetryMatch={() => void retryMatch()}
             onGoToPanel={goToPanel}
@@ -775,9 +752,6 @@ function WizardPage() {
             catalog={catalog}
             validation={validation}
             catalogFallback={manualCatalogMode}
-            phone={phone}
-            phoneVerified={phoneVerified}
-            onPhoneVerified={() => void handlePhoneVerified()}
           />
         )}
       </section>
@@ -795,6 +769,41 @@ function WizardPage() {
               onClick={() => void confirmReset()}
             >
               {WIZARD_RESET_COPY.confirm}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={showPhoneConfirm} onOpenChange={setShowPhoneConfirm}>
+        <AlertDialogContent data-testid="phone-confirm-dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-white">Confirme seu WhatsApp</AlertDialogTitle>
+            <AlertDialogDescription>
+              É por esse número que as pessoas vão te encontrar depois do evento. Confira se está
+              correto:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center font-display text-xl font-semibold text-white">
+            {phone.trim() || "—"}
+          </p>
+          <AlertDialogFooter>
+            <AlertDialogCancel
+              className="text-white"
+              onClick={() => {
+                setShowPhoneConfirm(false);
+                goToIdentity();
+              }}
+            >
+              Corrigir número
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-testid="phone-confirm-submit"
+              onClick={() => {
+                setShowPhoneConfirm(false);
+                void startSubmit();
+              }}
+            >
+              Está correto, finalizar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
