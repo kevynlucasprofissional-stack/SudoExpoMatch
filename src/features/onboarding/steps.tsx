@@ -1043,6 +1043,7 @@ export function StepNeeds({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Descreva o que procura"
+            aria-invalid={label.trim().length === 1}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -1053,11 +1054,14 @@ export function StepNeeds({
           <Button
             type="button"
             onClick={addCustom}
-            disabled={!label.trim() || draft.needs.length >= 5}
+            disabled={label.trim().length < 2 || draft.needs.length >= 5}
           >
             <Plus className="h-4 w-4" />
           </Button>
         </div>
+        {label.trim().length === 1 && (
+          <p className="mt-1.5 text-sm text-destructive">Descreva com pelo menos 2 caracteres</p>
+        )}
       </div>
 
       <div className="mt-6">
