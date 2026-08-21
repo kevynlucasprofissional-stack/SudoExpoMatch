@@ -233,6 +233,48 @@ export function ParticipantSocialPanel({
         </ul>
       </div>
 
+      <div data-testid="social-recent-posts">
+        <p className="text-xs text-muted-foreground">Publicações recentes analisadas</p>
+        {recentPosts.length === 0 ? (
+          <p className="mt-1 text-muted-foreground">—</p>
+        ) : (
+          <ul className="mt-1 space-y-2">
+            {recentPosts.map((p) => (
+              <li key={p.key} className="rounded-md border p-2">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>{fmt(p.timestamp)}</span>
+                  <Badge variant="outline">{p.mediaType}</Badge>
+                  {p.permalink && (
+                    <a
+                      href={p.permalink}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="underline underline-offset-2"
+                    >
+                      abrir publicação
+                    </a>
+                  )}
+                </div>
+                <p className="mt-1">
+                  {p.caption
+                    ? p.caption.length > 140
+                      ? `${p.caption.slice(0, 140)}…`
+                      : p.caption
+                    : "(sem legenda)"}
+                </p>
+                {p.hashtags.length > 0 && (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {p.hashtags.map((h) => `#${h}`).join(" ")}
+                  </p>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+
+
       {analysis && (
         <div className="rounded-md border bg-muted/40 p-3">
           <p className="text-xs text-muted-foreground">
