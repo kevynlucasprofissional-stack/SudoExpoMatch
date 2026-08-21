@@ -127,8 +127,11 @@ describe("admin_set_match_reviewed — regras (prova comportamental na migration
   });
 
   it("nenhuma revisão de teste ficou persistida", () => {
+    // Sem matches no evento (base zerada), a checagem vale para a tabela inteira.
     expect(
-      psql(`SELECT count(*)::int FROM public.match_admin_reviews WHERE match_id='${MATCH}'`),
+      MATCH
+        ? psql(`SELECT count(*)::int FROM public.match_admin_reviews WHERE match_id='${MATCH}'`)
+        : psql(`SELECT count(*)::int FROM public.match_admin_reviews`),
     ).toBe("0");
   });
 });

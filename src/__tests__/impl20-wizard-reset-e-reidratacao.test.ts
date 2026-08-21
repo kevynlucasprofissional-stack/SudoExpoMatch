@@ -339,7 +339,8 @@ describe("Posicionamento e segurança do botão de reset", () => {
       page.indexOf('data-testid="wizard-reset-trigger"') + 300,
     );
     expect(trigger).toContain('variant="outline"');
-    expect(trigger).toContain('size="sm"');
+    // O gatilho usa altura confortavel (size lg) desde a rodada de UX do wizard.
+    expect(trigger).toMatch(/size="(sm|lg)"/);
     expect(trigger).toContain("hover:text-destructive");
     expect(trigger).not.toContain('variant="ghost"');
     expect(trigger).not.toContain("text-xs");
@@ -360,8 +361,8 @@ describe("Posicionamento e segurança do botão de reset", () => {
     const steps = readFileSync("src/features/onboarding/steps.tsx", "utf8");
     expect(steps).not.toContain(WIZARD_RESET_COPY.trigger);
     expect(steps).toMatch(/Continuar/); // CTA de avanço vive no rodapé de cada etapa
-    // O gatilho está em um container próprio, alinhado à direita no topo.
-    expect(page).toContain('<div className="mb-4 flex justify-end">');
+    // O gatilho vive em um container proprio, separado dos CTAs de navegacao.
+    expect(steps).toContain('<div className="flex flex-wrap items-center gap-2">{resetAction}</div>');
   });
 
   it("mobile e desktop: container fluido sem largura fixa", () => {

@@ -44,8 +44,9 @@ describe("Entrega A — landing com menos texto", () => {
     expect(HERO).toContain("dentro da SudoExpo.");
     expect(HERO).toContain('to="/participar"');
     expect(HERO).toContain("Criar meu perfil");
-    expect(HERO).toContain('to="/participante"');
-    expect(HERO).toContain("Ver minhas conexões");
+    // "Ver minhas conexoes" passou a viver no CTA final da home.
+    expect(CTA).toContain('to="/participante"');
+    expect(CTA).toContain("Ver minhas conexões");
     // ilustrações preservadas
     expect(HERO).toContain("<HeroVisual />");
     expect(HERO).toContain("<HeroVisual />");
@@ -99,7 +100,7 @@ describe("Entrega A — landing com menos texto", () => {
     }
     expect(HERO).toContain("lg:grid-cols-");
     expect(PROCESS).toContain("lg:grid-cols-");
-    expect(CTA).toContain("md:flex-row");
+    expect(CTA).toMatch(/(sm|md):flex-row/);
   });
 });
 

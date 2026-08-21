@@ -40,7 +40,9 @@ describe("painel público — estrutura", () => {
   });
 
   it("mantém a frase institucional no rodapé visual", () => {
-    expect(SRC).toContain("Aqui, ninguém cresce isolado.");
+    // A frase e composta com destaques coloridos por palavra.
+    expect(SRC).toContain("Aqui, ninguém cresce ");
+    expect(SRC).toContain("isolado.");
     expect(SRC).toContain("A gente cresce");
     expect(SRC).toContain("conectado.");
   });
