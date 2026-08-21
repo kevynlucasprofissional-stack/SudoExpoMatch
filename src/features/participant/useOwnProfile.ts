@@ -30,6 +30,14 @@ export function translateSaveProfileError(codeOrMsg: string): string {
   if (msg.includes("invalid_segment")) return "Segmento inválido.";
   if (msg.includes("invalid_offers_count")) return "Você precisa ter entre 1 e 5 ofertas.";
   if (msg.includes("invalid_needs_count")) return "Você precisa ter entre 1 e 5 necessidades.";
+  if (msg.includes("invalid_offer_label"))
+    return "Revise o que você oferece: cada item precisa de 2 a 120 caracteres.";
+  if (msg.includes("invalid_need_label"))
+    return "Revise o que você procura: cada item precisa de 2 a 120 caracteres.";
+  if (msg.includes("duplicate_offer_label")) return "Há itens repetidos no que você oferece.";
+  if (msg.includes("duplicate_need_label")) return "Há itens repetidos no que você procura.";
+  if (msg.includes("invalid_offer_taxonomy") || msg.includes("invalid_need_taxonomy"))
+    return "Algum item selecionado não pertence ao segmento escolhido.";
   return "Não foi possível salvar seu perfil. Tente novamente.";
 }
 
