@@ -4,7 +4,9 @@ import {
   isLegacySocialContextShape,
   normalizeInstagramInput,
   sanitizeSocialBusinessContext,
+  limitRecentMedia,
   socialContextFingerprint,
+
   type RateLimiter,
   type SocialBusinessContext,
   type SocialLookupFailure,
