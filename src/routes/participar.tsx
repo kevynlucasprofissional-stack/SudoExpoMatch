@@ -641,10 +641,10 @@ function WizardPage() {
     <Button
       type="button"
       variant="outline"
-      size="sm"
+      size="lg"
       data-testid="wizard-reset-trigger"
       onClick={() => setShowReset(true)}
-      className="gap-2 text-sm font-medium text-foreground hover:border-destructive hover:text-destructive"
+      className="gap-2 font-medium text-foreground hover:border-destructive hover:text-destructive"
     >
       <RotateCcw className="h-4 w-4" aria-hidden="true" />
       {WIZARD_RESET_COPY.trigger}
