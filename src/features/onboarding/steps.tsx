@@ -1035,7 +1035,7 @@ export function StepNeeds({
           <Input
             value={label}
             onChange={(e) => setLabel(e.target.value)}
-            placeholder="Outro: descreva o que procura"
+            placeholder="Descreva o que procura"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
