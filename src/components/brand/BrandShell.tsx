@@ -29,13 +29,6 @@ export function BrandHeader() {
         </Link>
         <nav className="hidden gap-6 text-sm md:flex">
           <Link
-            to="/como-funciona"
-            className="text-white/70 transition-colors hover:text-white"
-            activeProps={{ className: "text-white font-semibold" }}
-          >
-            Como funciona
-          </Link>
-          <Link
             to="/participar"
             className="text-white/70 transition-colors hover:text-white"
             activeProps={{ className: "text-white font-semibold" }}
