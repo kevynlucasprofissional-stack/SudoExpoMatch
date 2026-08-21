@@ -47,6 +47,9 @@ function filledDraft() {
     niche: "consultoria",
     summary: "Consultoria para pequenas indústrias.",
     instagram: "@empresaxyz",
+    targetBusinessSize: "any",
+    targetBusinessType: "any",
+    targetSegmentId: "any",
     offers: [{ localId: "o1", label: "Consultoria", segmentId: "servicos", taxonomyItemId: null }],
     needs: [
       {

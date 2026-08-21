@@ -383,6 +383,9 @@ describe("draft do wizard", () => {
     const d = sanitizeWizardDraft({
       ...createEmptyDraft(),
       instagram: "https://www.instagram.com/BurgerDoCentro/?hl=pt",
+      targetBusinessSize: "any",
+      targetBusinessType: "any",
+      targetSegmentId: "any",
     });
     expect(d.instagram).toBe("@burgerdocentro");
   });
@@ -391,6 +394,9 @@ describe("draft do wizard", () => {
     const d = sanitizeWizardDraft({
       ...createEmptyDraft(),
       instagram: "@x",
+      targetBusinessSize: "any",
+      targetBusinessType: "any",
+      targetSegmentId: "any",
       socialContext: HAMBURGUERIA_CTX,
       html: "<html>",
     });
@@ -403,6 +409,9 @@ describe("draft do wizard", () => {
       ...createEmptyDraft(),
       segmentId: "alimentacao",
       instagram: "@burgerdocentro",
+      targetBusinessSize: "any",
+      targetBusinessType: "any",
+      targetSegmentId: "any",
       needs: [
         {
           localId: "n1",

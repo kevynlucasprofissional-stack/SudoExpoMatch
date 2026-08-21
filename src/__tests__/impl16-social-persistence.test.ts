@@ -71,6 +71,9 @@ describe("payload de vínculo social", () => {
     const p = buildSocialLinkPayload({
       eventId: EVENT,
       instagram: "https://www.instagram.com/empresaxyz/",
+      targetBusinessSize: "any",
+      targetBusinessType: "any",
+      targetSegmentId: "any",
       context: ctx,
     });
     expect(p.handle).toBe("empresaxyz");
