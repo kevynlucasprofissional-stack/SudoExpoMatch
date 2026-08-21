@@ -1,23 +1,33 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import heroIllustration from "@/assets/hero-matchmaker.png.asset.json";
+
+const CLICK_WINDOW_MS = 1000;
 
 export function HeroVisual() {
   const navigate = useNavigate();
   const clicks = useRef(0);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  useEffect(() => {
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, []);
+
   const handleSecretClick = () => {
     clicks.current += 1;
     if (timer.current) clearTimeout(timer.current);
+
     if (clicks.current >= 3) {
       clicks.current = 0;
-      navigate({ to: "/admin" });
+      navigate({ to: "/equipe" });
       return;
     }
+
     timer.current = setTimeout(() => {
       clicks.current = 0;
-    }, 800);
+    }, CLICK_WINDOW_MS);
   };
 
   return (
@@ -32,13 +42,14 @@ export function HeroVisual() {
         loading="eager"
         decoding="async"
       />
-      {/* Atalho oculto: 3 cliques no rosto central levam ao painel admin */}
+      {/* Atalho oculto: 3 cliques rápidos no rosto central abrem o acesso da equipe */}
       <button
         type="button"
         aria-hidden
         tabIndex={-1}
+        data-testid="hero-secret-hotspot"
         onClick={handleSecretClick}
-        className="absolute left-1/2 top-[32%] h-[12%] w-[10%] -translate-x-1/2 cursor-default opacity-0"
+        className="absolute left-[44%] top-[14%] z-10 h-[16%] w-[12%] cursor-default bg-transparent opacity-0"
       />
     </div>
   );
