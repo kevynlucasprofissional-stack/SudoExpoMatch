@@ -3,7 +3,7 @@ import { HomeFooter } from "@/components/home/HomeFooter";
 import { Hero } from "@/components/home/Hero";
 import { ProcessPanel } from "@/components/home/ProcessPanel";
 import { FinalCta } from "@/components/home/FinalCta";
-import { CornerLines, CornerLeaves, DotTexture, PaperFragments } from "@/components/home/decor";
+import { DotTexture, PaperFragments } from "@/components/home/decor";
 
 export const Route = createFileRoute("/")({
   head: () => ({
