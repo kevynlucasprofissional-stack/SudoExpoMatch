@@ -66,7 +66,7 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
     setStats({ totalProfiles: 12, totalMatches: 34, mutualMatches: 7 });
     const markup = html();
     expect(valueOf(markup, "Participantes")).toBe("+12");
-    expect(valueOf(markup, "Matches gerados")).toBe("+34");
+    expect(valueOf(markup, "Matches")).toBe("+34");
     expect(valueOf(markup, "Interesses mútuos")).toBe("+7");
   });
 
@@ -74,7 +74,7 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
     setStats({ totalProfiles: 999, totalMatches: 1, mutualMatches: 250 });
     const markup = html();
     expect(valueOf(markup, "Participantes")).toBe("+999");
-    expect(valueOf(markup, "Matches gerados")).toBe("+1");
+    expect(valueOf(markup, "Matches")).toBe("+1");
     expect(valueOf(markup, "Interesses mútuos")).toBe("+250");
   });
 
