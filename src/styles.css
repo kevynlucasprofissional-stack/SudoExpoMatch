@@ -160,7 +160,8 @@
  * internas via <PageShell>. Redefine os tokens semânticos para superfícies
  * translúcidas sobre o azul-marinho #0b1252.
  */
-.brand-navy {
+.brand-navy,
+body:has(.brand-navy) {
   --background: oklch(0.21 0.11 273);
   --foreground: oklch(0.99 0.005 260);
 
