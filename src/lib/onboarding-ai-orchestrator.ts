@@ -10,6 +10,7 @@ import {
   modelOutputSchema,
   normalizeAgainstCatalog,
   stableCatalogHash,
+  type AiRunOutcome,
   type AiSuggestionResult,
   type ModelOutput,
   type SuggestOnboardingInput,
@@ -38,6 +39,8 @@ export interface OrchestratorDeps {
 }
 
 export interface AiRunLogRow {
+  /** Desfecho classificado (ai_success | ai_schema_error | ...). */
+  outcome: AiRunOutcome;
   eventId: string;
   actorUserId: string;
   inputHash: string;
@@ -261,6 +264,7 @@ export async function runOnboardingAi(args: {
   const cached = cachedParsed?.success ? cachedParsed.data : null;
   if (cached) {
     void deps.logRun({
+      outcome: "ai_cache_hit",
       eventId: input.eventId,
       actorUserId,
       inputHash: cacheKey,
@@ -288,6 +292,7 @@ export async function runOnboardingAi(args: {
   if (limiterError || !withinLimit) {
     const fb = await deps.fallback(input, catalog);
     void deps.logRun({
+      outcome: "ai_rate_limited",
       eventId: input.eventId,
       actorUserId,
       inputHash: cacheKey,
@@ -324,6 +329,7 @@ export async function runOnboardingAi(args: {
     const kind = classifyGatewayError(error);
     const fb = await deps.fallback(input, catalog);
     void deps.logRun({
+      outcome: "ai_gateway_error",
       eventId: input.eventId,
       actorUserId,
       inputHash: cacheKey,
@@ -333,7 +339,7 @@ export async function runOnboardingAi(args: {
       fallbackUsed: true,
       model: AI_MODEL,
       latencyMs: deps.now() - start,
-      error: `${kind}:${msg.slice(0, 200)}`,
+      error: `ai_gateway_error:${kind}:${msg.slice(0, 190)}`,
     });
     return fb;
   }
@@ -346,6 +352,7 @@ export async function runOnboardingAi(args: {
     const msg = error instanceof Error ? error.message : String(error);
     const fb = await deps.fallback(input, catalog);
     void deps.logRun({
+      outcome: "ai_schema_error",
       eventId: input.eventId,
       actorUserId,
       inputHash: cacheKey,
@@ -355,7 +362,7 @@ export async function runOnboardingAi(args: {
       fallbackUsed: true,
       model: AI_MODEL,
       latencyMs: deps.now() - start,
-      error: `invalid_schema:${msg.slice(0, 160)}`,
+      error: `ai_schema_error:${msg.slice(0, 160)}`,
       tokensInput: raw.tokensInput,
       tokensOutput: raw.tokensOutput,
     });
@@ -377,6 +384,7 @@ export async function runOnboardingAi(args: {
   // 4. Cache persistente para reduzir gasto/latência entre instâncias Edge.
   await deps.writeCache(cacheKey, result, CACHE_TTL_SEC);
   void deps.logRun({
+    outcome: "ai_success",
     eventId: input.eventId,
     actorUserId,
     inputHash: cacheKey,

@@ -45,19 +45,22 @@ export const socialLinkPayloadSchema = z.object({
   /** `null` = remover o vínculo atual. */
   handle: z.string().min(1).max(30).nullable(),
   original_input: z.string().max(300).nullable(),
-  provider: z.string().max(40).nullable(),
-  public_profile: z.record(z.string(), z.unknown()).nullable(),
-  extracted_context: z.record(z.string(), z.unknown()).nullable(),
-  content_fingerprint: z.string().max(400).nullable(),
   last_status: z.enum(["ok", "informed"]),
 });
 export type SocialLinkPayload = z.infer<typeof socialLinkPayloadSchema>;
 
 /**
  * Monta o payload da RPC `link_own_social_profile`.
+ *
+ * REGRA DE OURO (correção da CAUSA A): o cliente NÃO envia snapshot de
+ * contexto. O cache global (`private.social_profile_cache`) é autoridade do
+ * SERVIDOR/PROVIDER. Aqui só informamos QUAL handle o participante quer
+ * associar; o servidor liga o perfil ao cache canônico já existente.
+ *
  * - Instagram vazio/inválido → payload de remoção (`handle: null`).
- * - Instagram informado sem análise → salva o @ mesmo assim (`informed`).
- * - Contexto disponível para o MESMO handle → persiste o contexto (`ok`).
+ * - Instagram informado sem análise → `informed`.
+ * - Contexto disponível para o MESMO handle → `ok` (apenas sinaliza que o
+ *   servidor já tem contexto para esse @; nenhum dado é reenviado).
  */
 export function buildSocialLinkPayload(args: {
   eventId: string;
@@ -72,10 +75,6 @@ export function buildSocialLinkPayload(args: {
       network: "instagram",
       handle: null,
       original_input: raw ? raw.slice(0, 300) : null,
-      provider: null,
-      public_profile: null,
-      extracted_context: null,
-      content_fingerprint: null,
       last_status: "informed",
     });
   }
@@ -88,41 +87,10 @@ export function buildSocialLinkPayload(args: {
     network: "instagram",
     handle: norm.handle,
     original_input: raw.slice(0, 300),
-    provider: ctx?.provider ?? null,
-    public_profile: ctx
-      ? {
-          handle: ctx.handle,
-          canonical_url: norm.url,
-          display_name: ctx.displayName ?? null,
-          category: ctx.category ?? null,
-          bio: ctx.bio ?? null,
-          website: ctx.website ?? null,
-          followers_count: ctx.followersCount ?? null,
-          media_count: ctx.mediaCount ?? null,
-          profile_picture_url: ctx.profilePictureUrl ?? null,
-        }
-      : null,
-    extracted_context: ctx
-      ? {
-          handle: ctx.handle,
-          display_name: ctx.displayName ?? null,
-          category: ctx.category ?? null,
-          bio: ctx.bio ?? null,
-          keywords: ctx.keywords,
-          signals: ctx.signals,
-          website: ctx.website ?? null,
-          followers_count: ctx.followersCount ?? null,
-          media_count: ctx.mediaCount ?? null,
-          recent_media: ctx.recentMedia ?? null,
-          provider: ctx.provider,
-          fetched_at: ctx.fetchedAt,
-          truncated: ctx.truncated,
-        }
-      : null,
-    content_fingerprint: ctx ? socialContextFingerprint(ctx).slice(0, 400) : null,
     last_status: ctx ? "ok" : "informed",
   });
 }
+
 
 // ------------------------------------------------------------- leitura
 const jsonRecord = z.record(z.string(), z.unknown()).nullable().default(null);

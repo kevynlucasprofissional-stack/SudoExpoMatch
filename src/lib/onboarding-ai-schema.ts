@@ -135,10 +135,45 @@ export const aiSuggestionResultSchema = z.object({
 export type AiSuggestionResult = z.infer<typeof aiSuggestionResultSchema>;
 
 /**
- * Schema plano (sem constraints) que enviamos ao modelo, para maximizar
- * a probabilidade de saída válida. Validação/normalização acontece depois.
+ * Schema TOLERANTE usado para LER a resposta do modelo.
+ * Nunca derruba a chamada por campo ausente que a normalização sabe coagir.
  */
 export const modelOutputSchema = z.object({
+  understanding: z.object({
+    summary: z.string(),
+    mainActivity: z.string(),
+    keywords: z.array(z.string()),
+    clarifyingQuestion: z.string().nullish(),
+  }),
+  offers: z.array(
+    z.object({
+      taxonomyItemId: z.string().nullable(),
+      label: z.string(),
+      confidence: z.number(),
+      rationale: z.string(),
+    }),
+  ),
+  needs: z.array(
+    z.object({
+      taxonomyItemId: z.string().nullable(),
+      label: z.string(),
+      /** IMPL 6 — coagido para `outro` quando ausente/inválido. */
+      needKind: z.string().nullish(),
+      confidence: z.number(),
+      rationale: z.string(),
+    }),
+  ),
+});
+export type ModelOutput = z.infer<typeof modelOutputSchema>;
+
+/**
+ * Schema ESTRITO enviado ao Gateway (`json_schema` strict).
+ * Regra do modo strict: objeto na raiz e TODA propriedade obrigatória —
+ * campos "opcionais" são `.nullable()`, nunca `.optional()`.
+ * CAUSA B do diagnóstico: sem isto o modelo respondia fora do contrato e
+ * 100% das execuções caíam na heurística.
+ */
+export const modelOutputStrictSchema = z.object({
   understanding: z.object({
     summary: z.string(),
     mainActivity: z.string(),
@@ -157,18 +192,29 @@ export const modelOutputSchema = z.object({
     z.object({
       taxonomyItemId: z.string().nullable(),
       label: z.string(),
-      /**
-       * IMPL 6 — exigido no prompt, mas tolerante no schema de fio: uma
-       * resposta sem needKind (ou com valor fora do domínio) NÃO derruba a
-       * chamada inteira para fallback; a normalização coage para `outro`.
-       */
-      needKind: z.string().nullish(),
+      needKind: z.string().nullable(),
       confidence: z.number(),
       rationale: z.string(),
     }),
   ),
 });
-export type ModelOutput = z.infer<typeof modelOutputSchema>;
+
+
+/**
+ * Desfecho observável de uma execução de IA de onboarding.
+ * Serve para admin/dev distinguirem IA real de heurística em `ai_runs`,
+ * sem nunca expor erro técnico ao participante.
+ */
+export const AI_OUTCOMES = [
+  "ai_success",
+  "ai_cache_hit",
+  "ai_schema_error",
+  "ai_gateway_error",
+  "ai_rate_limited",
+  "catalog_unavailable",
+] as const;
+export type AiRunOutcome = (typeof AI_OUTCOMES)[number];
+
 
 /**
  * Normaliza a saída do modelo contra o catálogo ATIVO do evento.

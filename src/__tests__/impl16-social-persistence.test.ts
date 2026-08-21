@@ -64,10 +64,10 @@ describe("payload de vínculo social", () => {
     const p = buildSocialLinkPayload({ eventId: EVENT, instagram: "@EmpresaXYZ" });
     expect(p.handle).toBe("empresaxyz");
     expect(p.last_status).toBe("informed");
-    expect(p.extracted_context).toBeNull();
+    expect("extracted_context" in p).toBe(false);
   });
 
-  it("Instagram informado COM contexto persiste o contexto estruturado", () => {
+  it("com contexto do MESMO handle o payload apenas referencia o cache do servidor", () => {
     const p = buildSocialLinkPayload({
       eventId: EVENT,
       instagram: "https://www.instagram.com/empresaxyz/",
@@ -75,17 +75,18 @@ describe("payload de vínculo social", () => {
     });
     expect(p.handle).toBe("empresaxyz");
     expect(p.last_status).toBe("ok");
-    expect(readStringList(p.extracted_context, "keywords")).toContain("delivery");
-    expect(readText(p.public_profile, "display_name")).toBe("Empresa XYZ");
-    expect(p.content_fingerprint).toBeTruthy();
+    // CAUSA A: o cliente NUNCA envia snapshot de contexto/perfil público.
+    expect("extracted_context" in p).toBe(false);
+    expect("public_profile" in p).toBe(false);
+    expect("content_fingerprint" in p).toBe(false);
   });
 
   it("contexto de outro handle não é reaproveitado", () => {
     const p = buildSocialLinkPayload({ eventId: EVENT, instagram: "@outraempresa", context: ctx });
     expect(p.handle).toBe("outraempresa");
-    expect(p.extracted_context).toBeNull();
     expect(p.last_status).toBe("informed");
   });
+
 
   it("remoção do Instagram gera payload de desvínculo", () => {
     const p = buildSocialLinkPayload({ eventId: EVENT, instagram: "   " });
@@ -136,12 +137,14 @@ describe("submit do wizard persiste o Instagram", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("vincula com snapshot de contexto quando há análise", async () => {
+  it("com análise, sinaliza `ok` sem reenviar snapshot ao servidor", async () => {
     const { calls } = await run("@empresaxyz", ctx);
-    const payload = calls[0] as { last_status: string; extracted_context: unknown };
-    expect(payload.last_status).toBe("ok");
-    expect(readStringList(payload.extracted_context, "signals")).toHaveLength(1);
+    const payload = calls[0] as Record<string, unknown>;
+    expect(payload["last_status"]).toBe("ok");
+    // CAUSA A: o cache global é autoridade do servidor.
+    expect("extracted_context" in payload).toBe(false);
   });
+
 
   it("edição trocando o @ envia o novo handle", async () => {
     const { calls } = await run("@novaempresa", ctx);
