@@ -27,18 +27,42 @@ export function RecoveryView() {
           </p>
 
           <div className="mt-6">
-            {capability.otpEnabled ? (
+            {capability.isLoading ? (
+              <div
+                aria-busy="true"
+                className="space-y-3"
+                aria-label="Verificando disponibilidade do acesso por WhatsApp"
+              >
+                <div className="h-10 animate-pulse rounded-md bg-muted" />
+                <div className="h-10 animate-pulse rounded-md bg-muted" />
+              </div>
+            ) : capability.otpEnabled ? (
               <WhatsappAccessCard capability={capability} />
             ) : (
-              <p
-                role="alert"
-                className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive"
+              <div
+                role="status"
+                className="rounded-md border border-border bg-muted/40 p-4 text-sm text-muted-foreground"
               >
-                O acesso por WhatsApp está temporariamente indisponível. Tente novamente em alguns
-                minutos ou procure a equipe da ACIRV no evento.
-              </p>
+                <p className="font-medium text-foreground">
+                  {capability.isError
+                    ? "Não conseguimos verificar o acesso por WhatsApp agora."
+                    : "O acesso por WhatsApp está temporariamente indisponível."}
+                </p>
+                <p className="mt-1">
+                  Tente novamente em alguns instantes ou fale com a equipe da ACIRV no evento — eles
+                  localizam seu perfil pelo seu número.
+                </p>
+                <button
+                  type="button"
+                  onClick={capability.refetch}
+                  className="mt-3 inline-flex items-center rounded-full border border-border px-3 py-1.5 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+                >
+                  Tentar novamente
+                </button>
+              </div>
             )}
           </div>
+
 
           <div className="mt-6 text-center text-sm text-muted-foreground">
             Primeiro acesso?{" "}
