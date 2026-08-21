@@ -705,26 +705,33 @@ export function StepOffers({
         </div>
       )}
 
-      <div className="mt-6 flex gap-2">
-        <Input
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-          placeholder="Outro: descreva o que você oferece"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              addCustom(custom);
-            }
-          }}
-        />
-        <Button
-          type="button"
-          onClick={() => addCustom(custom)}
-          disabled={!custom.trim() || draft.offers.length >= 5}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
+      <div className="mt-6">
+        <div className="flex gap-2">
+          <Input
+            value={custom}
+            onChange={(e) => setCustom(e.target.value)}
+            placeholder="Outro: descreva o que você oferece"
+            aria-invalid={custom.trim().length === 1}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                addCustom(custom);
+              }
+            }}
+          />
+          <Button
+            type="button"
+            onClick={() => addCustom(custom)}
+            disabled={custom.trim().length < 2 || draft.offers.length >= 5}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+        </div>
+        {custom.trim().length === 1 && (
+          <p className="mt-1.5 text-sm text-destructive">Descreva com pelo menos 2 caracteres</p>
+        )}
       </div>
+
 
       <div className="mt-6">
         <p className="mb-2 text-sm font-medium">Seus itens ({draft.offers.length}/5)</p>
