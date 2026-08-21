@@ -202,7 +202,8 @@ export function StepIdentity({
         </label>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-between">
+        <div className="flex flex-wrap items-center gap-2">{resetAction}</div>
         <Button size="lg" onClick={handleNext}>
           Continuar
         </Button>
