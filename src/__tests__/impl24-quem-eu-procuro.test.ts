@@ -211,7 +211,7 @@ describe("Etapa 4 — Quem eu procuro", () => {
       getItem: (k: string) => store.get(k) ?? null,
       setItem: (k: string, v: string) => void store.set(k, v),
       removeItem: (k: string) => void store.delete(k),
-    };
+    } as unknown as Storage;
     const d = baseDraft({ step: 3, targetBusinessSize: "medio", targetSegmentId: "marketing" });
     saveWizardDraft(d, Date.now(), storage);
     const loaded = loadWizardDraft(Date.now(), storage);
