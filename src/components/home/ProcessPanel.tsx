@@ -54,7 +54,7 @@ export function ProcessPanel() {
     },
     {
       Icon: Sparkles,
-      label: "Matches gerados",
+      label: "Matches",
       value: render(stats?.totalMatches),
       tone: "var(--secondary)",
     },
