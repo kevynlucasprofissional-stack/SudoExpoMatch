@@ -11,11 +11,16 @@ export function NetworkGraphic({ className = "" }: { className?: string }) {
   return (
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" className={className}>
       <defs>
+        <linearGradient id="netbg" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stopColor="#129cdf" />
+          <stop offset="100%" stopColor="#0e1eb2" />
+        </linearGradient>
         <linearGradient id="line" x1="0" x2="1" y1="0" y2="1">
           <stop offset="0%" stopColor="var(--secondary)" stopOpacity="0.6" />
           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.6" />
         </linearGradient>
       </defs>
+      <rect x="0" y="0" width="100" height="100" fill="url(#netbg)" />
       {nodes.map((a, i) =>
         nodes
           .slice(i + 1)
