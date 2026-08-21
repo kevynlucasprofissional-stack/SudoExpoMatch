@@ -137,12 +137,14 @@ describe("submit do wizard persiste o Instagram", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("vincula com snapshot de contexto quando há análise", async () => {
+  it("com análise, sinaliza `ok` sem reenviar snapshot ao servidor", async () => {
     const { calls } = await run("@empresaxyz", ctx);
-    const payload = calls[0] as { last_status: string; extracted_context: unknown };
-    expect(payload.last_status).toBe("ok");
-    expect(readStringList(payload.extracted_context, "signals")).toHaveLength(1);
+    const payload = calls[0] as Record<string, unknown>;
+    expect(payload["last_status"]).toBe("ok");
+    // CAUSA A: o cache global é autoridade do servidor.
+    expect("extracted_context" in payload).toBe(false);
   });
+
 
   it("edição trocando o @ envia o novo handle", async () => {
     const { calls } = await run("@novaempresa", ctx);
