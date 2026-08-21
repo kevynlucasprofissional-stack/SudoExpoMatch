@@ -15,12 +15,12 @@ export function BrandHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/85 text-white backdrop-blur">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-center px-4">
-        <nav className="flex w-full max-w-md items-center justify-between gap-4 text-sm sm:gap-6">
-          <div className="flex flex-1 justify-end">
+      <div className="mx-auto flex h-14 max-w-6xl items-center justify-center px-3 sm:px-4">
+        <nav className="grid w-full max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-sm sm:gap-6">
+          <div className="flex min-w-0 justify-end">
             <Link
               to="/participar"
-              className="text-white/70 transition-colors hover:text-white"
+              className="truncate text-white/70 transition-colors hover:text-white"
               activeProps={{ className: "text-white font-semibold" }}
             >
               Participar
@@ -34,13 +34,17 @@ export function BrandHeader() {
             <Home className="h-4 w-4" aria-hidden />
             Início
           </button>
-          <div className="flex flex-1 justify-start">
-            <Link to="/publico" className="text-white/70 transition-colors hover:text-white">
+          <div className="flex min-w-0 justify-start">
+            <Link
+              to="/publico"
+              className="truncate text-white/70 transition-colors hover:text-white"
+            >
               Painel público
             </Link>
           </div>
         </nav>
       </div>
+
 
     </header>
   );
