@@ -16,10 +16,10 @@ import { useEventStats } from "@/features/staff/useEventStats";
 
 
 const STEPS = [
-  { Icon: UserPlus, label: "Crie seu perfil" },
-  { Icon: Sparkles, label: "Receba matches automáticos" },
-  { Icon: Heart, label: "Marque interesse mútuo" },
-  { Icon: Handshake, label: "A ACIRV apresenta vocês" },
+  { label: "Crie seu perfil" },
+  { label: "Receba matches automáticos" },
+  { label: "Marque interesse mútuo" },
+  { label: "A ACIRV apresenta vocês" },
 ] as const;
 
 // Preview agregado do painel público — MESMA fonte de verdade (RPC event_stats
