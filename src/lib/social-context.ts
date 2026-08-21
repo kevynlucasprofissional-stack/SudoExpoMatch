@@ -183,10 +183,78 @@ function clampList(raw: unknown, maxItems: number, maxChars: number): string[] {
   return out;
 }
 
+/**
+ * Versão explícita do SHAPE canônico do contexto social.
+ * v1 = registros legados (podiam vir em snake_case, montados pelo cliente).
+ * v2 = contrato canônico camelCase, sempre escrito pelo servidor/provider.
+ */
+export const SOCIAL_CONTEXT_SCHEMA_VERSION = 2;
+
+const LEGACY_CONTEXT_KEYS = [
+  "display_name",
+  "followers_count",
+  "follows_count",
+  "media_count",
+  "profile_picture_url",
+  "recent_media",
+  "fetched_at",
+] as const;
+
+/** `true` quando o JSON persistido está no shape legado (snake_case). */
+export function isLegacySocialContextShape(raw: unknown): boolean {
+  if (!raw || typeof raw !== "object") return false;
+  const r = raw as Record<string, unknown>;
+  if (typeof r["schemaVersion"] === "number") return r["schemaVersion"] < SOCIAL_CONTEXT_SCHEMA_VERSION;
+  return LEGACY_CONTEXT_KEYS.some((k) => k in r);
+}
+
+function pick(r: Record<string, unknown>, camel: string, snake: string): unknown {
+  return r[camel] !== undefined ? r[camel] : r[snake];
+}
+
+/**
+ * Compatibilidade de leitura: aceita o shape legado (snake_case) e devolve
+ * sempre o contrato canônico camelCase. NUNCA persistimos snake_case de novo.
+ */
+export function coerceSocialContextShape(raw: unknown): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const r = raw as Record<string, unknown>;
+  const media = pick(r, "recentMedia", "recent_media");
+  return {
+    provider: r["provider"],
+    handle: r["handle"],
+    displayName: pick(r, "displayName", "display_name"),
+    category: r["category"],
+    bio: r["bio"],
+    keywords: r["keywords"],
+    signals: r["signals"],
+    website: r["website"],
+    followersCount: pick(r, "followersCount", "followers_count"),
+    followsCount: pick(r, "followsCount", "follows_count"),
+    mediaCount: pick(r, "mediaCount", "media_count"),
+    profilePictureUrl: pick(r, "profilePictureUrl", "profile_picture_url"),
+    recentMedia: Array.isArray(media)
+      ? media.map((m) => {
+          if (!m || typeof m !== "object") return m;
+          const mr = m as Record<string, unknown>;
+          return {
+            mediaType: pick(mr, "mediaType", "media_type"),
+            caption: mr["caption"],
+            timestamp: mr["timestamp"],
+            permalink: mr["permalink"],
+          };
+        })
+      : media,
+    fetchedAt: pick(r, "fetchedAt", "fetched_at"),
+    truncated: r["truncated"],
+  };
+}
+
 /** Aplica os tetos defensivos e devolve um contexto válido, ou `null`. */
 export function sanitizeSocialBusinessContext(raw: unknown): SocialBusinessContext | null {
-  if (!raw || typeof raw !== "object") return null;
-  const r = raw as Record<string, unknown>;
+  const coerced = coerceSocialContextShape(raw);
+  if (!coerced) return null;
+  const r = coerced;
   const provider = socialProviderSchema.safeParse(r.provider);
   if (!provider.success) return null;
   const handleNorm = normalizeInstagramInput(r.handle);
@@ -216,6 +284,7 @@ export function sanitizeSocialBusinessContext(raw: unknown): SocialBusinessConte
   }
   return c;
 }
+
 
 function intOrUndefined(raw: unknown): number | undefined {
   const n = typeof raw === "number" ? raw : Number(raw);
