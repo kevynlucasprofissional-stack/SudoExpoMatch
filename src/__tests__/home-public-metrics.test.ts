@@ -17,7 +17,8 @@ vi.mock("@tanstack/react-router", () => ({
 
 const { ProcessPanel, formatAggregateMetric } = await import("@/components/home/ProcessPanel");
 
-const LABELS = ["Participantes", "Matches gerados", "Interesses mútuos"] as const;
+// Rotulos reais dos cards compactos da home (o card de matches usa "Matches").
+const LABELS = ["Participantes", "Matches", "Interesses mútuos"] as const;
 
 function setStats(data: Record<string, number> | undefined, isError = false) {
   stats.current = { data, isError };
@@ -65,7 +66,7 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
     setStats({ totalProfiles: 12, totalMatches: 34, mutualMatches: 7 });
     const markup = html();
     expect(valueOf(markup, "Participantes")).toBe("+12");
-    expect(valueOf(markup, "Matches gerados")).toBe("+34");
+    expect(valueOf(markup, "Matches")).toBe("+34");
     expect(valueOf(markup, "Interesses mútuos")).toBe("+7");
   });
 
@@ -73,7 +74,7 @@ describe("Bloco DADOS DO SUDOEXPO MATCH — dados reais", () => {
     setStats({ totalProfiles: 999, totalMatches: 1, mutualMatches: 250 });
     const markup = html();
     expect(valueOf(markup, "Participantes")).toBe("+999");
-    expect(valueOf(markup, "Matches gerados")).toBe("+1");
+    expect(valueOf(markup, "Matches")).toBe("+1");
     expect(valueOf(markup, "Interesses mútuos")).toBe("+250");
   });
 
