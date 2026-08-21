@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Search, Sparkles, Star, Target, Trash2, User, X } from "lucide-react";
 import {
   AI_SUGGESTION_BADGE,
   buildSuggestionFeed,
@@ -24,12 +24,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
+import {
+  ANY_LABEL,
+  BUSINESS_SIZE_LABEL,
+  BUSINESS_TYPE_LABEL,
+  BusinessProfileCriteria,
+  profileSelectableSegments,
+} from "./BusinessProfileCriteria";
 
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 import type { NeedKind } from "@/lib/types";
 import type {
-  BusinessSize,
-  BusinessType,
   SubmitState,
   WizardDraft,
   WizardMode,
@@ -37,6 +42,7 @@ import type {
   WizardOffer,
 } from "./types";
 import { cryptoUid } from "./draft";
+import { ANY_PREFERENCE } from "./types";
 import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
 import { OTHER_SEGMENT_ID, phoneCreateSchema, phoneEditSchema } from "./schemas";
@@ -215,58 +221,9 @@ export function StepIdentity({
 // ============================================================================
 // StepWhoIAm — porte, tipo, segmento, nicho e resumo
 // ============================================================================
-const BUSINESS_SIZE_OPTIONS: { value: BusinessSize; label: string }[] = [
-  { value: "pequeno", label: "Pequeno" },
-  { value: "medio", label: "Médio" },
-  { value: "grande", label: "Grande" },
-];
-const BUSINESS_TYPE_OPTIONS: { value: BusinessType; label: string }[] = [
-  { value: "comercio", label: "Comércio" },
-  { value: "industria", label: "Indústria" },
-  { value: "servico", label: "Serviço" },
-];
-export const BUSINESS_SIZE_LABEL: Record<BusinessSize, string> = Object.fromEntries(
-  BUSINESS_SIZE_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<BusinessSize, string>;
-export const BUSINESS_TYPE_LABEL: Record<BusinessType, string> = Object.fromEntries(
-  BUSINESS_TYPE_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<BusinessType, string>;
-
-function ChoiceGroup<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T | "";
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={label}>
-        {options.map((o) => {
-          const active = value === o.value;
-          return (
-            <button
-              key={o.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onChange(o.value)}
-              className={`rounded-full border px-4 py-2 text-sm transition-all ${
-                active ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "hover:bg-muted"
-              }`}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// Os classificadores de porte/tipo/segmento moram em `BusinessProfileCriteria`
+// e são compartilhados por "Quem eu sou" e "Quem eu procuro".
+export { BUSINESS_SIZE_LABEL, BUSINESS_TYPE_LABEL } from "./BusinessProfileCriteria";
 
 /** Estado de UI do enriquecimento por Instagram (nunca bloqueia o cadastro). */
 export interface SocialLookupUiState {
