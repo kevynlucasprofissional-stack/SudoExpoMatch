@@ -160,6 +160,20 @@ export function entryToRecord(entry: SocialEntry, expiresAt: string | null): Soc
     expires_at: expiresAt,
     last_status: "ok",
     last_error_code: null,
+    context_schema_version: String(SOCIAL_CONTEXT_SCHEMA_VERSION),
+    ai_posts_used: entry.aiPostsUsed ?? null,
+    // Só enviamos payload bruto quando houve coleta nova; sem ele o store
+    // preserva (COALESCE) o snapshot já guardado.
+    ...(entry.providerPayload
+      ? {
+          provider_payload: entry.providerPayload.payload ?? null,
+          provider_payload_version: entry.providerPayload.version,
+          provider_payload_bytes: entry.providerPayload.bytes,
+          provider_payload_truncated: entry.providerPayload.truncated,
+          provider_posts_received: entry.providerPayload.postsReceived,
+          provider_posts_persisted: entry.providerPayload.postsPersisted,
+        }
+      : {}),
   };
 }
 
@@ -170,6 +184,10 @@ export function recordToEntry(record: SocialCacheRecord | null): SocialEntry | n
   const ctx = sanitizeSocialBusinessContext(record.extracted_context);
   if (!ctx) return null;
   const legacy = isLegacySocialContextShape(record.extracted_context);
+  const hasPayloadMeta =
+    record.provider_payload_version != null ||
+    record.provider_payload_bytes != null ||
+    record.provider_posts_received != null;
   return {
     context: ctx,
     analysis: sanitizeSocialAnalysis(record.ai_analysis),
@@ -180,8 +198,22 @@ export function recordToEntry(record: SocialCacheRecord | null): SocialEntry | n
     model: record.ai_model,
     provider: record.provider ?? ctx.provider,
     schemaVersion: legacy ? 1 : SOCIAL_CONTEXT_SCHEMA_VERSION,
+    aiPostsUsed: record.ai_posts_used ?? null,
+    ...(hasPayloadMeta
+      ? {
+          providerPayload: {
+            payload: (record.provider_payload ?? null) as Record<string, unknown> | null,
+            version: record.provider_payload_version ?? null,
+            bytes: record.provider_payload_bytes ?? null,
+            truncated: record.provider_payload_truncated ?? false,
+            postsReceived: record.provider_posts_received ?? null,
+            postsPersisted: record.provider_posts_persisted ?? null,
+          },
+        }
+      : {}),
   };
 }
+
 
 function ageMs(iso: string | null | undefined, now: number): number {
   if (!iso) return Number.POSITIVE_INFINITY;
