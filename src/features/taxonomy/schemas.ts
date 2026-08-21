@@ -4,6 +4,8 @@ export const catalogSegmentSchema = z.object({
   id: z.string(),
   label: z.string(),
   emoji: z.string().nullable(),
+  /** Metadados de domínio: segmentos históricos vêm com `false`. */
+  profile_selectable: z.boolean().default(true),
 });
 
 export const catalogTaxonomyItemSchema = z.object({
