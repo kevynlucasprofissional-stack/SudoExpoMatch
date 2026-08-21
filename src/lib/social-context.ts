@@ -1,4 +1,6 @@
 import { z } from "zod";
+import type { ProviderPayloadSnapshot } from "./social-provider-payload";
+
 
 /**
  * Enriquecimento de perfil por rede social (Instagram) — núcleo PURO.
@@ -598,7 +600,15 @@ export type SocialLookupFailure =
         | "config_error";
     };
 
-export type SocialLookupResult = { status: "ok"; context: SocialBusinessContext } | SocialLookupFailure;
+export type SocialLookupResult =
+  | {
+      status: "ok";
+      context: SocialBusinessContext;
+      /** Snapshot bruto saneado do provider (persistido no backend). */
+      providerPayload?: ProviderPayloadSnapshot;
+    }
+  | SocialLookupFailure;
+
 
 export interface SocialProvider {
   id: SocialBusinessContext["provider"] | "unconfigured" | "chain";
