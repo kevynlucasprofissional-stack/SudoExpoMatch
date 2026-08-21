@@ -104,10 +104,12 @@ export function StepIdentity({
   mode,
   phone,
   onPhoneChange,
+  resetAction,
 }: BaseProps & {
   mode: WizardMode;
   phone: string;
   onPhoneChange: (v: string) => void;
+  resetAction?: ReactNode;
 }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -200,7 +202,8 @@ export function StepIdentity({
         </label>
       </div>
 
-      <div className="mt-6 flex justify-end">
+      <div className="mt-6 flex justify-between">
+        <div className="flex flex-wrap items-center gap-2">{resetAction}</div>
         <Button size="lg" onClick={handleNext}>
           Continuar
         </Button>
