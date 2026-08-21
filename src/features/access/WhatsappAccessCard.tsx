@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -69,7 +69,7 @@ export function WhatsappAccessCard({
   initialPhone,
   lockPhone = false,
   confirmLabel = "Entrar",
-  hint = "Sem senha: confirmamos seu WhatsApp com um código de uso único.",
+  
   onVerified,
 }: WhatsappAccessCardProps) {
   const navigate = useNavigate();
@@ -189,10 +189,8 @@ export function WhatsappAccessCard({
 
   return (
     <div className="space-y-4" data-testid="whatsapp-access">
-      <div className="flex items-start gap-2 rounded-md border border-primary/20 bg-primary/5 p-3 text-sm">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden />
-        <p className="text-muted-foreground">{hint}</p>
-      </div>
+
+
 
       {phase === "phone" ? (
         <div>
