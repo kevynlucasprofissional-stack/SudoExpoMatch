@@ -135,8 +135,10 @@ export const aiSuggestionResultSchema = z.object({
 export type AiSuggestionResult = z.infer<typeof aiSuggestionResultSchema>;
 
 /**
- * Schema plano (sem constraints) que enviamos ao modelo, para maximizar
- * a probabilidade de saída válida. Validação/normalização acontece depois.
+ * Schema plano que enviamos ao modelo em modo STRICT (`json_schema`).
+ * Regra do modo strict: objeto na raiz e TODA propriedade obrigatória —
+ * campos "opcionais" precisam ser `.nullable()`, nunca `.optional()`.
+ * Validação/normalização de domínio acontece depois.
  */
 export const modelOutputSchema = z.object({
   understanding: z.object({
@@ -158,17 +160,33 @@ export const modelOutputSchema = z.object({
       taxonomyItemId: z.string().nullable(),
       label: z.string(),
       /**
-       * IMPL 6 — exigido no prompt, mas tolerante no schema de fio: uma
-       * resposta sem needKind (ou com valor fora do domínio) NÃO derruba a
-       * chamada inteira para fallback; a normalização coage para `outro`.
+       * IMPL 6 — exigido no prompt, mas tolerante no schema de fio: valor
+       * fora do domínio NÃO derruba a chamada; a normalização coage p/ `outro`.
+       * `nullable` (e não `optional`) por causa do modo strict.
        */
-      needKind: z.string().nullish(),
+      needKind: z.string().nullable(),
       confidence: z.number(),
       rationale: z.string(),
     }),
   ),
 });
 export type ModelOutput = z.infer<typeof modelOutputSchema>;
+
+/**
+ * Desfecho observável de uma execução de IA de onboarding.
+ * Serve para admin/dev distinguirem IA real de heurística em `ai_runs`,
+ * sem nunca expor erro técnico ao participante.
+ */
+export const AI_OUTCOMES = [
+  "ai_success",
+  "ai_cache_hit",
+  "ai_schema_error",
+  "ai_gateway_error",
+  "ai_rate_limited",
+  "catalog_unavailable",
+] as const;
+export type AiRunOutcome = (typeof AI_OUTCOMES)[number];
+
 
 /**
  * Normaliza a saída do modelo contra o catálogo ATIVO do evento.
