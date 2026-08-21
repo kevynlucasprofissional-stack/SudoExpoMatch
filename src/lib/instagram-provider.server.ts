@@ -219,6 +219,8 @@ export function createGraphInstagramProvider(
 export const APIFY_ACTOR = "apify~instagram-profile-scraper";
 export const APIFY_GATEWAY_URL = "https://connector-gateway.lovable.dev/apify";
 export const APIFY_TIMEOUT_MS = 45_000;
+/** Posts pedidos ao Actor: coletamos o máximo útil e persistimos todos. */
+export const APIFY_RESULTS_LIMIT = 12;
 
 interface ApifyItem {
   username?: unknown;
