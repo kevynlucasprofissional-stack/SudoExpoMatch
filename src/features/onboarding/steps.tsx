@@ -1172,7 +1172,8 @@ export function StepReview({
         </div>
         <div className="relative">
           <p className="text-xs uppercase tracking-wide text-white/70">Revisão</p>
-          <h2 className="font-display text-2xl font-semibold">
+          <h2 className="font-display text-2xl font-semibold text-white">
+
             {mode === "edit"
               ? "Confira as alterações"
               : `Tudo certo, ${draft.name.split(" ")[0] || "por aí"}?`}
