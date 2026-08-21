@@ -155,6 +155,45 @@
   --sidebar-ring: oklch(0.68 0.16 235);
 }
 
+/*
+ * Identidade "telão / homepage": escopo marinho aplicado a todas as telas
+ * internas via <PageShell>. Redefine os tokens semânticos para superfícies
+ * translúcidas sobre o azul-marinho #0b1252.
+ */
+.brand-navy {
+  --background: oklch(0.21 0.11 273);
+  --foreground: oklch(0.99 0.005 260);
+
+  --card: oklch(1 0 0 / 7%);
+  --card-foreground: oklch(0.99 0.005 260);
+
+  --popover: oklch(0.24 0.1 272);
+  --popover-foreground: oklch(0.99 0.005 260);
+
+  --primary: oklch(0.68 0.16 235);
+  --primary-foreground: oklch(0.18 0.09 272);
+
+  --secondary: oklch(0.68 0.16 235);
+  --secondary-foreground: oklch(0.18 0.09 272);
+
+  --muted: oklch(1 0 0 / 8%);
+  --muted-foreground: oklch(0.99 0.005 260 / 68%);
+
+  --accent: oklch(1 0 0 / 12%);
+  --accent-foreground: oklch(0.99 0.005 260);
+
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
+  --ring: oklch(0.68 0.16 235);
+
+  --sidebar: oklch(0.21 0.11 273);
+  --sidebar-foreground: oklch(0.99 0.005 260);
+  --sidebar-accent: oklch(1 0 0 / 10%);
+  --sidebar-accent-foreground: oklch(0.99 0.005 260);
+  --sidebar-border: oklch(1 0 0 / 14%);
+}
+
+
 @layer base {
   * {
     border-color: var(--color-border);
