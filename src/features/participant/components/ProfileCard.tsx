@@ -54,7 +54,7 @@ export function ProfileCard({ profile }: Props) {
       <div className="mt-6 flex gap-2">
         <Button asChild variant="outline">
           <Link to="/participar" data-testid="link-edit-profile">
-            Editar perfil (abre o wizard preenchido)
+            Editar perfil
           </Link>
         </Button>
       </div>
