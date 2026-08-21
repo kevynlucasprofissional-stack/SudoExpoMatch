@@ -35,8 +35,6 @@ function Index() {
         <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden">
           <DotTexture className="absolute inset-0 h-full w-full opacity-25" />
           <PaperFragments className="absolute inset-0 h-full w-full opacity-70" />
-          <CornerLeaves className="absolute -bottom-4 -right-6 h-64 w-64 opacity-90 hidden md:block" />
-          <CornerLines className="absolute -left-6 bottom-6 hidden h-40 w-40 opacity-70 md:block" />
         </div>
 
         <div className="relative">
