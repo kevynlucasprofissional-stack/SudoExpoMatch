@@ -1,8 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-  UserPlus,
-  Heart,
-  Handshake,
   ArrowRight,
   ChevronRight,
   Users,
