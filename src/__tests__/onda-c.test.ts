@@ -485,7 +485,6 @@ describe("static guards — /participante e componentes", () => {
     "src/features/participant/components/ProfileCard.tsx",
     "src/features/participant/components/RevealContactDialog.tsx",
     "src/features/participant/components/RecoveryView.tsx",
-    "src/features/participant/components/RotateRecoveryButton.tsx",
   ];
 
   const banned = [
@@ -515,8 +514,11 @@ describe("static guards — /participante e componentes", () => {
     }
   }
 
-  it("participante.tsx importa RotateRecoveryButton só via ParticipantHeader", () => {
+  it("nenhum resquício de código de recuperação no painel", () => {
     expect(readCode("src/routes/participante.tsx")).not.toMatch(/RotateRecoveryButton/);
+    expect(readCode("src/features/participant/components/ParticipantHeader.tsx")).not.toMatch(
+      /RotateRecoveryButton/,
+    );
   });
 
   it("ProfileCard renderiza link para /participar (edição do wizard)", () => {
@@ -525,9 +527,10 @@ describe("static guards — /participante e componentes", () => {
     expect(src).toMatch(/data-testid="link-edit-profile"/);
   });
 
-  it("RotateRecoveryButton usa API v2, nunca supabase.rpc", () => {
-    const src = readCode("src/features/participant/components/RotateRecoveryButton.tsx");
-    expect(src).toMatch(/rotateOwnRecoveryCode/);
+  it("RecoveryView usa apenas o acesso por WhatsApp, nunca supabase.rpc", () => {
+    const src = readCode("src/features/participant/components/RecoveryView.tsx");
+    expect(src).toMatch(/WhatsappAccessCard/);
+    expect(src).not.toMatch(/rotateOwnRecoveryCode/);
     expect(src).not.toMatch(/supabase\.rpc/);
   });
 
@@ -561,10 +564,10 @@ describe("static guards — /participante e componentes", () => {
     expect(queries).toMatch(/gcTime:\s*0/);
   });
 
-  it("Recovery: chama recoverMutation.reset() em sucesso e erro", () => {
+  it("Recovery: não guarda telefone/código fora do cartão de acesso", () => {
     const src = read("src/features/participant/components/RecoveryView.tsx");
-    expect(src).toMatch(/recoverMutation\.reset\(\)/);
-    expect(src).toMatch(/requestVersionRef/);
+    expect(src).not.toMatch(/useState\(/);
+    expect(src).toMatch(/WhatsappAccessCard/);
   });
 
   it("participante.tsx usa translateRecomputeErrorCode (não decide)", () => {
@@ -578,44 +581,3 @@ describe("static guards — /participante e componentes", () => {
 // Guarantia adicional: Recovery reset em sucesso via helper simulado.
 // ---------------------------------------------------------------------------
 
-describe("RecoveryView — semântica de reset após mutation", () => {
-  it("função de recuperação: após sucesso, mutation.reset() é chamado", async () => {
-    // Simula a rotina interna da view em isolamento (helpers puros).
-    const reset = vi.fn();
-    const mutateAsync = vi.fn(async () => ({
-      newRecoveryCode: "ABC123",
-    }));
-    const mutation = { mutateAsync, reset };
-
-    // Reproduz o núcleo do handler:
-    async function recover() {
-      const res = await mutation.mutateAsync();
-      const rotated = res.newRecoveryCode ?? null;
-      mutation.reset();
-      return rotated;
-    }
-    const code = await recover();
-    expect(code).toBe("ABC123");
-    expect(reset).toHaveBeenCalledTimes(1);
-  });
-
-  it("após erro traduzido, mutation.reset() é chamado antes de propagar", async () => {
-    const reset = vi.fn();
-    const mutateAsync = vi.fn(async () => {
-      throw new Error("mensagem já traduzida");
-    });
-    const mutation = { mutateAsync, reset };
-
-    async function recover() {
-      try {
-        await mutation.mutateAsync();
-      } catch (err) {
-        mutation.reset();
-        return (err as Error).message;
-      }
-    }
-    const msg = await recover();
-    expect(msg).toBe("mensagem já traduzida");
-    expect(reset).toHaveBeenCalledTimes(1);
-  });
-});

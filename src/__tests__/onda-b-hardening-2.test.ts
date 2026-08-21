@@ -198,7 +198,7 @@ describe("runWizardSubmit", () => {
     expect(deps.recomputeOwnMatches).not.toHaveBeenCalled();
   });
 
-  it("create feliz: perfil -> contato -> code -> aguarda confirmação (sem recompute)", async () => {
+  it("create feliz: perfil -> contato -> aguarda verificação do WhatsApp (sem recompute)", async () => {
     const deps = noopDeps();
     const events = await runWizardSubmit({
       draft: baseDraft(),
@@ -210,13 +210,12 @@ describe("runWizardSubmit", () => {
     expect(events.map((e) => e.type)).toEqual([
       "PROFILE_OK",
       "CONTACT_OK",
-      "CODE_OK",
-      "AWAIT_CODE_CONFIRMATION",
+      "AWAIT_PHONE_VERIFICATION",
     ]);
     expect(deps.recomputeOwnMatches).not.toHaveBeenCalled();
   });
 
-  it("erro de perfil interrompe pipeline; contato/code/match não são chamados", async () => {
+  it("erro de perfil interrompe pipeline; contato/match não são chamados", async () => {
     const deps = noopDeps({
       saveOwnProfile: vi.fn().mockRejectedValue(new Error("boom")),
     });
