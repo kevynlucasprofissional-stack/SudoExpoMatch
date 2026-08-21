@@ -82,7 +82,7 @@ export function ProcessPanel() {
                   key={s.label}
                   className="flex items-center gap-3 rounded-lg bg-white/[0.06] px-3 py-2.5 text-left ring-1 ring-white/10"
                 >
-                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-display text-sm font-black text-[#0b1252]">
+                  <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#eaff00] font-display text-sm font-black text-[#0b1252]">
                     {i + 1}
                   </span>
                   
