@@ -276,7 +276,6 @@ export function StepWhoIAm({
   draft,
   update,
   onNext,
-  onBack,
   catalog,
   manualMode = false,
   manualSegmentLabel,
@@ -472,7 +471,6 @@ export function StepOffers({
   draft,
   update,
   onNext,
-  onBack,
   catalog,
   eventId,
   aiAnalysis,
@@ -772,7 +770,6 @@ export function StepNeeds({
   draft,
   update,
   onNext,
-  onBack,
   catalog,
   eventId,
   aiAnalysis,
@@ -1124,7 +1121,6 @@ export function StepNeeds({
 // ============================================================================
 export function StepReview({
   draft,
-  onBack,
   onSubmit,
   onRetryContact,
   onRetryCode,
