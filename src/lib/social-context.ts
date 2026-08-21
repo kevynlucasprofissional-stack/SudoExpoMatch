@@ -44,6 +44,10 @@ export const MAX_SIGNAL_CHARS = 80;
 /** Mídia recente estruturada (nunca binário, nunca HTML). */
 export const MAX_RECENT_MEDIA = 20;
 export const MAX_CAPTION_CHARS = 200;
+/** Hashtags/menções preservadas por publicação. */
+export const MAX_POST_TAGS = 15;
+export const MAX_POST_TAG_CHARS = 60;
+
 /** Teto defensivo de bytes lidos de uma resposta pública. */
 export const MAX_RESPONSE_BYTES = 512 * 1024;
 export const SOCIAL_FETCH_TIMEOUT_MS = 6_000;
@@ -116,12 +120,26 @@ export const socialProviderSchema = z.enum([
 ]);
 
 export const socialMediaItemSchema = z.object({
+  /** Identidade estável do post (usada no fingerprint semântico). */
+  postId: z.string().max(60).optional(),
+  shortCode: z.string().max(40).optional(),
   mediaType: z.enum(["IMAGE", "VIDEO", "CAROUSEL_ALBUM", "OTHER"]),
   caption: z.string().max(MAX_CAPTION_CHARS).optional(),
+  hashtags: z.array(z.string().min(1).max(MAX_POST_TAG_CHARS)).max(MAX_POST_TAGS).optional(),
+  mentions: z.array(z.string().min(1).max(MAX_POST_TAG_CHARS)).max(MAX_POST_TAGS).optional(),
   timestamp: z.string().max(40).optional(),
   permalink: z.string().max(300).optional(),
+  /** Resumo de engajamento — nunca entra no fingerprint semântico. */
+  engagement: z
+    .object({
+      likes: z.number().int().nonnegative().optional(),
+      comments: z.number().int().nonnegative().optional(),
+      views: z.number().int().nonnegative().optional(),
+    })
+    .optional(),
 });
 export type SocialMediaItem = z.infer<typeof socialMediaItemSchema>;
+
 
 export const socialBusinessContextSchema = z.object({
   provider: socialProviderSchema,
@@ -237,14 +255,21 @@ export function coerceSocialContextShape(raw: unknown): Record<string, unknown> 
       ? media.map((m) => {
           if (!m || typeof m !== "object") return m;
           const mr = m as Record<string, unknown>;
+          const engagement = pick(mr, "engagement", "engagement_summary");
           return {
+            postId: pick(mr, "postId", "post_id"),
+            shortCode: pick(mr, "shortCode", "short_code"),
             mediaType: pick(mr, "mediaType", "media_type"),
             caption: mr["caption"],
+            hashtags: mr["hashtags"],
+            mentions: mr["mentions"],
             timestamp: mr["timestamp"],
             permalink: mr["permalink"],
+            engagement,
           };
         })
       : media,
+
     fetchedAt: pick(r, "fetchedAt", "fetched_at"),
     truncated: r["truncated"],
   };
@@ -304,11 +329,28 @@ export function sanitizeRecentMedia(raw: unknown, max = MAX_RECENT_MEDIA): Socia
     if (!item || typeof item !== "object") continue;
     const r = item as Record<string, unknown>;
     const typeRaw = typeof r["mediaType"] === "string" ? (r["mediaType"] as string).toUpperCase() : "";
+    const engagementRaw = (r["engagement"] ?? {}) as Record<string, unknown>;
+    const engagement = {
+      likes: intOrUndefined(engagementRaw["likes"]),
+      comments: intOrUndefined(engagementRaw["comments"]),
+      views: intOrUndefined(engagementRaw["views"]),
+    };
+    const hasEngagement =
+      engagement.likes !== undefined ||
+      engagement.comments !== undefined ||
+      engagement.views !== undefined;
+    const hashtags = clampList(r["hashtags"], MAX_POST_TAGS, MAX_POST_TAG_CHARS);
+    const mentions = clampList(r["mentions"], MAX_POST_TAGS, MAX_POST_TAG_CHARS);
     const candidate = {
+      postId: clampText(r["postId"], 60),
+      shortCode: clampText(r["shortCode"], 40),
       mediaType: (MEDIA_TYPES.has(typeRaw) ? typeRaw : "OTHER") as SocialMediaItem["mediaType"],
       caption: clampText(r["caption"], MAX_CAPTION_CHARS),
+      hashtags: hashtags.length ? hashtags : undefined,
+      mentions: mentions.length ? mentions : undefined,
       timestamp: clampText(r["timestamp"], 40),
       permalink: clampText(r["permalink"], 300),
+      engagement: hasEngagement ? engagement : undefined,
     };
     const parsed = socialMediaItemSchema.safeParse(candidate);
     if (!parsed.success) continue;
@@ -317,6 +359,7 @@ export function sanitizeRecentMedia(raw: unknown, max = MAX_RECENT_MEDIA): Socia
   }
   return out.length ? out : undefined;
 }
+
 
 /**
  * Impressão digital SEMÂNTICA para cache/chave de análise.
