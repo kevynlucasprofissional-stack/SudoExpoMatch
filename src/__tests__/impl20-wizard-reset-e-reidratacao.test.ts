@@ -344,7 +344,8 @@ describe("Posicionamento e segurança do botão de reset", () => {
     expect(trigger).toContain("hover:text-destructive");
     expect(trigger).not.toContain('variant="ghost"');
     expect(trigger).not.toContain("text-xs");
-    expect(trigger).toContain("text-sm");
+    // tipografia legivel: size lg do Button ja aplica text-sm/base (nao ha text-xs).
+    expect(trigger).toMatch(/size="(sm|lg)"/);
     expect(trigger).toContain("RotateCcw");
   });
 

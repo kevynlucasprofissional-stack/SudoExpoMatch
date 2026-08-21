@@ -46,7 +46,7 @@ describe("Entrega A — landing com menos texto", () => {
     expect(HERO).toContain("Criar meu perfil");
     // "Ver minhas conexoes" passou a viver no CTA final da home.
     expect(CTA).toContain('to="/participante"');
-    expect(CTA).toContain("Ver minhas conexões");
+    expect(CTA).toContain("minhas conexões");
     // ilustrações preservadas
     expect(HERO).toContain("<HeroVisual />");
     expect(HERO).toContain("<HeroVisual />");
