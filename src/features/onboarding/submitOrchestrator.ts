@@ -1,5 +1,5 @@
 import type { WizardDraft, WizardMode } from "./types";
-import { validateWizardForSubmit } from "./validate";
+import { validateWizardForSubmit, type WizardValidationReason } from "./validate";
 import { mapWizardToSaveProfileInput, normalizePhoneE164 } from "./mappers";
 import { buildSocialLinkPayload, type SocialLinkPayload } from "@/features/social/socialProfile";
 import type { SocialBusinessContext } from "@/lib/social-context";
