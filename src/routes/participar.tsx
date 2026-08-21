@@ -863,6 +863,22 @@ function errorToUserMessage(err: unknown, fallback: string): string {
         return "Você precisa ter entre 1 e 5 ofertas.";
       case "invalid_needs_count":
         return "Você precisa ter entre 1 e 5 necessidades.";
+      case "invalid_offer_label":
+        return "Revise o que você oferece: cada item precisa de 2 a 120 caracteres.";
+      case "invalid_need_label":
+        return "Revise o que você procura: cada item precisa de 2 a 120 caracteres.";
+      case "invalid_offer_detail":
+      case "invalid_need_detail":
+        return "Algum detalhe passou do limite de 300 caracteres.";
+      case "duplicate_offer_label":
+        return "Há itens repetidos no que você oferece.";
+      case "duplicate_need_label":
+        return "Há itens repetidos no que você procura.";
+      case "invalid_offer_taxonomy":
+      case "invalid_need_taxonomy":
+        return "Algum item selecionado não pertence ao segmento escolhido.";
+      case "missing_fields":
+        return "Preencha todos os campos obrigatórios.";
       case "consent_required":
         return "É preciso aceitar o consentimento.";
       case "event_not_active":
