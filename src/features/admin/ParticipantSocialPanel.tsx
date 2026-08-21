@@ -90,13 +90,21 @@ export function ParticipantSocialPanel({
   const analysis = social.analysis_snapshot ?? social.cache?.ai_analysis ?? null;
   const keywords = readStringList(ctx, "keywords");
   const signals = readStringList(ctx, "signals");
-  const displayName = readText(ctx, "display_name") ?? readText(pub, "display_name");
+  const displayName =
+    readText(ctx, "displayName") ?? readText(ctx, "display_name") ?? readText(pub, "display_name");
   const category = readText(ctx, "category") ?? readText(pub, "category");
   const bio = readText(ctx, "bio") ?? readText(pub, "bio");
   const website = readText(ctx, "website") ?? readText(pub, "website");
   const freshness = computeSocialFreshness(social.cache ?? null);
-  const followers = (ctx as Record<string, unknown> | null)?.["followers_count"];
-  const media = (ctx as Record<string, unknown> | null)?.["media_count"];
+  const ctxRec = ctx as Record<string, unknown> | null;
+  const followers = ctxRec?.["followersCount"] ?? ctxRec?.["followers_count"];
+  const media = ctxRec?.["mediaCount"] ?? ctxRec?.["media_count"];
+  const recentPosts = readRecentPosts(ctx);
+  const postsReceived = social.cache?.provider_posts_received ?? null;
+  const postsPersisted = social.cache?.provider_posts_persisted ?? null;
+  const postsUsed = social.cache?.ai_posts_used ?? null;
+  const payloadTruncated = social.cache?.provider_payload_truncated ?? false;
+
 
   return (
     <div className="space-y-4 text-sm" data-testid="social-panel">
