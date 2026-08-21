@@ -113,7 +113,16 @@ export const socialCacheViewSchema = z.object({
   last_status: z.string().nullable().default(null),
   last_error_code: z.string().nullable().default(null),
   updated_at: z.string().nullable().default(null),
+  // Métricas do patrimônio bruto guardado no backend (nunca o JSON completo).
+  provider_posts_received: z.number().int().nullable().default(null).optional(),
+  provider_posts_persisted: z.number().int().nullable().default(null).optional(),
+  ai_posts_used: z.number().int().nullable().default(null).optional(),
+  provider_payload_version: z.string().nullable().default(null).optional(),
+  provider_payload_bytes: z.number().int().nullable().default(null).optional(),
+  provider_payload_truncated: z.boolean().nullable().default(null).optional(),
+  context_schema_version: z.string().nullable().default(null).optional(),
 });
+
 
 export const socialLinkViewSchema = z.object({
   network: z.string(),
