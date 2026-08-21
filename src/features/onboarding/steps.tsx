@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { Loader2, Plus, Sparkles, Star, Trash2, X } from "lucide-react";
+import { Loader2, Plus, Search, Sparkles, Star, Target, Trash2, User, X } from "lucide-react";
 import {
   AI_SUGGESTION_BADGE,
   buildSuggestionFeed,
@@ -24,12 +24,17 @@ import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { NetworkGraphic } from "@/components/brand/NetworkGraphic";
+import {
+  ANY_LABEL,
+  BUSINESS_SIZE_LABEL,
+  BUSINESS_TYPE_LABEL,
+  BusinessProfileCriteria,
+  profileSelectableSegments,
+} from "./BusinessProfileCriteria";
 
 import type { EventCatalog, CatalogTaxonomyItem } from "@/features/participant/types";
 import type { NeedKind } from "@/lib/types";
 import type {
-  BusinessSize,
-  BusinessType,
   SubmitState,
   WizardDraft,
   WizardMode,
@@ -37,11 +42,16 @@ import type {
   WizardOffer,
 } from "./types";
 import { cryptoUid } from "./draft";
+import { ANY_PREFERENCE } from "./types";
 import { heuristicSuggestionProvider } from "./suggestions";
 import type { SuggestionItem } from "./types";
 import { OTHER_SEGMENT_ID, phoneCreateSchema, phoneEditSchema } from "./schemas";
 import { isSubmitting, reviewIsActionable } from "./submitMachine";
-import { currentPriorityId, type WizardValidation } from "./validate";
+import {
+  currentPriorityId,
+  targetProfileAnswered,
+  type WizardValidation,
+} from "./validate";
 
 const NEED_KIND_OPTIONS: { value: NeedKind; label: string }[] = [
   { value: "servico", label: "Serviço" },
@@ -215,58 +225,9 @@ export function StepIdentity({
 // ============================================================================
 // StepWhoIAm — porte, tipo, segmento, nicho e resumo
 // ============================================================================
-const BUSINESS_SIZE_OPTIONS: { value: BusinessSize; label: string }[] = [
-  { value: "pequeno", label: "Pequeno" },
-  { value: "medio", label: "Médio" },
-  { value: "grande", label: "Grande" },
-];
-const BUSINESS_TYPE_OPTIONS: { value: BusinessType; label: string }[] = [
-  { value: "comercio", label: "Comércio" },
-  { value: "industria", label: "Indústria" },
-  { value: "servico", label: "Serviço" },
-];
-export const BUSINESS_SIZE_LABEL: Record<BusinessSize, string> = Object.fromEntries(
-  BUSINESS_SIZE_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<BusinessSize, string>;
-export const BUSINESS_TYPE_LABEL: Record<BusinessType, string> = Object.fromEntries(
-  BUSINESS_TYPE_OPTIONS.map((o) => [o.value, o.label]),
-) as Record<BusinessType, string>;
-
-function ChoiceGroup<T extends string>({
-  label,
-  value,
-  options,
-  onChange,
-}: {
-  label: string;
-  value: T | "";
-  options: { value: T; label: string }[];
-  onChange: (v: T) => void;
-}) {
-  return (
-    <div>
-      <Label>{label}</Label>
-      <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label={label}>
-        {options.map((o) => {
-          const active = value === o.value;
-          return (
-            <button
-              key={o.value}
-              type="button"
-              aria-pressed={active}
-              onClick={() => onChange(o.value)}
-              className={`rounded-full border px-4 py-2 text-sm transition-all ${
-                active ? "border-primary bg-primary/5 ring-2 ring-primary/30" : "hover:bg-muted"
-              }`}
-            >
-              {o.label}
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
+// Os classificadores de porte/tipo/segmento moram em `BusinessProfileCriteria`
+// e são compartilhados por "Quem eu sou" e "Quem eu procuro".
+export { BUSINESS_SIZE_LABEL, BUSINESS_TYPE_LABEL } from "./BusinessProfileCriteria";
 
 /** Estado de UI do enriquecimento por Instagram (nunca bloqueia o cadastro). */
 export interface SocialLookupUiState {
@@ -321,64 +282,31 @@ export function StepWhoIAm({
   }
 
   return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">Quem eu sou</h2>
+    <Card className="border-t-4 border-t-secondary bg-gradient-to-b from-secondary/5 to-transparent p-6">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
+        <User className="h-3.5 w-3.5" aria-hidden="true" /> Etapa 2 · Meu perfil
+      </p>
+      <h2 className="mt-1 font-display text-2xl font-semibold">Quem eu sou</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {manualMode
           ? "Catálogo indisponível — o segmento atual está bloqueado para edição."
-          : "Conte o porte, o tipo de atuação e o segmento da sua empresa."}
+          : "Este é o meu perfil: conte o porte, o tipo de atuação e o segmento da sua empresa."}
       </p>
 
       <div className="mt-6 space-y-6">
-        <ChoiceGroup
-          label="Porte da empresa"
-          value={draft.businessSize}
-          options={BUSINESS_SIZE_OPTIONS}
-          onChange={(v) => update("businessSize", v)}
-        />
-        <ChoiceGroup
-          label="Tipo principal"
-          value={draft.businessType}
-          options={BUSINESS_TYPE_OPTIONS}
-          onChange={(v) => update("businessType", v)}
+        <BusinessProfileCriteria
+          mode="self"
+          segments={catalog.segments}
+          size={draft.businessSize}
+          type={draft.businessType}
+          segmentId={draft.segmentId}
+          onSizeChange={(v) => v !== ANY_PREFERENCE && update("businessSize", v)}
+          onTypeChange={(v) => v !== ANY_PREFERENCE && update("businessType", v)}
+          onSegmentChange={handleSelect}
+          manualMode={manualMode}
+          manualSegmentLabel={manualSegmentLabel}
         />
 
-        <div>
-          <Label>Segmento</Label>
-          {manualMode ? (
-            <div
-              className="mt-2 rounded-xl border border-warning/40 bg-warning/5 p-3 text-sm"
-              aria-live="polite"
-            >
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Segmento atual (bloqueado)
-              </p>
-              <p className="mt-1 font-medium">{manualSegmentLabel ?? draft.segmentId}</p>
-            </div>
-          ) : (
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {catalog.segments.map((s) => {
-                const active = draft.segmentId === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleSelect(s.id)}
-                    aria-pressed={active}
-                    className={`rounded-xl border p-3 text-left text-sm transition-all ${
-                      active
-                        ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    {s.emoji && <span className="mr-1">{s.emoji}</span>}
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
         <div>
           <Label htmlFor="niche">
@@ -786,6 +714,10 @@ export function StepNeeds({
   socialContext,
   socialAnalysis,
   resetAction,
+  title,
+  subtitle,
+  eyebrow,
+  nextBlocked = false,
 }: BaseProps & {
   catalog: EventCatalog;
   resetAction?: ReactNode;
@@ -793,6 +725,12 @@ export function StepNeeds({
   aiAnalysis?: SharedAiAnalysis;
   socialContext?: SocialBusinessContext | null;
   socialAnalysis?: SocialBusinessAnalysis | null;
+  /** Rótulos contextuais — a lógica de sugestões/IA permanece intacta. */
+  title?: string;
+  subtitle?: string;
+  eyebrow?: ReactNode;
+  /** Bloqueia "Continuar" enquanto o perfil desejado não estiver respondido. */
+  nextBlocked?: boolean;
 }) {
   const [kind, setKind] = useState<NeedKind>("servico");
   const [label, setLabel] = useState("");
@@ -953,9 +891,12 @@ export function StepNeeds({
 
   return (
     <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">O que você procura</h2>
+      {eyebrow}
+      <h2 className="mt-1 font-display text-2xl font-semibold">
+        {title ?? "O que você procura"}
+      </h2>
       <p className="mt-1 text-sm text-muted-foreground">
-        Adicione o que faria diferença na sua visita à feira (até 5).
+        {subtitle ?? "Adicione o que faria diferença na sua visita à feira (até 5)."}
       </p>
 
       {feed.length > 0 && (
@@ -1119,11 +1060,108 @@ export function StepNeeds({
         <div className="flex flex-wrap items-center gap-2">
           {resetAction}
         </div>
-        <Button onClick={onNext} disabled={draft.needs.length === 0 || !priorityId}>
+        <Button
+          onClick={onNext}
+          data-testid="needs-continue"
+          disabled={draft.needs.length === 0 || !priorityId || nextBlocked}
+        >
           Continuar
         </Button>
       </div>
     </Card>
+  );
+}
+
+// ============================================================================
+// StepWhoISeek — Etapa 4: "Quem eu procuro" (perfil desejado) + refino das
+// necessidades. O bloco de necessidades reaproveita integralmente StepNeeds
+// (heurísticas, IA, selo, categoria, itens comuns, manual, prioridade).
+// ============================================================================
+export function StepWhoISeek({
+  draft,
+  update,
+  onNext,
+  onBack,
+  catalog,
+  eventId,
+  aiAnalysis,
+  socialContext,
+  socialAnalysis,
+  resetAction,
+}: BaseProps & {
+  catalog: EventCatalog;
+  resetAction?: ReactNode;
+  eventId?: string;
+  aiAnalysis?: SharedAiAnalysis;
+  socialContext?: SocialBusinessContext | null;
+  socialAnalysis?: SocialBusinessAnalysis | null;
+}) {
+  const targetAnswered = targetProfileAnswered(draft);
+
+  return (
+    <div className="space-y-4">
+      <Card
+        className="border-t-4 border-t-success bg-gradient-to-b from-success/10 to-transparent p-6"
+        data-testid="who-i-seek-card"
+      >
+        <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-success">
+          <Target className="h-3.5 w-3.5" aria-hidden="true" /> Etapa 4 · Perfil que quero encontrar
+        </p>
+        <h2 className="mt-1 font-display text-2xl font-semibold">Quem eu procuro</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Agora descreva o perfil de empresa com quem você quer se conectar.
+        </p>
+
+        <div className="mt-6">
+          <BusinessProfileCriteria
+            mode="target"
+            segments={catalog.segments}
+            size={draft.targetBusinessSize}
+            type={draft.targetBusinessType}
+            segmentId={draft.targetSegmentId}
+            onSizeChange={(v) => update("targetBusinessSize", v)}
+            onTypeChange={(v) => update("targetBusinessType", v)}
+            onSegmentChange={(v) => update("targetSegmentId", v)}
+            sizeLabel="Porte que procuro"
+            typeLabel="Tipo principal que procuro"
+            segmentLabel="Segmento que procuro"
+            hints={{
+              size: "Escolha um porte ou marque Qualquer.",
+              type: "Comércio, indústria ou serviço — ou Qualquer.",
+              segment: "Setor da empresa que você quer encontrar — ou Qualquer.",
+            }}
+          />
+        </div>
+
+        {!targetAnswered && (
+          <p className="mt-5 rounded-lg border border-dashed p-3 text-sm text-muted-foreground">
+            Responda os três campos acima. "Qualquer" é uma resposta válida — significa que você não
+            tem preferência.
+          </p>
+        )}
+      </Card>
+
+      <StepNeeds
+        draft={draft}
+        update={update}
+        onNext={onNext}
+        onBack={onBack}
+        catalog={catalog}
+        eventId={eventId}
+        aiAnalysis={aiAnalysis}
+        socialContext={socialContext}
+        socialAnalysis={socialAnalysis}
+        resetAction={resetAction}
+        nextBlocked={!targetAnswered}
+        eyebrow={
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Search className="h-3.5 w-3.5" aria-hidden="true" /> Refino
+          </p>
+        }
+        title="Refine o que você procura"
+        subtitle="O que faria essa conexão ser ainda mais útil? Adicione até 5 necessidades (elas podem ser de outros segmentos)."
+      />
+    </div>
   );
 }
 
@@ -1162,6 +1200,22 @@ export function StepReview({
   catalogFallback: boolean;
 }) {
   const seg = catalog.segments.find((s) => s.id === draft.segmentId);
+  // "Qualquer" (ou NULL vindo do banco) é uma resposta explícita, nunca "—".
+  const targetSizeText =
+    draft.targetBusinessSize && draft.targetBusinessSize !== ANY_PREFERENCE
+      ? BUSINESS_SIZE_LABEL[draft.targetBusinessSize]
+      : ANY_LABEL;
+  const targetTypeText =
+    draft.targetBusinessType && draft.targetBusinessType !== ANY_PREFERENCE
+      ? BUSINESS_TYPE_LABEL[draft.targetBusinessType]
+      : ANY_LABEL;
+  const targetSeg = profileSelectableSegments(catalog.segments).find(
+    (x) => x.id === draft.targetSegmentId,
+  );
+  const targetSegmentText =
+    draft.targetSegmentId && draft.targetSegmentId !== ANY_PREFERENCE
+      ? `${targetSeg?.emoji ?? ""} ${targetSeg?.label ?? draft.targetSegmentId}`.trim()
+      : ANY_LABEL;
   const submitting = isSubmitting(submit);
   const canSubmit = reviewIsActionable(submit);
   const validationOk = validation.ok;
@@ -1195,22 +1249,49 @@ export function StepReview({
           label="Localização"
           value={[draft.neighborhood, draft.city].filter(Boolean).join(" · ")}
         />
-        <ReviewRow
-          label="Porte"
-          value={draft.businessSize ? BUSINESS_SIZE_LABEL[draft.businessSize] : "—"}
-        />
-        <ReviewRow
-          label="Tipo principal"
-          value={draft.businessType ? BUSINESS_TYPE_LABEL[draft.businessType] : "—"}
-        />
-        <ReviewRow
-          label="Segmento"
-          value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
-        />
+        <section
+          className="rounded-xl border-l-4 border-l-secondary bg-secondary/5 p-4"
+          data-testid="review-who-i-am"
+        >
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
+            <User className="h-3.5 w-3.5" aria-hidden="true" /> Quem eu sou
+          </p>
+          <div className="mt-3 space-y-3">
+            <ReviewRow
+              label="Porte"
+              value={draft.businessSize ? BUSINESS_SIZE_LABEL[draft.businessSize] : "—"}
+            />
+            <ReviewRow
+              label="Tipo principal"
+              value={draft.businessType ? BUSINESS_TYPE_LABEL[draft.businessType] : "—"}
+            />
+            <ReviewRow
+              label="Segmento"
+              value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
+            />
+          </div>
+        </section>
+
+        <section
+          className="rounded-xl border-l-4 border-l-success bg-success/10 p-4"
+          data-testid="review-who-i-seek"
+        >
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-success">
+            <Target className="h-3.5 w-3.5" aria-hidden="true" /> Quem eu procuro
+          </p>
+          <div className="mt-3 space-y-3">
+            <ReviewRow label="Porte" value={targetSizeText} />
+            <ReviewRow label="Tipo principal" value={targetTypeText} />
+            <ReviewRow label="Segmento" value={targetSegmentText} />
+          </div>
+        </section>
+
         <ReviewRow label="Nicho" value={draft.niche} />
         <ReviewRow label="Resumo" value={draft.summary} />
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Ofereço</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            O que eu ofereço
+          </p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {draft.offers.map((o) => (
               <Badge key={o.localId} variant="secondary">
@@ -1220,7 +1301,9 @@ export function StepReview({
           </div>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Procuro</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            O que eu preciso / procuro
+          </p>
           <ul className="mt-1 space-y-1 text-sm">
             {draft.needs.map((n) => (
               <li key={n.localId} className="flex items-center gap-2">

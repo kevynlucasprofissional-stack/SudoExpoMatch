@@ -77,6 +77,16 @@ const baseProfessional = wizardDraftSchema.extend({
 
 /** Modo criação — WhatsApp é obrigatório à parte via `phoneCreateSchema`. */
 export const wizardCreateSchema = baseProfessional.superRefine((v, ctx) => {
+  // Perfil desejado: precisa ser respondido na UI. "any" (Qualquer) é válido
+  // e vira NULL na fronteira do backend.
+  const targetFields = [
+    ["targetBusinessSize", v.targetBusinessSize, "Escolha o porte que você procura"],
+    ["targetBusinessType", v.targetBusinessType, "Escolha o tipo principal que você procura"],
+    ["targetSegmentId", (v.targetSegmentId ?? "").trim(), "Escolha o segmento que você procura"],
+  ] as const;
+  for (const [path, value, message] of targetFields) {
+    if (!value) ctx.addIssue({ code: "custom", path: [path], message });
+  }
   const prios = v.needs.filter((n) => n.isPriority).length;
   if (prios !== 1) {
     ctx.addIssue({

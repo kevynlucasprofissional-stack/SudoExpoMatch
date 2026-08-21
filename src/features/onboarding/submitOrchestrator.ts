@@ -1,5 +1,5 @@
 import type { WizardDraft, WizardMode } from "./types";
-import { validateWizardForSubmit } from "./validate";
+import { validateWizardForSubmit, type WizardValidationReason } from "./validate";
 import { mapWizardToSaveProfileInput, normalizePhoneE164 } from "./mappers";
 import { buildSocialLinkPayload, type SocialLinkPayload } from "@/features/social/socialProfile";
 import type { SocialBusinessContext } from "@/lib/social-context";
@@ -19,7 +19,7 @@ export interface SubmitOrchestratorDeps {
 
 export type PreSubmitResult =
   | { ok: true; phoneE164: string | null; withContact: boolean }
-  | { ok: false; reason: "profile" | "phone" | "priority"; message: string };
+  | { ok: false; reason: WizardValidationReason; message: string };
 
 /**
  * Etapa pura anterior a qualquer chamada de rede.
@@ -38,7 +38,7 @@ export function preSubmit(args: {
 }
 
 export type SubmitEvent =
-  | { type: "PRE_FAIL"; reason: "profile" | "phone" | "priority"; message: string }
+  | { type: "PRE_FAIL"; reason: WizardValidationReason; message: string }
   | { type: "PROFILE_OK" }
   | { type: "PROFILE_FAIL"; error: unknown }
   | { type: "CONTACT_OK" }

@@ -6,7 +6,7 @@ import {
 } from "./schemas";
 import type { WizardDraft, WizardMode } from "./types";
 
-export type WizardValidationReason = "profile" | "phone" | "priority";
+export type WizardValidationReason = "profile" | "phone" | "priority" | "target";
 
 export type WizardValidation =
   | { ok: true }
@@ -28,10 +28,15 @@ export function validateWizardForSubmit(args: {
   const parsed = schema.safeParse(args.draft);
   if (!parsed.success) {
     const issue = parsed.error.issues[0];
+    const path0 = issue?.path?.[0];
     const reason: WizardValidationReason =
-      issue?.path?.[0] === "needs" && issue?.message === "Marque exatamente uma prioridade"
+      path0 === "needs" && issue?.message === "Marque exatamente uma prioridade"
         ? "priority"
-        : "profile";
+        : path0 === "targetBusinessSize" ||
+            path0 === "targetBusinessType" ||
+            path0 === "targetSegmentId"
+          ? "target"
+          : "profile";
     return {
       ok: false,
       reason,
@@ -48,6 +53,18 @@ export function validateWizardForSubmit(args: {
     };
   }
   return { ok: true };
+}
+
+/**
+ * Etapa 4 — os três controles do perfil desejado precisam estar respondidos.
+ * `""` = não respondeu; `"any"` (Qualquer) é resposta válida.
+ */
+export function targetProfileAnswered(draft: WizardDraft): boolean {
+  return (
+    draft.targetBusinessSize !== "" &&
+    draft.targetBusinessType !== "" &&
+    draft.targetSegmentId.trim() !== ""
+  );
 }
 
 /** Retorna somente o localId realmente marcado como prioridade. */
