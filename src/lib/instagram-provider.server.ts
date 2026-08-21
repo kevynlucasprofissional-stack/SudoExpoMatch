@@ -262,8 +262,28 @@ export function cleanApifyText(value: unknown): unknown {
   return trimmed;
 }
 
-/** Mapeia o payload do Apify para o nosso domínio — nada bruto é guardado. */
+/**
+ * Tipos de mídia reais devolvidos pela Apify: `Image`, `Video`, `Sidecar`
+ * (carrossel). Mapeamos para o vocabulário canônico do contexto.
+ */
+export function normalizeApifyMediaType(raw: unknown): string {
+  const t = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  if (t === "sidecar" || t === "carousel" || t === "carousel_album") return "CAROUSEL_ALBUM";
+  if (t === "video" || t === "reel" || t === "clip") return "VIDEO";
+  if (t === "image" || t === "photo" || t === "graphimage") return "IMAGE";
+  return "OTHER";
+}
 
+/** Lista de strings curtas (hashtags/menções) tolerante a lixo do provider. */
+function stringList(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.filter((v): v is string => typeof v === "string" && v.trim().length > 0);
+}
+
+/**
+ * Mapeia o payload do Apify para o CONTEXTO da IA (compacto). O payload bruto
+ * completo é persistido em separado (ver `buildProviderPayloadSnapshot`).
+ */
 export function mapApifyItemToContext(item: unknown, handle: string): SocialBusinessContext | null {
   if (!item || typeof item !== "object") return null;
   const it = item as ApifyItem;
@@ -271,11 +291,21 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
   const media = sanitizeRecentMedia(
     posts.map((p) => {
       const post = (p ?? {}) as Record<string, unknown>;
+      const engagement = {
+        likes: post["likesCount"],
+        comments: post["commentsCount"],
+        views: post["videoViewCount"] ?? post["videoPlayCount"],
+      };
       return {
-        mediaType: typeof post["type"] === "string" ? String(post["type"]).toUpperCase() : undefined,
+        postId: post["id"],
+        shortCode: post["shortCode"],
+        mediaType: normalizeApifyMediaType(post["type"]),
         caption: post["caption"],
+        hashtags: stringList(post["hashtags"]),
+        mentions: stringList(post["mentions"]),
         timestamp: post["timestamp"],
         permalink: post["url"],
+        engagement,
       };
     }),
   );
@@ -292,6 +322,7 @@ export function mapApifyItemToContext(item: unknown, handle: string): SocialBusi
     recentMedia: media,
   });
 }
+
 
 /**
  * Provider gerenciado (Apify official Instagram Profile Scraper).
