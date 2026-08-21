@@ -779,8 +779,8 @@ function WizardPage() {
           <AlertDialogHeader>
             <AlertDialogTitle className="text-white">Confirme seu WhatsApp</AlertDialogTitle>
             <AlertDialogDescription>
-              É por esse número que as pessoas vão te encontrar depois do evento. Confira se está
-              correto:
+              É por esse número que você realizará login nesta plataforma, também é por ele que as
+              oportunidades vão te encontrar. Confira se está correto:
             </AlertDialogDescription>
           </AlertDialogHeader>
           <p className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-center font-display text-xl font-semibold text-white">
