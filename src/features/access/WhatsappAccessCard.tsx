@@ -69,7 +69,7 @@ export function WhatsappAccessCard({
   initialPhone,
   lockPhone = false,
   confirmLabel = "Entrar",
-  hint = "Sem senha: confirmamos seu WhatsApp com um código de uso único.",
+  
   onVerified,
 }: WhatsappAccessCardProps) {
   const navigate = useNavigate();
