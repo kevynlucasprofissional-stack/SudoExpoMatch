@@ -54,7 +54,7 @@ describe("eventCatalogSchema", () => {
   });
   it("aceita emoji null", () => {
     const r = eventCatalogSchema.safeParse({
-      segments: [{ id: "s1", label: "X", emoji: null }],
+      segments: [{ id: "s1", label: "X", emoji: null, profile_selectable: true }],
       taxonomy: [],
     });
     expect(r.success).toBe(true);

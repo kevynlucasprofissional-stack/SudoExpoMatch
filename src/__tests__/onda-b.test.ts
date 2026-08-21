@@ -517,7 +517,7 @@ describe("submitMachine: falhas parciais", () => {
 // suggestions.ts
 // ==================================================================
 const CATALOG: EventCatalog = {
-  segments: [{ id: "servicos", label: "Serviços", emoji: null }],
+  segments: [{ id: "servicos", label: "Serviços", emoji: null, profile_selectable: true }],
   taxonomy: [
     {
       id: "srv-off-1",

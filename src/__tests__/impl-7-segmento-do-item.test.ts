@@ -28,8 +28,8 @@ const TX_SEMSEG = "33333333-3333-3333-3333-333333333333";
 
 const catalog: EventCatalog = {
   segments: [
-    { id: "alimentacao", label: "Alimentação", emoji: null },
-    { id: "marketing", label: "Marketing", emoji: null },
+    { id: "alimentacao", label: "Alimentação", emoji: null, profile_selectable: true },
+    { id: "marketing", label: "Marketing", emoji: null, profile_selectable: true },
   ],
   taxonomy: [
     {

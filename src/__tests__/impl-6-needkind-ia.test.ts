@@ -20,7 +20,7 @@ import type { WizardDraft, WizardNeed } from "@/features/onboarding/types";
 /** IMPL 6 — needKind na saída da IA (independente do seletor da UI). */
 
 const catalog: EventCatalog = {
-  segments: [{ id: "alimentacao", label: "Alimentação", emoji: null }] as EventCatalog["segments"],
+  segments: [{ id: "alimentacao", label: "Alimentação", emoji: null, profile_selectable: true }] as EventCatalog["segments"],
   taxonomy: [
     {
       id: "tx-emb",

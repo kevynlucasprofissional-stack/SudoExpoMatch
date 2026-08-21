@@ -32,8 +32,8 @@ const stepsSrc = readFileSync("src/features/onboarding/steps.tsx", "utf8");
 
 const catalog: EventCatalog = {
   segments: [
-    { id: "alim", label: "Alimentação", emoji: null },
-    { id: "mkt", label: "Marketing", emoji: null },
+    { id: "alim", label: "Alimentação", emoji: null, profile_selectable: true },
+    { id: "mkt", label: "Marketing", emoji: null, profile_selectable: true },
   ],
   taxonomy: [
     { id: "t-emb", segment_id: "alim", label: "Embalagens", kind: "need", synonyms: [] },
