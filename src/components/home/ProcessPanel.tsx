@@ -1,8 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import {
-  UserPlus,
-  Heart,
-  Handshake,
   ArrowRight,
   ChevronRight,
   Users,
@@ -16,10 +13,10 @@ import { useEventStats } from "@/features/staff/useEventStats";
 
 
 const STEPS = [
-  { Icon: UserPlus, label: "Crie seu perfil" },
-  { Icon: Sparkles, label: "Receba matches automáticos" },
-  { Icon: Heart, label: "Marque interesse mútuo" },
-  { Icon: Handshake, label: "A ACIRV apresenta vocês" },
+  { label: "Crie seu perfil" },
+  { label: "Receba matches automáticos" },
+  { label: "Marque interesse mútuo" },
+  { label: "A ACIRV apresenta vocês" },
 ] as const;
 
 // Preview agregado do painel público — MESMA fonte de verdade (RPC event_stats
@@ -88,7 +85,7 @@ export function ProcessPanel() {
                   <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary font-display text-sm font-black text-[#0b1252]">
                     {i + 1}
                   </span>
-                  <s.Icon aria-hidden className="h-5 w-5 shrink-0 text-white/70" />
+                  
                   <span className="min-w-0 text-sm font-medium leading-snug text-white/90">
                     {s.label}
                   </span>
