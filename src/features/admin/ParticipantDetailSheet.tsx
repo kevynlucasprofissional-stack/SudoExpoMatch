@@ -135,6 +135,31 @@ export function ParticipantDetailSheet({
                   <dd>{fmt(d.profile.created_at)}</dd>
                 </div>
               </dl>
+              <div data-testid="target-profile">
+                <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Perfil procurado
+                </p>
+                <dl className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Porte desejado</dt>
+                    <dd data-testid="target-size">
+                      {BUSINESS_SIZE_TEXT[d.profile.target_business_size ?? ""] ?? "Qualquer"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Tipo desejado</dt>
+                    <dd data-testid="target-type">
+                      {BUSINESS_TYPE_TEXT[d.profile.target_business_type ?? ""] ?? "Qualquer"}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-muted-foreground">Segmento desejado</dt>
+                    <dd data-testid="target-segment">
+                      {d.profile.target_segment_label ?? d.profile.target_segment_id ?? "Qualquer"}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
               <div>
                 <p className="text-xs text-muted-foreground">Resumo</p>
                 <p className="mt-1 whitespace-pre-wrap">{d.profile.summary || "—"}</p>
