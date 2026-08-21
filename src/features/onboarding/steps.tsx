@@ -278,64 +278,31 @@ export function StepWhoIAm({
   }
 
   return (
-    <Card className="p-6">
-      <h2 className="font-display text-2xl font-semibold">Quem eu sou</h2>
+    <Card className="border-t-4 border-t-secondary bg-gradient-to-b from-secondary/5 to-transparent p-6">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
+        <User className="h-3.5 w-3.5" aria-hidden="true" /> Etapa 2 · Meu perfil
+      </p>
+      <h2 className="mt-1 font-display text-2xl font-semibold">Quem eu sou</h2>
       <p className="mt-1 text-sm text-muted-foreground">
         {manualMode
           ? "Catálogo indisponível — o segmento atual está bloqueado para edição."
-          : "Conte o porte, o tipo de atuação e o segmento da sua empresa."}
+          : "Este é o meu perfil: conte o porte, o tipo de atuação e o segmento da sua empresa."}
       </p>
 
       <div className="mt-6 space-y-6">
-        <ChoiceGroup
-          label="Porte da empresa"
-          value={draft.businessSize}
-          options={BUSINESS_SIZE_OPTIONS}
-          onChange={(v) => update("businessSize", v)}
-        />
-        <ChoiceGroup
-          label="Tipo principal"
-          value={draft.businessType}
-          options={BUSINESS_TYPE_OPTIONS}
-          onChange={(v) => update("businessType", v)}
+        <BusinessProfileCriteria
+          mode="self"
+          segments={catalog.segments}
+          size={draft.businessSize}
+          type={draft.businessType}
+          segmentId={draft.segmentId}
+          onSizeChange={(v) => v !== ANY_PREFERENCE && update("businessSize", v)}
+          onTypeChange={(v) => v !== ANY_PREFERENCE && update("businessType", v)}
+          onSegmentChange={handleSelect}
+          manualMode={manualMode}
+          manualSegmentLabel={manualSegmentLabel}
         />
 
-        <div>
-          <Label>Segmento</Label>
-          {manualMode ? (
-            <div
-              className="mt-2 rounded-xl border border-warning/40 bg-warning/5 p-3 text-sm"
-              aria-live="polite"
-            >
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">
-                Segmento atual (bloqueado)
-              </p>
-              <p className="mt-1 font-medium">{manualSegmentLabel ?? draft.segmentId}</p>
-            </div>
-          ) : (
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {catalog.segments.map((s) => {
-                const active = draft.segmentId === s.id;
-                return (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => handleSelect(s.id)}
-                    aria-pressed={active}
-                    className={`rounded-xl border p-3 text-left text-sm transition-all ${
-                      active
-                        ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/30"
-                        : "hover:bg-muted"
-                    }`}
-                  >
-                    {s.emoji && <span className="mr-1">{s.emoji}</span>}
-                    {s.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
 
         <div>
           <Label htmlFor="niche">
