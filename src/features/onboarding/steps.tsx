@@ -445,9 +445,6 @@ export function StepWhoIAm({
 
       <div className="mt-6 flex justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={onBack}>
-            Voltar
-          </Button>
           {resetAction}
         </div>
         <Button
@@ -758,9 +755,6 @@ export function StepOffers({
 
       <div className="mt-6 flex justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={onBack}>
-            Voltar
-          </Button>
           {resetAction}
         </div>
         <Button onClick={onNext} disabled={draft.offers.length === 0}>
@@ -1112,9 +1106,6 @@ export function StepNeeds({
 
       <div className="mt-6 flex justify-between">
         <div className="flex flex-wrap items-center gap-2">
-          <Button variant="outline" onClick={onBack}>
-            Voltar
-          </Button>
           {resetAction}
         </div>
         <Button onClick={onNext} disabled={draft.needs.length === 0 || !priorityId}>
@@ -1291,9 +1282,6 @@ export function StepReview({
 
         <div className="flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-between">
           <div className="flex flex-wrap items-center gap-2">
-            <Button variant="outline" onClick={onBack} disabled={submitting}>
-              Voltar e editar
-            </Button>
             {resetAction}
           </div>
           <Button
