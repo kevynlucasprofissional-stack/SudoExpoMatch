@@ -1200,6 +1200,22 @@ export function StepReview({
   catalogFallback: boolean;
 }) {
   const seg = catalog.segments.find((s) => s.id === draft.segmentId);
+  // "Qualquer" (ou NULL vindo do banco) é uma resposta explícita, nunca "—".
+  const targetSizeText =
+    draft.targetBusinessSize && draft.targetBusinessSize !== ANY_PREFERENCE
+      ? BUSINESS_SIZE_LABEL[draft.targetBusinessSize]
+      : ANY_LABEL;
+  const targetTypeText =
+    draft.targetBusinessType && draft.targetBusinessType !== ANY_PREFERENCE
+      ? BUSINESS_TYPE_LABEL[draft.targetBusinessType]
+      : ANY_LABEL;
+  const targetSeg = profileSelectableSegments(catalog.segments).find(
+    (x) => x.id === draft.targetSegmentId,
+  );
+  const targetSegmentText =
+    draft.targetSegmentId && draft.targetSegmentId !== ANY_PREFERENCE
+      ? `${targetSeg?.emoji ?? ""} ${targetSeg?.label ?? draft.targetSegmentId}`.trim()
+      : ANY_LABEL;
   const submitting = isSubmitting(submit);
   const canSubmit = reviewIsActionable(submit);
   const validationOk = validation.ok;
@@ -1233,22 +1249,49 @@ export function StepReview({
           label="Localização"
           value={[draft.neighborhood, draft.city].filter(Boolean).join(" · ")}
         />
-        <ReviewRow
-          label="Porte"
-          value={draft.businessSize ? BUSINESS_SIZE_LABEL[draft.businessSize] : "—"}
-        />
-        <ReviewRow
-          label="Tipo principal"
-          value={draft.businessType ? BUSINESS_TYPE_LABEL[draft.businessType] : "—"}
-        />
-        <ReviewRow
-          label="Segmento"
-          value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
-        />
+        <section
+          className="rounded-xl border-l-4 border-l-secondary bg-secondary/5 p-4"
+          data-testid="review-who-i-am"
+        >
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
+            <User className="h-3.5 w-3.5" aria-hidden="true" /> Quem eu sou
+          </p>
+          <div className="mt-3 space-y-3">
+            <ReviewRow
+              label="Porte"
+              value={draft.businessSize ? BUSINESS_SIZE_LABEL[draft.businessSize] : "—"}
+            />
+            <ReviewRow
+              label="Tipo principal"
+              value={draft.businessType ? BUSINESS_TYPE_LABEL[draft.businessType] : "—"}
+            />
+            <ReviewRow
+              label="Segmento"
+              value={`${seg?.emoji ?? ""} ${seg?.label ?? (draft.segmentId || "—")}`}
+            />
+          </div>
+        </section>
+
+        <section
+          className="rounded-xl border-l-4 border-l-success bg-success/10 p-4"
+          data-testid="review-who-i-seek"
+        >
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-success">
+            <Target className="h-3.5 w-3.5" aria-hidden="true" /> Quem eu procuro
+          </p>
+          <div className="mt-3 space-y-3">
+            <ReviewRow label="Porte" value={targetSizeText} />
+            <ReviewRow label="Tipo principal" value={targetTypeText} />
+            <ReviewRow label="Segmento" value={targetSegmentText} />
+          </div>
+        </section>
+
         <ReviewRow label="Nicho" value={draft.niche} />
         <ReviewRow label="Resumo" value={draft.summary} />
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Ofereço</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            O que eu ofereço
+          </p>
           <div className="mt-1 flex flex-wrap gap-1.5">
             {draft.offers.map((o) => (
               <Badge key={o.localId} variant="secondary">
@@ -1258,7 +1301,9 @@ export function StepReview({
           </div>
         </div>
         <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Procuro</p>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">
+            O que eu preciso / procuro
+          </p>
           <ul className="mt-1 space-y-1 text-sm">
             {draft.needs.map((n) => (
               <li key={n.localId} className="flex items-center gap-2">

@@ -69,7 +69,7 @@ import {
   StepIdentity,
   StepWhoIAm,
   StepOffers,
-  StepNeeds,
+  StepWhoISeek,
   StepReview,
 } from "@/features/onboarding/steps";
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
@@ -104,7 +104,7 @@ const STEPS = [
   "Identificação",
   "Quem eu sou",
   "O que eu ofereço",
-  "O que eu procuro",
+  "Quem eu procuro",
   "Revisão",
 ] as const;
 
@@ -722,7 +722,7 @@ function WizardPage() {
           />
         )}
         {step === 3 && (
-          <StepNeeds
+          <StepWhoISeek
             draft={draft}
             update={update}
             onNext={next}
