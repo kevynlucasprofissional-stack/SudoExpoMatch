@@ -380,6 +380,17 @@ export async function runSocialEnrichment(args: {
 
   const fingerprint = socialContextFingerprint(context);
   const fetchedAt = new Date(now()).toISOString();
+  const rawSnapshot = fetched.providerPayload;
+  const payloadMeta: SocialEntryPayloadMeta | undefined = rawSnapshot
+    ? {
+        payload: rawSnapshot.payload,
+        version: rawSnapshot.version,
+        bytes: rawSnapshot.bytes,
+        truncated: rawSnapshot.truncated,
+        postsReceived: rawSnapshot.postsReceived,
+        postsPersisted: rawSnapshot.postsPersisted,
+      }
+    : undefined;
 
   // Conteúdo idêntico ao já analisado → reaproveita a análise (IA = 0).
   if (
@@ -398,6 +409,7 @@ export async function runSocialEnrichment(args: {
       fingerprint,
       fetchedAt,
       provider: context.provider,
+      ...(payloadMeta ? { providerPayload: payloadMeta } : {}),
     };
     await persist(entry, deps, cfg, now);
     deps.memory?.set(key, entry);
@@ -409,10 +421,12 @@ export async function runSocialEnrichment(args: {
     context,
     fingerprint,
     fetchedAt,
+    providerPayload: payloadMeta,
     deps,
     cfg,
     now,
   });
+
   deps.memory?.set(key, entry);
   return ok(entry, "provider", false, 1, deps.analyzer ? 1 : 0);
 }
