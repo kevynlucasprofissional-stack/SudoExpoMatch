@@ -3,7 +3,11 @@ import { needKindSchema } from "@/features/participant/schemas";
 
 export const wizardOfferSchema = z.object({
   localId: z.string().min(1),
-  label: z.string().trim().min(1).max(80),
+  label: z
+    .string()
+    .trim()
+    .min(2, "Descreva com pelo menos 2 caracteres")
+    .max(80),
   detail: z.string().trim().max(200).optional(),
   segmentId: z.string().min(1),
   taxonomyItemId: z.string().nullable(),
@@ -105,7 +109,7 @@ export const phoneEditSchema = z
 // ---------- Suggestion Provider ----------
 export const suggestionItemSchema = z.object({
   taxonomyItemId: z.string().nullable(),
-  label: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(2).max(80),
   kind: z.enum(["offer", "need"]),
   /** IMPL 7 — segmento autoritativo do taxonomy item (null = texto livre). */
   segmentId: z.string().min(1).nullable().optional(),
