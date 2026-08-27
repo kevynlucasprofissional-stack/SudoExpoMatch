@@ -267,6 +267,16 @@ export function MatchDetailSheet({
 
           </Tabs>
         ) : null}
+
+        <ReleaseWhatsAppDialog
+          matchId={releaseOpen ? matchId : null}
+          pairLabel={d ? `${d.profile_a.name} ↔ ${d.profile_b.name}` : undefined}
+          alreadyReleased={released}
+          onClose={() => setReleaseOpen(false)}
+          onReleased={() => {
+            if (matchId) qc.invalidateQueries({ queryKey: ["admin", "match-detail", matchId] });
+          }}
+        />
       </SheetContent>
     </Sheet>
   );
