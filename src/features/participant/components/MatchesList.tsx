@@ -107,7 +107,7 @@ function RefreshErrorNotice({ onRetry, retrying }: { onRetry: () => void; retryi
   return (
     <div
       role="status"
-      className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning-foreground"
+      className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs text-warning"
     >
       Não conseguimos atualizar agora. Mostrando a última lista carregada.{" "}
       <button
