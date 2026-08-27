@@ -208,11 +208,16 @@ body:has(.brand-navy) {
 
   html,
   body {
-    background-color: var(--color-background);
-    color: var(--color-foreground);
+    /* Usa os tokens brutos (--background/--foreground) e não os alias
+       de @theme inline: os alias resolvem no :root e ignoram o override
+       de escopo `body:has(.brand-navy)`, deixando texto escuro em portais
+       (Dialog/Sheet/Popover) renderizados fora do shell marinho. */
+    background-color: var(--background);
+    color: var(--foreground);
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
+
 
   h1,
   h2,
