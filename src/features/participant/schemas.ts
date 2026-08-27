@@ -110,6 +110,9 @@ export const matchConnectionSchema = z
     id: z.string(),
     status: connectionStatusSchema,
     notes: z.string().nullable(),
+    // Liberação administrativa do WhatsApp (equipe/admin). Quando preenchido,
+    // o contato fica visível para os dois lados independentemente de mútuo.
+    contact_released_at: z.string().nullable().default(null),
   })
   .nullable();
 
