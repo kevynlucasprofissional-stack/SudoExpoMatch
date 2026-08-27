@@ -183,6 +183,10 @@ body:has(.brand-navy) {
   --accent: oklch(1 0 0 / 12%);
   --accent-foreground: oklch(0.99 0.005 260);
 
+  /* success-foreground / warning-foreground continuam escuros de propósito:
+     só são usados sobre os fundos sólidos verde-lima e amarelo. Sobre o
+     marinho, use text-success / text-warning (cores claras). */
+
   --border: oklch(1 0 0 / 14%);
   --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.68 0.16 235);

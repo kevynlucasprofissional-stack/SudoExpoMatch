@@ -164,7 +164,7 @@ export function ProcessPanel() {
                           {value}
                         </div>
                       )}
-                      <div className="truncate text-[9px] font-semibold text-slate-500">
+                      <div className="truncate text-[9px] font-semibold text-slate-600">
                         {label}
                       </div>
                     </div>
