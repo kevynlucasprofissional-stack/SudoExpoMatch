@@ -611,6 +611,7 @@ function StaffDashboard({
                   setCancelNote("");
                 }}
                 onReveal={() => setRevealTarget(c)}
+                onReleaseWhatsApp={() => setWhatsTarget(c)}
                 onToggleMapped={() => handleToggleMapped(c)}
                 onDetail={() => setDetailId(c.id)}
               />
