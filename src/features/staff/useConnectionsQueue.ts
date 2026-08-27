@@ -42,3 +42,34 @@ export function useRevealStaffContact() {
     },
   });
 }
+
+export interface ReleaseWhatsAppInput {
+  matchId: string;
+  reason?: string;
+}
+
+/**
+ * Liberação administrativa de WhatsApp para as duas partes de um match.
+ *
+ * A RPC `admin_release_contact_for_match` cria a conexão quando necessário,
+ * marca o contato como liberado (participantes passam a ver o telefone um do
+ * outro no painel) e devolve os contatos para a equipe acionar na hora.
+ */
+export function useReleaseWhatsApp() {
+  return useMutation<StaffContactPair[], Error, ReleaseWhatsAppInput>({
+    mutationFn: async ({ matchId, reason }) => {
+      const { data, error } = await supabase.rpc("admin_release_contact_for_match", {
+        _match_id: matchId,
+        _reason: reason ?? undefined,
+      });
+      if (error) throw error;
+      return (data ?? []).map((r) => ({
+        profileId: r.profile_id,
+        name: r.name,
+        company: r.company ?? "",
+        phone: r.phone_e164 ?? "",
+        email: r.email,
+      }));
+    },
+  });
+}
