@@ -164,7 +164,29 @@ function MatchCardRow({
             </div>
           </div>
         </div>
+        <p className="mt-2 text-sm" data-testid="match-why">
+          <span className="text-primary">» </span>
+          {m.briefing_summary?.trim()
+            ? m.briefing_summary
+            : buildCardSummary(m.why_a, m.why_b, {
+                a: shortName(m.a_name),
+                b: shortName(m.b_name),
+              })}
+        </p>
+        <div className="mt-1 flex flex-wrap gap-1 text-xs" data-testid="match-signals">
+          {buildSignals(m.why_a, m.why_b).map((s) => (
+            <Badge key={s} variant="secondary">
+              {s}
+            </Badge>
+          ))}
+          {m.has_briefing ? (
+            <Badge variant={m.briefing_stale ? "destructive" : "default"}>
+              {m.briefing_stale ? "Briefing desatualizado" : "Briefing com IA"}
+            </Badge>
+          ) : null}
+        </div>
         <div className="mt-2 flex flex-wrap gap-1 text-xs">
+
           <Badge variant="outline">{kindText(m.kind)}</Badge>
           <Badge variant="outline">{m.algorithm_version}</Badge>
           {gap >= 30 ? (
