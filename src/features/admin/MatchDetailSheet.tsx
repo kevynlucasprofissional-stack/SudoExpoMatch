@@ -8,7 +8,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDialog";
+
 
 import { useAdminMatchDetail } from "@/features/admin/useAdminMatches";
 import { translateAdminMatchesError, type MatchReason } from "@/features/admin/matchesSchemas";
@@ -127,6 +132,11 @@ export function MatchDetailSheet({
 }) {
   const query = useAdminMatchDetail(matchId, true);
   const d = query.data;
+  const qc = useQueryClient();
+  const [releaseOpen, setReleaseOpen] = useState(false);
+  const released =
+    d?.connection != null &&
+    ["apresentados", "contato_trocado", "concluido"].includes(d.connection.status);
 
   return (
     <Sheet open={matchId !== null} onOpenChange={(o) => !o && onClose()}>
@@ -240,9 +250,33 @@ export function MatchDetailSheet({
               ) : (
                 <p className="text-muted-foreground">Ainda não existe conexão para este match.</p>
               )}
+
+              <Button
+                className="w-full"
+                variant={released ? "outline" : "default"}
+                onClick={() => setReleaseOpen(true)}
+                data-testid="release-whatsapp"
+              >
+                <MessageCircle className="mr-1 h-4 w-4" />
+                {released ? "WhatsApp liberado · ver contatos" : "Liberar WhatsApp"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Libera o contato para as duas partes e entrega os links de WhatsApp para a equipe.
+              </p>
             </TabsContent>
+
           </Tabs>
         ) : null}
+
+        <ReleaseWhatsAppDialog
+          matchId={releaseOpen ? matchId : null}
+          pairLabel={d ? `${d.profile_a.name} ↔ ${d.profile_b.name}` : undefined}
+          alreadyReleased={released}
+          onClose={() => setReleaseOpen(false)}
+          onReleased={() => {
+            if (matchId) qc.invalidateQueries({ queryKey: ["admin", "match-detail", matchId] });
+          }}
+        />
       </SheetContent>
     </Sheet>
   );

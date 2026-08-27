@@ -316,11 +316,16 @@ describe("Impl 10 — contratos de código", () => {
     expect(SHEET).toMatch(/relation_current/);
   });
 
-  it("não expõe contato nem ações de edição", () => {
-    for (const src of [ROUTE, SHEET]) {
-      expect(src).not.toMatch(/whatsapp|recovery_code|phone_e164/i);
-      expect(src).not.toMatch(/reveal_contact/);
-    }
+  it("não expõe contato bruto na listagem nem ações de edição", () => {
+    expect(ROUTE).not.toMatch(/recovery_code|phone_e164/i);
+    expect(ROUTE).not.toMatch(/reveal_contact/);
+    expect(SHEET).not.toMatch(/recovery_code|phone_e164/i);
+    expect(SHEET).not.toMatch(/reveal_contact_for_match/);
+  });
+
+  it("detalhe do match oferece liberação administrativa de WhatsApp", () => {
+    expect(SHEET).toMatch(/ReleaseWhatsAppDialog/);
+    expect(SHEET).toMatch(/Liberar WhatsApp/);
   });
 
   it("estados de carregamento, erro e vazio existem", () => {

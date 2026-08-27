@@ -341,6 +341,9 @@ export type Database = {
           cancelled_at: string | null
           completed_at: string | null
           contact_exchanged_at: string | null
+          contact_release_reason: string | null
+          contact_released_at: string | null
+          contact_released_by: string | null
           created_at: string
           event_id: string
           id: string
@@ -362,6 +365,9 @@ export type Database = {
           cancelled_at?: string | null
           completed_at?: string | null
           contact_exchanged_at?: string | null
+          contact_release_reason?: string | null
+          contact_released_at?: string | null
+          contact_released_by?: string | null
           created_at?: string
           event_id: string
           id?: string
@@ -383,6 +389,9 @@ export type Database = {
           cancelled_at?: string | null
           completed_at?: string | null
           contact_exchanged_at?: string | null
+          contact_release_reason?: string | null
+          contact_released_at?: string | null
+          contact_released_by?: string | null
           created_at?: string
           event_id?: string
           id?: string
@@ -1446,6 +1455,16 @@ export type Database = {
       admin_reassign_connection: {
         Args: { _connection_id: string; _new_user_id: string; _note?: string }
         Returns: undefined
+      }
+      admin_release_contact_for_match: {
+        Args: { _match_id: string; _reason?: string }
+        Returns: {
+          company: string
+          email: string
+          name: string
+          phone_e164: string
+          profile_id: string
+        }[]
       }
       admin_remove_event_staff: {
         Args: {

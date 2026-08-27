@@ -15,6 +15,7 @@ import {
   MapPin,
   MapPinOff,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 
@@ -60,6 +61,7 @@ import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventStats } from "@/features/staff/useEventStats";
 import { useEventSegments } from "@/features/staff/useEventSegments";
 import { useRevealStaffContact } from "@/features/staff/useConnectionsQueue";
+import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDialog";
 import { useEventStaffMembers } from "@/features/admin/useEventStaff";
 import {
   cancelNoteSchema,
@@ -328,7 +330,9 @@ function StaffDashboard({
     true,
   );
 
+  const qc = useQueryClient();
   const [revealTarget, setRevealTarget] = useState<QueueItem | null>(null);
+  const [whatsTarget, setWhatsTarget] = useState<QueueItem | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<QueueItem | null>(null);
   const [cancelNote, setCancelNote] = useState("");
@@ -610,6 +614,7 @@ function StaffDashboard({
                   setCancelNote("");
                 }}
                 onReveal={() => setRevealTarget(c)}
+                onReleaseWhatsApp={() => setWhatsTarget(c)}
                 onToggleMapped={() => handleToggleMapped(c)}
                 onDetail={() => setDetailId(c.id)}
               />
@@ -650,6 +655,17 @@ function StaffDashboard({
         target={revealTarget}
         isAdmin={isAdmin}
         onClose={() => setRevealTarget(null)}
+      />
+
+      <ReleaseWhatsAppDialog
+        matchId={whatsTarget?.match_id ?? null}
+        pairLabel={whatsTarget ? `${whatsTarget.a_name} ↔ ${whatsTarget.b_name}` : undefined}
+        alreadyReleased={whatsTarget ? canRevealContact(whatsTarget.status) : false}
+        onClose={() => setWhatsTarget(null)}
+        onReleased={() => {
+          qc.invalidateQueries({ queryKey: ["staff", "queue", EVENT_ID] });
+          qc.invalidateQueries({ queryKey: ["staff", "op-stats", EVENT_ID] });
+        }}
       />
 
       <ConnectionDetailDrawer
@@ -830,6 +846,7 @@ function ConnectionCard({
   onAdvance,
   onCancel,
   onReveal,
+  onReleaseWhatsApp,
   onToggleMapped,
   onDetail,
 }: {
@@ -842,6 +859,7 @@ function ConnectionCard({
   onAdvance: (c: QueueItem, next: ConnectionStatus) => void;
   onCancel: () => void;
   onReveal: () => void;
+  onReleaseWhatsApp: () => void;
   onToggleMapped: () => void;
   onDetail: () => void;
 }) {
@@ -935,6 +953,17 @@ function ConnectionCard({
               {!canRevealContact(c.status) && isAdmin && (
                 <ShieldAlert className="ml-1 h-3 w-3 text-amber-600" />
               )}
+            </Button>
+          )}
+          {isAdmin && c.status !== "cancelado" && (
+            <Button
+              size="sm"
+              variant={canRevealContact(c.status) ? "outline" : "default"}
+              onClick={onReleaseWhatsApp}
+              data-testid="release-whatsapp"
+            >
+              <MessageCircle className="mr-1 h-4 w-4" />
+              {canRevealContact(c.status) ? "WhatsApp liberado" : "Liberar WhatsApp"}
             </Button>
           )}
           {nextStatus && canOp && c.status !== "aguardando" && getOperationalCta(c.status) && (
