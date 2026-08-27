@@ -86,5 +86,17 @@ export const generateMatchBriefing = createServerFn({ method: "POST" })
       // ignorado de propósito
     }
 
-    return (saved.data ?? null) as Record<string, unknown> | null;
+    const row = (saved.data ?? {}) as { generated_at?: string };
+    return {
+      match_id: data.matchId,
+      summary: payload.summary,
+      sides: payload.sides,
+      evidence: payload.evidence,
+      risks: payload.risks,
+      approach: payload.approach,
+      source: payload.source,
+      model: payload.model,
+      generated_at: row.generated_at ?? new Date().toISOString(),
+      stale: false,
+    };
   });
