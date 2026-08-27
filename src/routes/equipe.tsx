@@ -329,6 +329,7 @@ function StaffDashboard({
   );
 
   const [revealTarget, setRevealTarget] = useState<QueueItem | null>(null);
+  const [whatsTarget, setWhatsTarget] = useState<QueueItem | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<QueueItem | null>(null);
   const [cancelNote, setCancelNote] = useState("");
