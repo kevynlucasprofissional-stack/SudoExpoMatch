@@ -1229,7 +1229,7 @@ export function StepReview({
 
   return (
     <Card className="overflow-hidden">
-      <div className="relative bg-hero-gradient p-6 text-primary-foreground">
+      <div className="relative bg-hero-gradient p-6 text-white">
         <div className="absolute inset-0 opacity-25">
           <NetworkGraphic className="h-full w-full" />
         </div>
