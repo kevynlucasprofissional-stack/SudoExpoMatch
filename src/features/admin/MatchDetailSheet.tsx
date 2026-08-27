@@ -16,6 +16,8 @@ import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDia
 
 
 import { useAdminMatchDetail } from "@/features/admin/useAdminMatches";
+import { MatchBriefingPanel } from "@/features/admin/MatchBriefingPanel";
+import { EVENT_ID } from "@/config/event";
 import { translateAdminMatchesError, type MatchReason } from "@/features/admin/matchesSchemas";
 import {
   connectionStatusText,
