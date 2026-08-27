@@ -42,6 +42,7 @@ export const matchesKey = (eventId: string, f: MatchesFilters) =>
     [...f.versions].sort().join(","),
     f.sort,
     f.reviewed,
+    f.briefing,
     f.offset,
     f.limit ?? MATCHES_PAGE_SIZE,
   ] as const;
@@ -68,6 +69,7 @@ export async function fetchAdminMatches(eventId: string, f: MatchesFilters): Pro
     _algorithm_versions: arr(f.versions),
     _sort: f.sort,
     _reviewed: f.reviewed ?? undefined,
+    _briefing: f.briefing,
     _limit: limit,
     _offset: Math.max(0, f.offset),
   });

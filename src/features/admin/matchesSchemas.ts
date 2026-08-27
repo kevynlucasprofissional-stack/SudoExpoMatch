@@ -18,6 +18,16 @@ const nullableText = z
   .nullish()
   .transform((v) => v ?? "");
 
+/** Sinal compacto por perspectiva usado no card da lista. */
+export const topReasonSchema = z.object({
+  code: z.string(),
+  label: z.string(),
+  weight: int,
+  need_label: z.string().nullish(),
+  offer_label: z.string().nullish(),
+});
+export type TopReasonRow = z.infer<typeof topReasonSchema>;
+
 export const matchRowSchema = z.object({
   id: z.string().uuid(),
   event_id: z.string(),
@@ -49,6 +59,15 @@ export const matchRowSchema = z.object({
   reviewed_by: z.string().uuid().nullish(),
   generated_at: z.string(),
   updated_at: z.string(),
+  /** Briefing (por que conectar): sinais determinísticos + resumo salvo. */
+  why_a: z.array(topReasonSchema).default([]),
+  why_b: z.array(topReasonSchema).default([]),
+  has_briefing: z.boolean().default(false),
+  briefing_summary: z.string().nullish(),
+  briefing_generated_at: z.string().nullish(),
+  briefing_stale: z.boolean().default(false),
+  a_city: nullableText.optional(),
+  b_city: nullableText.optional(),
 });
 export type MatchRow = z.infer<typeof matchRowSchema>;
 
@@ -73,7 +92,36 @@ export const matchProfileSchema = z.object({
   summary: nullableText,
   is_demo: z.boolean(),
   updated_at: z.string(),
+  /** Perfil comercial e "quem eu procuro" — alimentam o briefing. */
+  business_size: z.string().nullish(),
+  business_type: z.string().nullish(),
+  niche: z.string().nullish(),
+  target_business_size: z.string().nullish(),
+  target_business_type: z.string().nullish(),
+  target_segment_id: z.string().nullish(),
+  target_segment_label: z.string().nullish(),
 });
+
+/** Briefing salvo (gerado por IA a partir do dossiê do match). */
+export const briefingEvidenceSchema = z.object({
+  label: z.string(),
+  source: z.string(),
+});
+export const matchBriefingSchema = z.object({
+  match_id: z.string().uuid(),
+  summary: z.string(),
+  sides: z
+    .object({ a: z.array(z.string()).default([]), b: z.array(z.string()).default([]) })
+    .default({ a: [], b: [] }),
+  evidence: z.array(briefingEvidenceSchema).default([]),
+  risks: z.array(z.string()).default([]),
+  approach: z.string().nullish(),
+  source: z.string().default("ai"),
+  model: z.string().nullish(),
+  generated_at: z.string(),
+  stale: z.boolean().default(false),
+});
+export type MatchBriefing = z.infer<typeof matchBriefingSchema>;
 
 /** Estado ATUAL da relação de taxonomia (pode divergir do histórico do match). */
 export const relationCurrentSchema = z.object({
@@ -165,6 +213,7 @@ export const matchDetailSchema = z.object({
     .nullable(),
   reasons_a: z.array(matchReasonSchema),
   reasons_b: z.array(matchReasonSchema),
+  briefing: matchBriefingSchema.nullish(),
 });
 export type MatchDetail = z.infer<typeof matchDetailSchema>;
 

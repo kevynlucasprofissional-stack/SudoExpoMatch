@@ -16,6 +16,8 @@ import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDia
 
 
 import { useAdminMatchDetail } from "@/features/admin/useAdminMatches";
+import { MatchBriefingPanel } from "@/features/admin/MatchBriefingPanel";
+import { EVENT_ID } from "@/config/event";
 import { translateAdminMatchesError, type MatchReason } from "@/features/admin/matchesSchemas";
 import {
   connectionStatusText,
@@ -173,6 +175,8 @@ export function MatchDetailSheet({
             </TabsList>
 
             <TabsContent value="overview" className="mt-3 space-y-3 text-sm">
+              <MatchBriefingPanel detail={d} eventId={EVENT_ID} />
+
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-md border p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Lado A</p>

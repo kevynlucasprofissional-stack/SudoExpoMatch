@@ -35,6 +35,13 @@ export const CONNECTION_STATUSES = [
 export const SCORE_SIDES = ["any", "a", "b", "both"] as const;
 export const CONNECTION_MODES = ["any", "with", "without"] as const;
 export const SORTS = ["score_desc", "score_asc", "gap_desc", "recent"] as const;
+/** Filtro do briefing comercial gerado por IA. */
+export const BRIEFING_MODES = ["any", "with", "without"] as const;
+export const BRIEFING_MODE_TEXT: Record<(typeof BRIEFING_MODES)[number], string> = {
+  any: "Tanto faz",
+  with: "Com briefing de IA",
+  without: "Sem briefing de IA",
+};
 
 export const SCORE_SIDE_TEXT: Record<(typeof SCORE_SIDES)[number], string> = {
   any: "Qualquer lado",
@@ -69,6 +76,7 @@ export const matchesSearchSchema = z.object({
   ver: fallback(z.string(), "").default(""),
   sort: fallback(z.string(), "score_desc").default("score_desc"),
   rev: fallback(z.string(), "").default(""),
+  brief: fallback(z.string(), "any").default("any"),
   page: fallback(z.coerce.number().int(), 1).default(1),
   m: fallback(z.string(), "").default(""),
 });
@@ -90,6 +98,7 @@ export interface NormalizedMatchesSearch {
   sort: (typeof SORTS)[number];
   /** null = todos, true = revisados, false = não revisados (IMPL 15). */
   reviewed: boolean | null;
+  briefing: (typeof BRIEFING_MODES)[number];
   page: number;
   /** match aberto no detalhe (estado de URL, compartilhável) */
   selected: string | null;
@@ -124,6 +133,9 @@ export function normalizeMatchesSearch(s: Partial<MatchesSearch>): NormalizedMat
   const sort = SORTS.includes((s.sort ?? "") as never)
     ? (s.sort as (typeof SORTS)[number])
     : "score_desc";
+  const briefing = BRIEFING_MODES.includes((s.brief ?? "") as never)
+    ? (s.brief as (typeof BRIEFING_MODES)[number])
+    : "any";
   const rawPage = Number(s.page);
   const page = Math.max(1, Math.min(9999, Number.isFinite(rawPage) ? Math.trunc(rawPage) : 1));
   const raw = (s.m ?? "").toString();
@@ -147,6 +159,7 @@ export function normalizeMatchesSearch(s: Partial<MatchesSearch>): NormalizedMat
     versions: list(s.ver, undefined, 10),
     sort,
     reviewed: (s.rev ?? "").toString() === "1" ? true : (s.rev ?? "").toString() === "0" ? false : null,
+    briefing,
     page,
     selected: UUID_RE.test(raw) ? raw : null,
   };
@@ -173,7 +186,8 @@ export function hasActiveMatchFilters(s: NormalizedMatchesSearch): boolean {
     s.connection !== "any" ||
     s.connectionStatuses.length > 0 ||
     s.versions.length > 0 ||
-    s.reviewed !== null
+    s.reviewed !== null ||
+    s.briefing !== "any"
   );
 }
 
@@ -192,6 +206,7 @@ export const EMPTY_MATCHES_SEARCH: MatchesSearch = {
   ver: "",
   sort: "score_desc",
   rev: "",
+  brief: "any",
   page: 1,
   m: "",
 };

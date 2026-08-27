@@ -27,6 +27,8 @@ import { useDebouncedValue } from "@/features/admin/useAdminParticipants";
 import { useAdminMatches, useSetMatchReviewed } from "@/features/admin/useAdminMatches";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  BRIEFING_MODES,
+  BRIEFING_MODE_TEXT,
   CONNECTION_MODES,
   CONNECTION_MODE_TEXT,
   CONNECTION_STATUSES,
@@ -52,6 +54,11 @@ import {
   kindText,
   sideLabelText,
 } from "@/features/admin/matchesPresentation";
+import {
+  buildCardSummary,
+  buildSignals,
+  shortName,
+} from "@/features/admin/matchExplanation";
 import { LABEL_TEXT, KIND_TEXT, DECISION_TEXT } from "@/features/matching/presentation";
 import { CONNECTION_STATUS_LABEL } from "@/features/connections/domain";
 import type { ConnectionStatus, Decision, MatchKind, MatchLabel } from "@/lib/types";
@@ -164,7 +171,29 @@ function MatchCardRow({
             </div>
           </div>
         </div>
+        <p className="mt-2 text-sm" data-testid="match-why">
+          <span className="text-primary">» </span>
+          {m.briefing_summary?.trim()
+            ? m.briefing_summary
+            : buildCardSummary(m.why_a, m.why_b, {
+                a: shortName(m.a_name),
+                b: shortName(m.b_name),
+              })}
+        </p>
+        <div className="mt-1 flex flex-wrap gap-1 text-xs" data-testid="match-signals">
+          {buildSignals(m.why_a, m.why_b).map((s) => (
+            <Badge key={s} variant="secondary">
+              {s}
+            </Badge>
+          ))}
+          {m.has_briefing ? (
+            <Badge variant={m.briefing_stale ? "destructive" : "default"}>
+              {m.briefing_stale ? "Briefing desatualizado" : "Briefing com IA"}
+            </Badge>
+          ) : null}
+        </div>
         <div className="mt-2 flex flex-wrap gap-1 text-xs">
+
           <Badge variant="outline">{kindText(m.kind)}</Badge>
           <Badge variant="outline">{m.algorithm_version}</Badge>
           {gap >= 30 ? (
@@ -242,6 +271,7 @@ function MatchesBoard() {
       versions: search.versions,
       sort: search.sort,
       reviewed: search.reviewed,
+      briefing: search.briefing,
       offset: matchesPageToOffset(search.page),
       limit: MATCHES_PAGE_SIZE,
     },
@@ -333,6 +363,24 @@ function MatchesBoard() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="1">Revisados</SelectItem>
                   <SelectItem value="0">Não revisados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="brief" className="text-xs">
+                Briefing comercial
+              </Label>
+              <Select value={search.briefing} onValueChange={(v) => setParam({ brief: v })}>
+                <SelectTrigger id="brief">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BRIEFING_MODES.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {BRIEFING_MODE_TEXT[b]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -548,6 +596,7 @@ function MatchesBoard() {
                       conn: "any",
                       cstatus: "",
                       ver: "",
+                      brief: "any",
                       page: 1,
                     }),
                     replace: true,
