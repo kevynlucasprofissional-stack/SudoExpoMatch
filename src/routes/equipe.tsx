@@ -832,6 +832,7 @@ function ConnectionCard({
   onAdvance,
   onCancel,
   onReveal,
+  onReleaseWhatsApp,
   onToggleMapped,
   onDetail,
 }: {
@@ -844,6 +845,7 @@ function ConnectionCard({
   onAdvance: (c: QueueItem, next: ConnectionStatus) => void;
   onCancel: () => void;
   onReveal: () => void;
+  onReleaseWhatsApp: () => void;
   onToggleMapped: () => void;
   onDetail: () => void;
 }) {
