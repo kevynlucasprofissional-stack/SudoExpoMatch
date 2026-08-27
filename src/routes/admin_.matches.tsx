@@ -52,6 +52,11 @@ import {
   kindText,
   sideLabelText,
 } from "@/features/admin/matchesPresentation";
+import {
+  buildCardSummary,
+  buildSignals,
+  shortName,
+} from "@/features/admin/matchExplanation";
 import { LABEL_TEXT, KIND_TEXT, DECISION_TEXT } from "@/features/matching/presentation";
 import { CONNECTION_STATUS_LABEL } from "@/features/connections/domain";
 import type { ConnectionStatus, Decision, MatchKind, MatchLabel } from "@/lib/types";
