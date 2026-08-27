@@ -172,10 +172,12 @@ body:has(.brand-navy) {
   --popover-foreground: oklch(0.99 0.005 260);
 
   --primary: oklch(0.68 0.16 235);
-  --primary-foreground: oklch(1 0 0);
+  /* Texto escuro sobre o azul-claro sólido (#129cdf): garante contraste AA.
+     Sobre o marinho use text-primary (cor clara). */
+  --primary-foreground: oklch(0.21 0.11 273);
 
   --secondary: oklch(0.68 0.16 235);
-  --secondary-foreground: oklch(1 0 0);
+  --secondary-foreground: oklch(0.21 0.11 273);
 
   --muted: oklch(1 0 0 / 8%);
   --muted-foreground: oklch(0.99 0.005 260 / 68%);
