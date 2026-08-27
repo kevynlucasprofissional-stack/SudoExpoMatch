@@ -598,6 +598,72 @@ export type Database = {
           },
         ]
       }
+      match_briefings: {
+        Row: {
+          approach: string | null
+          created_at: string
+          event_id: string
+          evidence: Json
+          generated_at: string
+          generated_by: string | null
+          inputs_fingerprint: string | null
+          match_id: string
+          model: string | null
+          risks: Json
+          sides: Json
+          source: string
+          summary: string
+          updated_at: string
+        }
+        Insert: {
+          approach?: string | null
+          created_at?: string
+          event_id: string
+          evidence?: Json
+          generated_at?: string
+          generated_by?: string | null
+          inputs_fingerprint?: string | null
+          match_id: string
+          model?: string | null
+          risks?: Json
+          sides?: Json
+          source?: string
+          summary: string
+          updated_at?: string
+        }
+        Update: {
+          approach?: string | null
+          created_at?: string
+          event_id?: string
+          evidence?: Json
+          generated_at?: string
+          generated_by?: string | null
+          inputs_fingerprint?: string | null
+          match_id?: string
+          model?: string | null
+          risks?: Json
+          sides?: Json
+          source?: string
+          summary?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_briefings_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_briefings_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: true
+            referencedRelation: "matches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_decisions: {
         Row: {
           decided_at: string
@@ -1297,6 +1363,15 @@ export type Database = {
         Returns: string
       }
       _connection_outcomes: { Args: { _connection_id: string }; Returns: Json }
+      _match_dossier_profile: { Args: { _profile_id: string }; Returns: Json }
+      _match_inputs_fingerprint: {
+        Args: { _match_id: string }
+        Returns: string
+      }
+      _match_top_reasons: {
+        Args: { _limit?: number; _match_id: string; _perspective: string }
+        Returns: Json
+      }
       _normalize_social_handle: { Args: { _raw: string }; Returns: string }
       _outcome_kinds: { Args: never; Returns: string[] }
       _recompute_matches_for_profile: {
@@ -1386,6 +1461,7 @@ export type Database = {
       }
       admin_experience_analytics: { Args: { _event_id: string }; Returns: Json }
       admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
+      admin_get_match_dossier: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
         Args: { _profile_id: string }
         Returns: Json
@@ -1407,28 +1483,52 @@ export type Database = {
           user_id: string
         }[]
       }
-      admin_list_matches: {
-        Args: {
-          _algorithm_versions?: string[]
-          _connection?: string
-          _connection_statuses?: string[]
-          _decisions?: string[]
-          _event_id: string
-          _kinds?: string[]
-          _labels?: string[]
-          _limit?: number
-          _max_score?: number
-          _min_score?: number
-          _mutual_only?: boolean
-          _offset?: number
-          _reviewed?: boolean
-          _score_side?: string
-          _search?: string
-          _segment_ids?: string[]
-          _sort?: string
-        }
-        Returns: Json
-      }
+      admin_list_matches:
+        | {
+            Args: {
+              _algorithm_versions?: string[]
+              _connection?: string
+              _connection_statuses?: string[]
+              _decisions?: string[]
+              _event_id: string
+              _kinds?: string[]
+              _labels?: string[]
+              _limit?: number
+              _max_score?: number
+              _min_score?: number
+              _mutual_only?: boolean
+              _offset?: number
+              _reviewed?: boolean
+              _score_side?: string
+              _search?: string
+              _segment_ids?: string[]
+              _sort?: string
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              _algorithm_versions?: string[]
+              _briefing?: string
+              _connection?: string
+              _connection_statuses?: string[]
+              _decisions?: string[]
+              _event_id: string
+              _kinds?: string[]
+              _labels?: string[]
+              _limit?: number
+              _max_score?: number
+              _min_score?: number
+              _mutual_only?: boolean
+              _offset?: number
+              _reviewed?: boolean
+              _score_side?: string
+              _search?: string
+              _segment_ids?: string[]
+              _sort?: string
+            }
+            Returns: Json
+          }
       admin_list_participants: {
         Args: {
           _city?: string
@@ -1474,6 +1574,10 @@ export type Database = {
           _user_id: string
         }
         Returns: undefined
+      }
+      admin_save_match_briefing: {
+        Args: { _match_id: string; _payload: Json }
+        Returns: Json
       }
       admin_set_match_reviewed: {
         Args: { _event_id: string; _match_id: string; _reviewed: boolean }
