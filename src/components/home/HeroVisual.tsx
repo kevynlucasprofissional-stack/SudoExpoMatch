@@ -42,14 +42,14 @@ export function HeroVisual() {
         loading="eager"
         decoding="async"
       />
-      {/* Atalho oculto: 3 cliques rápidos no rosto central abrem o acesso da equipe */}
+      {/* Atalho oculto: 3 cliques rápidos na imagem abrem o acesso da equipe */}
       <button
         type="button"
         aria-hidden
         tabIndex={-1}
         data-testid="hero-secret-hotspot"
         onClick={handleSecretClick}
-        className="absolute left-[44%] top-[14%] z-10 h-[16%] w-[12%] cursor-default bg-transparent opacity-0"
+        className="absolute inset-0 z-10 h-full w-full cursor-default bg-transparent opacity-0"
       />
     </div>
   );
