@@ -27,6 +27,8 @@ import { useDebouncedValue } from "@/features/admin/useAdminParticipants";
 import { useAdminMatches, useSetMatchReviewed } from "@/features/admin/useAdminMatches";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  BRIEFING_MODES,
+  BRIEFING_MODE_TEXT,
   CONNECTION_MODES,
   CONNECTION_MODE_TEXT,
   CONNECTION_STATUSES,
@@ -269,6 +271,7 @@ function MatchesBoard() {
       versions: search.versions,
       sort: search.sort,
       reviewed: search.reviewed,
+      briefing: search.briefing,
       offset: matchesPageToOffset(search.page),
       limit: MATCHES_PAGE_SIZE,
     },
@@ -360,6 +363,24 @@ function MatchesBoard() {
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="1">Revisados</SelectItem>
                   <SelectItem value="0">Não revisados</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <Label htmlFor="brief" className="text-xs">
+                Briefing comercial
+              </Label>
+              <Select value={search.briefing} onValueChange={(v) => setParam({ brief: v })}>
+                <SelectTrigger id="brief">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {BRIEFING_MODES.map((b) => (
+                    <SelectItem key={b} value={b}>
+                      {BRIEFING_MODE_TEXT[b]}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -575,6 +596,7 @@ function MatchesBoard() {
                       conn: "any",
                       cstatus: "",
                       ver: "",
+                      brief: "any",
                       page: 1,
                     }),
                     replace: true,
