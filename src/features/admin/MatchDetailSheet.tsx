@@ -132,6 +132,11 @@ export function MatchDetailSheet({
 }) {
   const query = useAdminMatchDetail(matchId, true);
   const d = query.data;
+  const qc = useQueryClient();
+  const [releaseOpen, setReleaseOpen] = useState(false);
+  const released =
+    d?.connection != null &&
+    ["apresentados", "contato_trocado", "concluido"].includes(d.connection.status);
 
   return (
     <Sheet open={matchId !== null} onOpenChange={(o) => !o && onClose()}>
