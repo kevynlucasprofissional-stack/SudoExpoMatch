@@ -330,6 +330,7 @@ function StaffDashboard({
     true,
   );
 
+  const qc = useQueryClient();
   const [revealTarget, setRevealTarget] = useState<QueueItem | null>(null);
   const [whatsTarget, setWhatsTarget] = useState<QueueItem | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
