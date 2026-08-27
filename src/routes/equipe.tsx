@@ -15,6 +15,7 @@ import {
   MapPin,
   MapPinOff,
   X,
+  MessageCircle,
 } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 
