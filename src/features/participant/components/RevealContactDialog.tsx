@@ -167,31 +167,37 @@ export function RevealContactDialog({ open, matchId, otherFirstName, onClose }: 
             <p className="font-semibold">{contact.name}</p>
             <p className="text-xs text-muted-foreground">{contact.company}</p>
             {contact.phone_e164 ? (
-              <div className="flex items-center gap-2">
-                <a
-                  href={`https://wa.me/${contact.phone_e164.replace(/\D/g, "")}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex items-center gap-1 text-primary hover:underline"
-                >
-                  <MessageCircle className="h-4 w-4" /> {contact.phone_e164}
-                </a>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="ml-auto h-7 px-2 text-xs"
-                  onClick={copyPhone}
-                  aria-label="Copiar telefone"
-                >
-                  {copied ? (
-                    <>
-                      <Check className="mr-1 h-3.5 w-3.5" /> Copiado
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="mr-1 h-3.5 w-3.5" /> Copiar telefone
-                    </>
-                  )}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="flex items-center gap-1 font-medium">
+                    <MessageCircle className="h-4 w-4" /> {contact.phone_e164}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto h-7 px-2 text-xs"
+                    onClick={copyPhone}
+                    aria-label="Copiar telefone"
+                  >
+                    {copied ? (
+                      <>
+                        <Check className="mr-1 h-3.5 w-3.5" /> Copiado
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="mr-1 h-3.5 w-3.5" /> Copiar telefone
+                      </>
+                    )}
+                  </Button>
+                </div>
+                <Button asChild className="w-full">
+                  <a
+                    href={`https://wa.me/${contact.phone_e164.replace(/\D/g, "")}`}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <MessageCircle className="mr-2 h-4 w-4" /> Abrir WhatsApp
+                  </a>
                 </Button>
               </div>
             ) : (
