@@ -12,11 +12,11 @@ export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
 
 /** Tons visuais alinhados com o design ACIRV. */
 export const CONNECTION_STATUS_TONE: Record<ConnectionStatus, string> = {
-  aguardando: "bg-warning/20 text-warning-foreground border-warning/40",
+  aguardando: "bg-warning/20 text-warning border-warning/40",
   em_atendimento: "bg-accent/20 text-accent-foreground border-accent/40",
   apresentados: "bg-primary/15 text-primary border-primary/30",
-  contato_trocado: "bg-secondary/20 text-secondary-foreground border-secondary/40",
-  concluido: "bg-success/20 text-success-foreground border-success/40",
+  contato_trocado: "bg-secondary/20 text-secondary border-secondary/40",
+  concluido: "bg-success/20 text-success border-success/40",
   cancelado: "bg-muted text-muted-foreground border-muted",
 };
 
