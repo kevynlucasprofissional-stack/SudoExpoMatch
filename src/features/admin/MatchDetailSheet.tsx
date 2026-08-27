@@ -8,7 +8,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, MessageCircle } from "lucide-react";
+import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDialog";
+
 
 import { useAdminMatchDetail } from "@/features/admin/useAdminMatches";
 import { translateAdminMatchesError, type MatchReason } from "@/features/admin/matchesSchemas";
