@@ -240,7 +240,21 @@ export function MatchDetailSheet({
               ) : (
                 <p className="text-muted-foreground">Ainda não existe conexão para este match.</p>
               )}
+
+              <Button
+                className="w-full"
+                variant={released ? "outline" : "default"}
+                onClick={() => setReleaseOpen(true)}
+                data-testid="release-whatsapp"
+              >
+                <MessageCircle className="mr-1 h-4 w-4" />
+                {released ? "WhatsApp liberado · ver contatos" : "Liberar WhatsApp"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                Libera o contato para as duas partes e entrega os links de WhatsApp para a equipe.
+              </p>
             </TabsContent>
+
           </Tabs>
         ) : null}
       </SheetContent>
