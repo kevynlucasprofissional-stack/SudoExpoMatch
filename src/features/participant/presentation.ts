@@ -28,11 +28,11 @@ export const CONNECTION_STATUS_TEXT: Record<ConnectionStatus, string> = {
 };
 
 export const CONNECTION_STATUS_TONE: Record<ConnectionStatus, string> = {
-  aguardando: "bg-warning/15 text-warning-foreground border-warning/40",
+  aguardando: "bg-warning/15 text-warning border-warning/40",
   em_atendimento: "bg-accent/15 text-accent-foreground border-accent/40",
   apresentados: "bg-primary/15 text-primary border-primary/30",
-  contato_trocado: "bg-secondary/15 text-secondary-foreground border-secondary/40",
-  concluido: "bg-success/15 text-success-foreground border-success/40",
+  contato_trocado: "bg-secondary/15 text-secondary border-secondary/40",
+  concluido: "bg-success/15 text-success border-success/40",
   cancelado: "bg-muted text-muted-foreground border-muted",
 };
 
