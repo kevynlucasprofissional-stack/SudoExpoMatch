@@ -29,8 +29,12 @@ import type { OwnMatchDTO, OwnMatchConnection } from "@/features/participant/typ
 // Fixtures — DTOs válidos, sem `as any`, respeitando o contrato v2.
 // ---------------------------------------------------------------------------
 
-function makeConnection(status: ConnectionStatus, notes: string | null = null): OwnMatchConnection {
-  return { id: `conn-${status}`, status, notes };
+function makeConnection(
+  status: ConnectionStatus,
+  notes: string | null = null,
+  contactReleasedAt: string | null = null,
+): OwnMatchConnection {
+  return { id: `conn-${status}`, status, notes, contact_released_at: contactReleasedAt };
 }
 
 function makeMatch(overrides: {

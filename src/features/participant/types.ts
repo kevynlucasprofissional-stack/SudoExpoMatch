@@ -66,6 +66,8 @@ export interface OwnMatchConnection {
   id: string;
   status: ConnectionStatus;
   notes: string | null;
+  /** Data em que a equipe/admin liberou o WhatsApp das duas partes. */
+  contact_released_at: string | null;
 }
 export interface OwnMatchDTO {
   match_id: string;
