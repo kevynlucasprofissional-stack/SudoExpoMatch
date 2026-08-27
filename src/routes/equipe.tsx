@@ -61,6 +61,7 @@ import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventStats } from "@/features/staff/useEventStats";
 import { useEventSegments } from "@/features/staff/useEventSegments";
 import { useRevealStaffContact } from "@/features/staff/useConnectionsQueue";
+import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDialog";
 import { useEventStaffMembers } from "@/features/admin/useEventStaff";
 import {
   cancelNoteSchema,
