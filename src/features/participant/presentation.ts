@@ -72,15 +72,28 @@ export function filterInterests(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter((m) => m.my_decision === "interesse");
 }
 
+/**
+ * Liberação administrativa: a equipe/admin liberou o WhatsApp das duas partes,
+ * mesmo sem interesse mútuo registrado. Quando isso acontece, o match precisa
+ * aparecer nas conexões do participante e o contato fica visível.
+ */
+export function isContactReleasedByStaff(match: OwnMatchDTO): boolean {
+  return match.connection?.contact_released_at != null;
+}
+
+function isVisibleConnection(match: OwnMatchDTO): boolean {
+  return isMatchMutual(match) || isContactReleasedByStaff(match);
+}
+
 export function filterActiveConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter(
-    (m) => isMatchMutual(m) && m.connection != null && m.connection.status !== "cancelado",
+    (m) => isVisibleConnection(m) && m.connection != null && m.connection.status !== "cancelado",
   );
 }
 
 export function filterCancelledConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return matches.filter(
-    (m) => isMatchMutual(m) && m.connection != null && m.connection.status === "cancelado",
+    (m) => isVisibleConnection(m) && m.connection != null && m.connection.status === "cancelado",
   );
 }
 
@@ -89,9 +102,11 @@ export function filterPendingConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] 
 }
 
 export function canRevealForMatch(match: OwnMatchDTO): boolean {
-  if (!isMatchMutual(match)) return false;
   const c = match.connection;
   if (!c) return false;
+  if (c.status === "cancelado") return false;
+  if (isContactReleasedByStaff(match)) return true;
+  if (!isMatchMutual(match)) return false;
   return c.status === "apresentados" || c.status === "contato_trocado" || c.status === "concluido";
 }
 
