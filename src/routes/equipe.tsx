@@ -655,6 +655,17 @@ function StaffDashboard({
         onClose={() => setRevealTarget(null)}
       />
 
+      <ReleaseWhatsAppDialog
+        matchId={whatsTarget?.match_id ?? null}
+        pairLabel={whatsTarget ? `${whatsTarget.a_name} ↔ ${whatsTarget.b_name}` : undefined}
+        alreadyReleased={whatsTarget ? canRevealContact(whatsTarget.status) : false}
+        onClose={() => setWhatsTarget(null)}
+        onReleased={() => {
+          qc.invalidateQueries({ queryKey: ["staff", "queue", EVENT_ID] });
+          qc.invalidateQueries({ queryKey: ["staff", "op-stats", EVENT_ID] });
+        }}
+      />
+
       <ConnectionDetailDrawer
         connectionId={detailId}
         onClose={() => setDetailId(null)}
