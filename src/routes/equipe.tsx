@@ -955,7 +955,7 @@ function ConnectionCard({
               )}
             </Button>
           )}
-          {isAdmin && c.status !== "cancelado" && (
+          {c.status !== "cancelado" && (
             <Button
               size="sm"
               variant={canRevealContact(c.status) ? "outline" : "default"}
