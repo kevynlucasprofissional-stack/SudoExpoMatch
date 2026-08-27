@@ -175,6 +175,8 @@ export function MatchDetailSheet({
             </TabsList>
 
             <TabsContent value="overview" className="mt-3 space-y-3 text-sm">
+              <MatchBriefingPanel detail={d} eventId={EVENT_ID} />
+
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-md border p-3">
                   <p className="text-xs uppercase tracking-wide text-muted-foreground">Lado A</p>
