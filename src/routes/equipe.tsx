@@ -941,6 +941,17 @@ function ConnectionCard({
               )}
             </Button>
           )}
+          {isAdmin && c.status !== "cancelado" && (
+            <Button
+              size="sm"
+              variant={canRevealContact(c.status) ? "outline" : "default"}
+              onClick={onReleaseWhatsApp}
+              data-testid="release-whatsapp"
+            >
+              <MessageCircle className="mr-1 h-4 w-4" />
+              {canRevealContact(c.status) ? "WhatsApp liberado" : "Liberar WhatsApp"}
+            </Button>
+          )}
           {nextStatus && canOp && c.status !== "aguardando" && getOperationalCta(c.status) && (
             <Button
               size="sm"
