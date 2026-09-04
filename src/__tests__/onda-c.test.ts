@@ -533,7 +533,7 @@ describe("static guards — /participante e componentes", () => {
 
   it("RecoveryView usa apenas o acesso por WhatsApp, nunca supabase.rpc", () => {
     const src = readCode("src/features/participant/components/RecoveryView.tsx");
-    expect(src).toMatch(/WhatsappAccessCard/);
+    expect(src).toMatch(/PhoneLoginCard/);
     expect(src).not.toMatch(/rotateOwnRecoveryCode/);
     expect(src).not.toMatch(/supabase\.rpc/);
   });
@@ -571,7 +571,7 @@ describe("static guards — /participante e componentes", () => {
   it("Recovery: não guarda telefone/código fora do cartão de acesso", () => {
     const src = read("src/features/participant/components/RecoveryView.tsx");
     expect(src).not.toMatch(/useState\(/);
-    expect(src).toMatch(/WhatsappAccessCard/);
+    expect(src).toMatch(/PhoneLoginCard/);
   });
 
   it("participante.tsx usa translateRecomputeErrorCode (não decide)", () => {

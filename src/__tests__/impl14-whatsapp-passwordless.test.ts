@@ -126,8 +126,10 @@ describe("capability e fallback", () => {
   it("UI só mostra OTP quando habilitado", () => {
     const card = read("src/features/access/WhatsappAccessCard.tsx");
     expect(card).toContain("if (!capability.otpEnabled) return null;");
+    // A tela de acesso hoje usa entrada direta pelo número (sem OTP), mas o
+    // cartão de OTP segue disponível caso o provedor de telefone seja ligado.
     const view = read("src/features/participant/components/RecoveryView.tsx");
-    expect(view).toContain("capability.otpEnabled");
+    expect(view).toContain("PhoneLoginCard");
     // Acesso é exclusivamente por WhatsApp: sem código pessoal em lugar nenhum.
     expect(view).not.toContain("Código pessoal");
     expect(view).not.toContain("useRecoverProfile");
