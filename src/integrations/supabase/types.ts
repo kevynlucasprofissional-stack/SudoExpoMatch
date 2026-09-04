@@ -1372,8 +1372,10 @@ export type Database = {
         Args: { _limit?: number; _match_id: string; _perspective: string }
         Returns: Json
       }
+      _normalize_br_phone: { Args: { _raw: string }; Returns: string }
       _normalize_social_handle: { Args: { _raw: string }; Returns: string }
       _outcome_kinds: { Args: never; Returns: string[] }
+      _phone_hash_candidates: { Args: { _raw: string }; Returns: string[] }
       _recompute_matches_for_profile: {
         Args: { p_event_id: string; p_profile_id: string }
         Returns: number
@@ -1631,6 +1633,13 @@ export type Database = {
         Args: { _actor: string; _max_calls: number; _window_sec: number }
         Returns: boolean
       }
+      claim_profile_by_phone_simple: {
+        Args: { _event_id: string; _phone_e164: string }
+        Returns: {
+          claimed: boolean
+          profile_id: string
+        }[]
+      }
       claim_profile_by_verified_phone: {
         Args: { _event_id: string }
         Returns: {
@@ -1679,6 +1688,10 @@ export type Database = {
         Returns: Json
       }
       list_own_matches_v2: { Args: { _event_id: string }; Returns: Json }
+      lookup_profile_by_phone: {
+        Args: { _event_id: string; _phone_e164: string }
+        Returns: Json
+      }
       match_label_for_score: {
         Args: { _score: number }
         Returns: Database["public"]["Enums"]["match_label"]
