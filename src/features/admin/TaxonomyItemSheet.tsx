@@ -49,27 +49,24 @@ function fmt(iso: string | null): string {
   return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString("pt-BR");
 }
 
-function RelationItem({ r }: { r: TaxonomyRelation }) {
+function RelationItem({ r, currentItemLabel }: { r: TaxonomyRelation; currentItemLabel: string }) {
+  const needLabel = r.direction === "outgoing" ? currentItemLabel : r.other_label;
+  const offerLabel = r.direction === "outgoing" ? r.other_label : currentItemLabel;
+
   return (
     <div className="rounded-md border p-3 text-sm" data-testid="relation-item">
       <div className="flex flex-wrap items-center gap-2 text-xs">
-        {r.direction === "outgoing" ? (
-          <>
-            <Badge variant="outline">Este item</Badge>
-            <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
-            <Badge variant="outline">{r.other_label}</Badge>
-          </>
-        ) : (
-          <>
-            <Badge variant="outline">{r.other_label}</Badge>
-            <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
-            <Badge variant="outline">Este item</Badge>
-          </>
-        )}
+        <Badge variant="outline">PRECISA DE: {needLabel}</Badge>
+        <ArrowRight className="h-3 w-3 text-muted-foreground" aria-hidden />
+        <Badge variant="outline">OFERECE: {offerLabel}</Badge>
         <Badge variant="secondary">peso {r.weight}</Badge>
         <Badge variant={r.active ? "default" : "outline"}>{r.active ? "ativa" : "inativa"}</Badge>
       </div>
       <p className="mt-2 text-xs text-muted-foreground">
+        Direção comercial explícita: quem precisa de “{needLabel}” pode combinar com quem oferece
+        “{offerLabel}”. O inverso não é inferido automaticamente.
+      </p>
+      <p className="mt-1 text-xs text-muted-foreground">
         Tipo: {r.relation_type} · Segmento do outro item: {r.other_segment_label ?? "—"}
         {r.other_active ? "" : " (item inativo)"}
       </p>
@@ -81,8 +78,9 @@ function RelationItem({ r }: { r: TaxonomyRelation }) {
 }
 
 /**
- * IMPL 11 — detalhe do item: edição auditada, ativação/desativação e visão
- * SOMENTE LEITURA das relações complementares (mutações ficam para a Impl 12).
+ * IMPL 11 — detalhe do item: edição auditada, ativação/desativação e relações
+ * complementares. A direção de relação segue a semântica real do matcher:
+ * NECESSIDADE (from) → OFERTA (to).
  */
 export function TaxonomyItemSheet({
   eventId,
@@ -262,7 +260,8 @@ export function TaxonomyItemSheet({
                   </div>
                   <p className="text-xs text-muted-foreground">
                     Itens nunca são apagados: desativar remove do catálogo novo e preserva
-                    referências históricas em perfis e matches.
+                    referências históricas em perfis e matches. A mudança de taxonomia marca o
+                    matcher como necessitando rebuild para os snapshots correntes.
                   </p>
                 </div>
               )}
@@ -286,8 +285,8 @@ export function TaxonomyItemSheet({
             <TabsContent value="relacoes" className="mt-4 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-xs text-muted-foreground">
-                  Relações complementares usadas pelo matcher. Nada é apagado: relações são
-                  desativadas.
+                  Relação complementar significa NECESSIDADE → OFERTA. A direção inversa só existe
+                  quando cadastrada separadamente. Nada é apagado: relações são desativadas.
                 </p>
                 {!creating ? (
                   <Button size="sm" variant="outline" onClick={() => setCreating(true)}>
@@ -301,13 +300,14 @@ export function TaxonomyItemSheet({
                   <TaxonomyRelationForm
                     eventId={eventId}
                     currentItemId={item.id}
+                    currentItemLabel={item.label}
                     mode="create"
                     pending={createRelation.isPending}
                     onCancel={() => setCreating(false)}
                     onSubmit={async (values) => {
                       try {
                         await createRelation.mutateAsync(values);
-                        toast.success("Relação criada.");
+                        toast.success("Relação criada. Recalcule o evento para aplicar aos snapshots existentes.");
                         setCreating(false);
                       } catch (err) {
                         toast.error(translateTaxonomyError(err));
@@ -325,12 +325,13 @@ export function TaxonomyItemSheet({
                 <ul className="space-y-2">
                   {relations.map((r) => (
                     <li key={`${r.direction}-${r.id}`}>
-                      <RelationItem r={r} />
+                      <RelationItem r={r} currentItemLabel={item.label} />
                       {editingRelation === r.id ? (
                         <div className="mt-2 rounded-md border p-3">
                           <TaxonomyRelationForm
                             eventId={eventId}
                             currentItemId={item.id}
+                            currentItemLabel={item.label}
                             mode="edit"
                             pending={updateRelation.isPending}
                             initial={{
@@ -345,7 +346,7 @@ export function TaxonomyItemSheet({
                             onSubmit={async (values) => {
                               try {
                                 await updateRelation.mutateAsync({ relationId: r.id, values });
-                                toast.success("Relação atualizada.");
+                                toast.success("Relação atualizada. Recalcule o evento para aplicar aos snapshots existentes.");
                                 setEditingRelation(null);
                               } catch (err) {
                                 toast.error(translateTaxonomyError(err));
@@ -398,8 +399,8 @@ export function TaxonomyItemSheet({
             <AlertDialogTitle>Desativar “{item?.label ?? "item"}”?</AlertDialogTitle>
             <AlertDialogDescription>
               O item deixa de aparecer para novos cadastros e sugestões da IA. As referências
-              históricas (ofertas, necessidades, matches e motivos já registrados) permanecem
-              intactas e nada é apagado. Você pode reativar depois.
+              históricas permanecem intactas e nada é apagado. A configuração taxonômica será
+              marcada como nova revisão e os snapshots correntes deverão ser recalculados.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -429,8 +430,9 @@ export function TaxonomyItemSheet({
               Desativar relação com “{confirmRelationOff?.other_label ?? "outro item"}”?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              O matcher deixa de usar esta relação em novos cálculos. Os motivos de match já
-              registrados permanecem intactos e nada é apagado. Você pode reativar depois.
+              A relação deixa de ser usada após a próxima recomputação. Os motivos históricos
+              permanecem intactos e nada é apagado. O painel marcará o evento como necessitando
+              rebuild para que scores persistidos reflitam a nova configuração.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

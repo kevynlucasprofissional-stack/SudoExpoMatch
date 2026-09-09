@@ -174,6 +174,24 @@ describe("Impl 12 — contrato do formulário de relação", () => {
 });
 
 describe("Impl 12 — UI de relações", () => {
+  it("explicita que a relação é NECESSIDADE → OFERTA e não bidirecional", async () => {
+    detail.data = makeDetail(true);
+    renderSheet();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+    await openRelationsTab(user);
+    expect(screen.getByText("PRECISA DE: Consultoria")).toBeTruthy();
+    expect(screen.getByText("OFERECE: Marketing digital")).toBeTruthy();
+    expect(screen.getByText(/O inverso não é inferido automaticamente/i)).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "Nova relação" }));
+    expect(screen.getByText(/A relação é direcional/i)).toBeTruthy();
+    expect(screen.getByText(/peso a partir de 40/i)).toBeTruthy();
+    expect(screen.getByTestId("relation-semantics-preview").textContent).toContain(
+      "Quem PRECISA de Consultoria",
+    );
+  });
+
   it("cria relação com direção e item escolhidos", async () => {
     detail.data = makeDetail(true);
     renderSheet();
