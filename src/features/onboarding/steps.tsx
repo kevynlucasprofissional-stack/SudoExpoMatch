@@ -608,10 +608,9 @@ export function StepOffers({
           </p>
           <div className="flex flex-wrap gap-2">
             {segmentTax.map((t) => {
-              const added = draft.offers.some(
-                (o) => o.label.toLowerCase() === t.label.toLowerCase(),
-              );
-              if (added) return null;
+              if (hasEquivalentItem(draft.offers, { label: t.label, taxonomyItemId: t.id })) {
+                return null;
+              }
               return (
                 <button
                   key={t.id}
