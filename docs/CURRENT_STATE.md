@@ -1,57 +1,31 @@
 # CURRENT_STATE — SudoExpo Match
 
-## 1. Metadados do Sistema
-- **Data / Horário**: 2026-09-09
-- **Head Git SHA**: `46a35e6` (Corrigiu login via WhatsApp)
-- **Branch Atual**: `main`
-- **Backup Criado no GitHub**:
-  - Branch: `backup-pre-multi-eventos-20260909` (remotes/origin/backup-pre-multi-eventos-20260909)
-  - Tag: `backup-pre-multi-eventos` (remotes/origin/backup-pre-multi-eventos)
-  - Remote: `https://github.com/kevynlucasprofissional-stack/SudoExpoMatch.git`
-- **Sincronização Lovable**: Ativa. Restrição de não reescrever histórico git.
+## 1. Metadados
 
-## 2. Diagnóstico da Arquitetura Atual
-- **Banco de Dados**:
-  - PostgreSQL no Supabase com RLS ativo em todas as tabelas.
-  - Tabelas centrais: `events`, `profiles`, `matches`, `connections`, `profile_needs`, `profile_offers`, `consents`, `event_staff`, `taxonomy_items`, `taxonomy_relations`.
-  - Todas as tabelas de dados possuem a coluna `event_id text references public.events(id)`.
-  - O algoritmo de matching `_recompute_matches_for_profile(p_profile_id, p_event_id)` já filtra candidatos por `WHERE p.event_id = p_event_id`.
-- **Limitação / Gargalo Atual (Single-Event Hardcoded)**:
-  - O arquivo `src/config/event.ts` possui `EVENT_ID = "sudoexpo-2026"` e `EVENT_NAME = "SudoExpo 2026"` hardcoded.
-  - Durante o teste piloto real no "Café Entre Amigos" em Agosto de 2026, todos os participantes foram cadastrados com `event_id = 'sudoexpo-2026'`.
-  - Não existe no painel administrativo UI para selecionar eventos, criar novos eventos, ou chavear o contexto do evento ativo.
-  - Não existe no fluxo de login ou onboarding uma rotina de "Check-in" ou importação de participante de evento anterior para o evento atual.
-- **Risco Imediato para a SudoExpo**:
-  - Se novos participantes se cadastrarem agora para a SudoExpo 2026 sem separar a base, eles serão imediatamente pareados com as pessoas que participaram apenas do "Café Entre Amigos" e que não estarão presentes na SudoExpo.
+- **Data**: 2026-09-09
+- **Branch de trabalho**: `feat/matcher-taxonomy-governance`
+- **Base sincronizada**: `main` até `4fabdd4`, incorporada por merge commit sem reescrever histórico do Lovable.
+- **Backup pré multi-eventos**: branch/tag `backup-pre-multi-eventos-20260909` / `backup-pre-multi-eventos`.
+- **Sincronização Lovable**: ativa; não usar force-push/rebase/amend/squash sobre histórico publicado.
 
-## 4. Estado da Implementação Multi-Eventos (Concluída)
-- **Migração SQL**: `supabase/migrations/20260909155500_multi_eventos_separacao_e_checkin.sql`
-  - Criado evento histórico `cafe-entre-amigos-ago-2026` ("Café Entre Amigos - Ago/2026").
-  - Criado e ativado evento atual `sudoexpo-2026` ("SudoExpo 2026").
-  - Realocados todos os participantes reais do piloto (August 2026) para `cafe-entre-amigos-ago-2026` junto com ofertas, necessidades, matches e conexões legadas.
-  - SudoExpo 2026 inicia zerada e limpa para novos cadastros e check-ins legítimos.
-  - Criadas RPCs:
-    - `participant_checkin_by_phone(target_event_id, phone_e164)`: 1-click check-in de participante de evento anterior preservando histórico e clonando perfil profissional.
-    - `staff_checkin_participant(target_event_id, source_profile_id)`: Check-in manual realizado pelo staff/admin.
-    - `admin_list_events()`: Listagem administrativa com contagem de participantes e matches por evento.
-    - Atualizada `lookup_profile_by_phone`: detecta se usuário possui cadastro ativo no evento atual ou cadastro prévio em evento anterior (`has_previous_event`, `previous_event_id`, `previous_event_name`).
+## 2. Arquitetura atual
 
-- **Frontend & UX**:
-  - `src/features/access/PhoneLoginCard.tsx`: Fluxo em 3 fases (`phone` -> `confirm` / `checkin`). Se o participante já esteve no Café Entre Amigos (ou outro evento passado), a UI exibe o cartão de boas-vindas com botão de 1 clique "Confirmar Check-in na SudoExpo 2026", garantindo ativação imediata sem redigitar nada.
-  - `src/features/admin/AdminEventContext.tsx`: Contexto React para gerenciamento e persistência do evento selecionado no painel administrativo.
-  - `src/features/admin/EventSelector.tsx`: Dropdown selector integrado ao cabeçalho do painel de administração (`/admin`, `/admin/participantes`, `/admin/matches`, `/admin/taxonomia`).
-  - `src/features/admin/ParticipantDetailSheet.tsx`: Alerta visual e botão de ação rápida para realizar check-in de participantes antigos diretamente pela gaveta lateral de detalhes.
-  - `src/routes/admin_.participantes.tsx`: Botão de check-in na lista de participantes ao inspecionar edições anteriores.
-  - `src/features/participant/components/ParticipantHeader.tsx`: Adicionado botão persistente "Suporte" com ícone de atendimento e link direto para o WhatsApp do Administrador (`https://wa.me/5564992470988`).
-  - `src/features/participant/components/ProfileCard.tsx`: Adicionado botão "Suporte do Administrador" no rodapé do perfil do participante.
-  - `AGENTS.md`: Guia completo do repositório, arquitetura do SudoExpo Match e espelho do Playbook de Qualidade consolidado.
+### Multi-eventos
 
-- **Testes & Validação**:
-  - `npm run typecheck`: 100% limpo, zero erros de TypeScript.
-  - Vitest: Suíte `src/__tests__/multi-eventos-checkin.test.ts` passando com 7/7 testes.
-  - Testes de regressão (`impl-1-label-perspectiva`, `impl-10-admin-matches`, `impl-9-admin-participantes`): 65/65 testes passando.
+- PostgreSQL/Supabase com particionamento lógico por `event_id` nas entidades transacionais relevantes.
+- `cafe-entre-amigos-ago-2026` preserva o piloto histórico.
+- `sudoexpo-2026` é o evento principal atual.
+- `_recompute_matches_for_profile(p_profile_id, p_event_id)` só considera candidatos do mesmo evento.
+- `AdminEventContext` + `EventSelector` permitem alternar o contexto administrativo.
+- Check-in de veteranos e check-in manual por staff/admin já existem.
+- `/admin/taxonomia` envia `selectedEventId` também ao `TaxonomyItemSheet`.
 
-## 5. Estado da Implementação Sandbox & Exclusão de Participantes (Fase 7 - Concluída)
+### Suporte ao participante
+
+- Incorporados os botões de suporte por WhatsApp em `ParticipantHeader.tsx` e `ProfileCard.tsx` apontando para `https://wa.me/5564992470988`.
+
+### Sandbox & Exclusão de Participantes (Fase 7)
+
 - **Migração SQL**: `supabase/migrations/20260909171500_sandbox_e_delecao_participante.sql`
   - Criado evento `'sandbox-sudoexpo'` ("Ambiente de Testes / Sandbox — SudoExpo") isolado.
   - RPC `admin_delete_participant(p_profile_id)`: remove perfil em cascata, ofertas, demandas, matches, conexões, contatos privados e limpa tentativas em `private.phone_claim_attempts` para liberação imediata do número de WhatsApp testado.
@@ -64,4 +38,161 @@
   - Ação `"Zerar Dados do Sandbox"` no Admin para limpeza em 1 clique quando o evento sandbox estiver ativo.
 - **Testes**:
   - Suíte `src/__tests__/sandbox-e-reset.test.ts`: 6/6 testes passando.
+  - Suíte `src/__tests__/multi-eventos-checkin.test.ts`: 7/7 testes passando.
   - `npm run typecheck`: 0 erros.
+
+---
+
+## 3. Matcher v2.4 — comportamento confirmado pela codebase
+
+A fonte executável é `public._recompute_matches_for_profile(profile_id, event_id)`. A especificação documental canônica criada nesta branch é `docs/specs/matcher-v2.4.md`.
+
+### Score por perspectiva
+
+| Sinal | Pontos | Pode criar dupla? |
+| --- | ---: | :---: |
+| Outro oferece o que eu procuro | +55 | sim |
+| Outro procura o que eu ofereço | +25 | sim |
+| Relação taxonômica complementar | +12..+30 | sim |
+| Perfil desejado completo — 1 critério | +20 | sim |
+| Perfil desejado completo — 2 critérios | +30 | sim |
+| Perfil desejado completo — 3 critérios | +40 | sim |
+| Perfil desejado mútuo | +10 | não |
+| Prioridade atendida diretamente | +10 | não |
+| Overlap direto entre segmentos diferentes | +5 | não |
+| Perfil recente | +3 | não |
+| Mesma cidade | +2 | não |
+
+- labels: `alta_compatibilidade >=75`, `boa_oportunidade >=40`, abaixo disso `conexao_possivel`;
+- score não é porcentagem e pode chegar teoricamente a 180;
+- cada dupla tem notas independentes A→B e B→A;
+- `matches.label` é legado e não deve ser usado para apresentação por perspectiva.
+
+### Taxonomia
+
+- `taxonomy_match()` é determinístico: mesmo ID, label normalizada, sinônimo explícito ou contenção com fronteira de palavra.
+- não há embedding/LLM/cosine/fuzzy score genérico dentro do matcher;
+- a IA de onboarding faz a maior parte da canonicalização semântica antes do SQL;
+- itens livres podem ficar com `taxonomy_item_id = NULL` e não entram no grafo complementar;
+- uma relação significa `NECESSIDADE (from) -> OFERTA (to)` e é direcional;
+- peso `<40` não pontua; `40..100` vira `round(weight*0.30)` = 12..30;
+- só a melhor relação aplicável por perspectiva é usada;
+- o bônus `+5` antigo de “complementaridade” é apenas overlap direto entre segmentos diferentes, não uma relação taxonômica.
+
+### Estado observado no snapshot de 04/09/2026
+
+- 44 itens ativos;
+- todos com `kind = both`;
+- nenhum sinônimo cadastrado;
+- nenhuma relação complementar cadastrada.
+
+Logo, naquele snapshot, as capacidades de sinônimos e grafo complementar estavam tecnicamente prontas mas praticamente ociosas.
+
+---
+
+## 4. P0 implementado nesta branch — governança de snapshots
+
+### Problema
+
+`matches` são snapshots persistidos. Antes, editar item, sinônimo ou relação taxonômica mudava a configuração sem invalidar/reconstruir os matches já calculados.
+
+### Implementação
+
+Migration: `supabase/migrations/20260909194000_matcher_taxonomy_governance.sql`
+
+Adiciona:
+
+- `matcher_config_state`: revisão global da taxonomia;
+- `matcher_event_state`: revisão aplicada no último rebuild de cada evento;
+- triggers em `taxonomy_items` e `taxonomy_relations` que avançam a revisão;
+- `admin_get_matcher_taxonomy_status(event_id)`;
+- `admin_recompute_event_matches(event_id)`;
+- advisory lock para impedir dois rebuilds simultâneos do mesmo evento;
+- auditoria do rebuild em `audit_logs`;
+- RLS/privilegios de estado interno restritos.
+
+### Admin UX
+
+`/admin/taxonomia` agora mostra:
+
+- `dirty` / taxonomia aplicada;
+- revisão atual e revisão aplicada;
+- cobertura canônica de ofertas e necessidades;
+- quantidade de itens com sinônimos;
+- relações ativas e efetivas;
+- perfis elegíveis;
+- botão admin-only “Recalcular matches do evento”.
+
+Mutações de taxonomia invalidam a query de saúde do matcher para refletir imediatamente a nova revisão.
+
+---
+
+## 5. P0 implementado — semântica NEED → OFFER no admin
+
+`TaxonomyRelationForm` e `TaxonomyItemSheet` deixaram de apresentar relações como “A complementa B” de forma genérica.
+
+Agora a UI explicita:
+
+> Quem **PRECISA DE A** combina com quem **OFERECE B**.
+
+Também mostra que:
+
+- a relação é direcional;
+- o inverso precisa ser cadastrado separadamente;
+- peso abaixo de 40 não pontua;
+- o peso efetivo é convertido em até 30 pontos.
+
+---
+
+## 6. Prova adicionada
+
+`scripts/matcher-taxonomy-governance-proof.sql` cobre transacionalmente:
+
+1. evento sem rebuild inicia `dirty`;
+2. rebuild aplica a revisão e deixa `clean`;
+3. mutação de taxonomia incrementa revisão e volta a `dirty`;
+4. novo rebuild volta a `clean`;
+5. diagnóstico contabiliza item com sinônimo;
+6. tudo termina em `ROLLBACK`.
+
+**Importante:** a prova foi adicionada ao repositório, mas não foi executada nesta sessão contra um PostgreSQL/Supabase real. Não declarar resultado verde até executá-la no ambiente de banco.
+
+---
+
+## 7. Validação
+
+### Evidência herdada do `main`
+
+Antes desta branch, o último ciclo registrado no repositório reportava:
+
+- `npm run typecheck`: zero erros;
+- `multi-eventos-checkin.test.ts`: 7/7;
+- regressões de admin/labels: 65/65.
+
+### Alterações desta branch
+
+Ainda precisam ser executadas no ambiente completo antes do merge final:
+
+```bash
+npm run typecheck
+npm run test
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f scripts/matcher-taxonomy-governance-proof.sql
+```
+
+Não há workflow GitHub Actions configurado no repositório para executar essas verificações remotamente por esta integração.
+
+---
+
+## 8. Próximos passos
+
+O backlog detalhado está em `docs/roadmap.md`. Os itens que exigem curadoria ou decisão de produto não foram alterados silenciosamente, especialmente:
+
+- popular sinônimos e relações comerciais reais;
+- revisar os 44 conceitos/`kind`;
+- decidir semântica de item desativado;
+- enriquecer reasons diretos +55/+25;
+- separar natureza “comercial” de “perfil estratégico” na UI;
+- decidir se o fornecedor recebe sinal/score taxonômico inverso;
+- alterar pesos/thresholds apenas em nova versão de algoritmo;
+- benchmark de rebuild com 100/250/500/1000 perfis.
+>>>>>>> origin/main

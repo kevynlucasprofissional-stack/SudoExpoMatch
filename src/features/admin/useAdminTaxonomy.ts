@@ -103,6 +103,8 @@ function useInvalidateTaxonomy(eventId: string) {
     if (itemId) await qc.invalidateQueries({ queryKey: taxonomyDetailKey(eventId, itemId) });
     // O catálogo do wizard também depende dos itens ativos.
     await qc.invalidateQueries({ queryKey: ["staff", "event-segments", eventId] });
+    // Qualquer mutação taxonômica incrementa a revisão global do matcher no banco.
+    await qc.invalidateQueries({ queryKey: ["admin", "matcher-taxonomy-status", eventId] });
   };
 }
 
