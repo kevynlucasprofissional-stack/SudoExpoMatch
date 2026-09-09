@@ -20,36 +20,37 @@ npm run build        # build de produção (Nitro / Edge Worker)
 npm run lint         # eslint .
 ```
 
-Provas SQL end-to-end (executadas manualmente com `psql -f`):
-
-- `scripts/impl11-hardening-proof.sql`
-- `scripts/impl12-relations-e2e-proof.sql`
-- `scripts/matcher-taxonomy-governance-proof.sql`
-- `scripts/outcomes-analytics-proof.sql`
+Provas SQL end-to-end (executadas manualmente com `psql -f`): `scripts/impl11-hardening-proof.sql`,
+`scripts/impl12-relations-e2e-proof.sql`, `scripts/matcher-taxonomy-governance-proof.sql`,
+`scripts/outcomes-analytics-proof.sql`.
 
 ---
 
 ## Arquitetura atual
 
-```text
+```
 src/
-  config/event.ts        evento público/principal padrão
+  config/event.ts        evento público/principal padrão (EVENT_ID, EVENT_NAME)
   routes/                rotas file-based do TanStack Router
   features/              domínios de produto (admin, analytics, auth, connections,
                          matching, onboarding, participant, recovery, staff, taxonomy)
   lib/                   tipos compartilhados, utilitários, IA (gateway + orquestrador)
-  integrations/supabase/ clientes/tipos gerados (não editar manualmente)
+  integrations/supabase/ clientes gerados (não editar)
   testing/               espelhos de especificação usados só por testes
   __tests__/             suíte Vitest
-supabase/migrations/     schema, RPCs, RLS, grants e matcher
+supabase/migrations/     schema, RPCs, RLS e grants
 ```
 
 Princípios em vigor:
 
-- **Fonte única de verdade é o banco.** Segmentos, taxonomia, matches e conexões vêm de dados/RPCs reais.
-- **Multi-eventos por `event_id`.** O matcher nunca cruza participantes de eventos diferentes; o admin usa contexto de evento selecionado.
-- **Mutações críticas por RPC `SECURITY DEFINER`** com validação e auditoria; RLS bloqueia escrita direta não autorizada.
-- **PII isolada** no schema `private` (`profile_contacts`, `profile_recovery`), fora do Data API público.
+- **Fonte única de verdade é o banco.** Não há store local nem catálogo mockado; segmentos,
+  taxonomia, matches e conexões vêm sempre de RPCs.
+- **Multi-eventos por `event_id`.** O evento público padrão continua em `src/config/event.ts`,
+  enquanto o painel administrativo usa `AdminEventContext`/`EventSelector`; o matcher nunca cruza
+  participantes de eventos diferentes.
+- **Mutações só por RPC `SECURITY DEFINER`** com validação e auditoria; RLS bloqueia escrita
+  direta pelo Data API.
+- **PII isolada** no schema `private` (`profile_contacts`, `profile_recovery`), fora do Data API.
 - **Matching roda no Postgres**, não no cliente.
 
 ### Rotas
@@ -65,133 +66,113 @@ Princípios em vigor:
 | `/admin` | admin | Visão geral do evento e gestão de `event_staff` |
 | `/admin/participantes` | admin | Lista e detalhe de participantes (sem PII de contato) |
 | `/admin/matches` | admin | Auditoria de matches: score, rótulo, motivos, decisões |
-| `/admin/taxonomia` | admin | Gestão de itens, sinônimos, relações, cobertura e rebuild do matcher |
+| `/admin/taxonomia` | admin | Gestão de itens de taxonomia, sinônimos, relações, cobertura e rebuild do matcher |
 
 ---
 
 ## Matcher v2.4
 
-A especificação documental canônica está em **`docs/specs/matcher-v2.4.md`**. A fonte executável
-continua sendo `public._recompute_matches_for_profile(profile_id, event_id)` no PostgreSQL.
+A especificação documental canônica está em `docs/specs/matcher-v2.4.md`. A fonte executável
+continua sendo `_recompute_matches_for_profile(profile_id, event_id)` no PostgreSQL
+(`SECURITY DEFINER`), chamado ao final de `save_own_profile_v2` e também pela recomputação manual.
 
-O matcher calcula **duas perspectivas independentes** para cada dupla (`A → B` e `B → A`).
-O mesmo par pode ser “alta compatibilidade” para um lado e “conexão possível” para o outro.
+Cada dupla recebe **duas perspectivas independentes** (`A → B` e `B → A`), portanto o mesmo par
+pode ter rótulos diferentes para cada participante.
 
-### Pesos oficiais por perspectiva
+Pesos oficiais por perspectiva:
 
 | Sinal | Pontos | Pode criar a dupla? |
 | --- | ---: | :---: |
-| O outro oferece algo que eu procuro | +55 | sim |
-| O outro procura algo que eu ofereço | +25 | sim |
-| Relação complementar de taxonomia | +12 a +30 | sim |
-| Perfil desejado completo — 1 critério | +20 | sim |
-| Perfil desejado completo — 2 critérios | +30 | sim |
-| Perfil desejado completo — 3 critérios | +40 | sim |
-| Perfil desejado mútuo | +10 | não |
-| Necessidade prioritária atendida diretamente | +10 | não |
-| Overlap comercial entre segmentos diferentes | +5 | não |
-| Atualidade do perfil | +3 | não |
-| Mesma cidade | +2 | não |
+| O outro oferece algo que eu procuro | 55 | sim |
+| O outro procura algo que eu ofereço | 25 | sim |
+| Relação complementar de taxonomia | 12 a 30 | sim |
+| Perfil desejado completo — 1 critério | 20 | sim |
+| Perfil desejado completo — 2 critérios | 30 | sim |
+| Perfil desejado completo — 3 critérios | 40 | sim |
+| Perfil desejado mútuo | 10 | não |
+| Necessidade prioritária atendida diretamente | 10 | não |
+| Overlap comercial entre segmentos diferentes | 5 | não |
+| Atualidade do perfil | 3 | não |
+| Mesma cidade | 2 | não |
 
-**Rótulo por perspectiva** (`match_label_for_score`):
+**Rótulo por perspectiva** (via `match_label_for_score`):
 `alta_compatibilidade` ≥ 75 · `boa_oportunidade` ≥ 40 · `conexao_possivel` < 40.
 
 O score **não é porcentagem** e pode ultrapassar 100; o máximo teórico atual é 180.
+O campo legado `matches.label` usa o maior score da dupla e **não deve** ser apresentado como
+classificação do participante; use o label derivado da própria perspectiva.
 
-> `matches.label` é um campo legado calculado pelo maior score da dupla. Interfaces de participante
-devem usar apenas o rótulo derivado da própria perspectiva (`label_me` / `label_a` / `label_b`).
+### Perfil desejado — “quem eu procuro”
 
-### “Quem eu procuro”
-
-Porte, tipo de negócio e segmento são all-or-nothing: só os critérios informados contam e todos
-eles precisam bater. Campo “Qualquer” é ignorado. Encaixe parcial vale zero. Esse mecanismo pode
-criar um match de networking/perfil-alvo mesmo sem overlap comercial direto.
+Porte, tipo de negócio e segmento são `all-or-nothing`: campos “Qualquer” são ignorados e todos
+os critérios realmente informados precisam bater. Encaixe parcial vale zero. Um encaixe completo
+pode criar um match de networking/perfil-alvo mesmo sem overlap comercial direto.
 
 ### Explicabilidade
 
-- Relações complementares registram rastreabilidade forte no reason: necessidade, oferta,
-  relação taxonômica, peso e rationale.
-- Os reasons principais de overlap `+55/+25` ainda são mais genéricos; enriquecer esses motivos
-  com os IDs exatos dos itens que produziram o sinal está no roadmap.
+Relações taxonômicas carregam rastreabilidade forte (`profile_need_id`, `profile_offer_id`,
+`taxonomy_relation_id`, peso e rationale). Os reasons principais de overlap `+55/+25` ainda são
+mais genéricos; enriquecer esses motivos com os IDs exatos dos itens está no roadmap.
 
-Um espelho legível dos pesos e da classificação vive em `src/testing/matching-spec.ts`, usado
-somente por testes. O SQL continua sendo a autoridade executável.
+Um espelho legível dos pesos e da classificação vive em `src/testing/matching-spec.ts`,
+**usado somente por testes**. O SQL continua sendo a autoridade executável.
+
+### Complementaridade taxonômica
+
+`public.taxonomy_relations` liga uma **necessidade** (`from_taxonomy_item_id`) a uma **oferta**
+(`to_taxonomy_item_id`) de forma direcional. A leitura correta é:
+
+> quem **PRECISA DE A** pode combinar com quem **OFERECE B**.
+
+- peso `< 40`: não pontua;
+- peso `40..100`: `round(weight × 0,30)` → 12..30 pontos;
+- somente a melhor relação aplicável por perspectiva é usada;
+- o sentido inverso só existe se cadastrado separadamente.
+
+O bônus `+5` historicamente chamado de “complementaridade” **não usa** esse grafo: é apenas um
+match comercial direto entre empresas de segmentos diferentes. Em documentação nova, prefira
+**conexão entre segmentos** para esse sinal.
+
+### Governança de snapshots
+
+`matches` são snapshots persistidos. Alterar item, sinônimo ou relação taxonômica muda a semântica
+do matcher, mas não reescreve automaticamente scores já calculados. A migration
+`20260909194000_matcher_taxonomy_governance.sql` introduz revisão da taxonomia, estado `dirty`
+por evento, métricas de cobertura e `admin_recompute_event_matches(event_id)` para reaplicar a
+configuração atual de forma auditada.
 
 ---
 
 ## Taxonomia
 
-A taxonomia tem três funções distintas:
-
-1. **Ontologia**: catálogo canônico de ofertas e necessidades.
-2. **Canonicalização**: IDs e sinônimos para aproximar linguagem humana do conceito correto.
-3. **Grafo comercial**: relações complementares dirigidas `NECESSIDADE → OFERTA`.
-
-### `taxonomy_match()`
-
-É determinístico. Considera equivalência por:
-
-- mesmo `taxonomy_item_id`;
-- label normalizada igual;
-- sinônimo explicitamente cadastrado;
-- contenção textual respeitando fronteira de palavra.
-
-Não existe embedding, LLM pairwise, cosine similarity ou fuzzy score semântico no core do matcher.
-A inteligência semântica mais forte acontece antes, no onboarding com IA, que tenta mapear o
-texto do participante para um `taxonomyItemId` canônico.
-
-### Relações complementares
-
-`public.taxonomy_relations` é direcional:
-
-```text
-from_taxonomy_item_id = NECESSIDADE
-              ↓
-to_taxonomy_item_id   = OFERTA
-```
-
-A leitura correta é: **quem PRECISA de A pode combinar com quem OFERECE B**.
-
-- peso `< 40`: não pontua;
-- peso `40..100`: `round(weight × 0,30)` → 12..30 pontos;
-- se várias relações se aplicarem à mesma perspectiva, somente a de maior peso é usada;
-- o inverso só existe se cadastrado separadamente.
-
-O bônus antigo de `+5` chamado genericamente de “complementaridade” **não usa** esse grafo; ele
-é apenas um overlap comercial direto entre empresas de segmentos diferentes. Em documentação
-nova, trate-o como **conexão entre segmentos**.
-
-### Governança de snapshots
-
-`matches` são snapshots persistidos. Alterar item, sinônimo ou relação muda a semântica da
-configuração, mas precisa de recomputação para atualizar pares já calculados.
-
-A migration `20260909194000_matcher_taxonomy_governance.sql` adiciona:
-
-- revisão global da configuração taxonômica;
-- revisão aplicada por evento;
-- estado `dirty` quando um evento precisa de rebuild;
-- métricas de cobertura canônica no admin;
-- RPC admin-only `admin_recompute_event_matches(event_id)`;
-- auditoria de rebuilds.
-
-Em `/admin/taxonomia`, o administrador consegue ver se os snapshots estão atualizados e aplicar
-a configuração corrente ao evento selecionado.
+- **Segmento por item**: cada `taxonomy_items` carrega o próprio `segment_id`, que é a
+  autoridade — o segmento do perfil não sobrescreve o segmento do item escolhido.
+- **`needKind`**: toda necessidade declara o tipo do que se procura (`servico`, `fornecedor`,
+  `parceiro`, `compradores`, `distribuidores`, `profissionais`, `produtos`, `outro`),
+  propagado do wizard até o matcher e as explicações.
+- **`taxonomy_match()` é determinístico**: mesmo `taxonomy_item_id`, igualdade de label
+  normalizada, sinônimo explícito ou contenção textual respeitando fronteira de palavra.
+- O core **não** usa embedding, LLM pairwise, cosine similarity ou fuzzy score semântico genérico.
+  A inteligência semântica mais forte acontece antes, quando o onboarding com IA tenta mapear a
+  linguagem do participante para um `taxonomyItemId` canônico.
+- Itens livres podem permanecer com `taxonomy_item_id = NULL`; nesse caso não participam do grafo
+  `taxonomy_relations`.
 
 ---
 
 ## IA (Lovable AI Gateway)
 
-Opcional e sob demanda: o botão “Analisar com IA” no wizard chama uma TanStack Server Function
-(`src/lib/onboarding-ai.functions.ts`) que interpreta o resumo e sugere ofertas e necessidades
-normalizadas contra a taxonomia real.
+Opcional e sob demanda: o botão "Analisar com IA" no wizard chama uma TanStack Server Function
+(`src/lib/onboarding-ai.functions.ts`) que interpreta o resumo (A1) e sugere ofertas e
+necessidades normalizadas contra a taxonomia real (A2).
 
-- **Cross-segment**: sugestões podem usar itens de outros segmentos quando houver sentido comercial.
+- **Cross-segment**: as sugestões não ficam presas ao segmento do participante; itens de outros
+  segmentos são propostos quando fazem sentido comercial, sempre validados contra o catálogo.
 - Saída estruturada validada com Zod; IDs inexistentes/inativos são descartados.
-- Cache por hash de entrada, rate limit, controle de concorrência e fallback heurístico.
-- Execuções registradas em `ai_runs` sem PII sensível no payload operacional.
+- Cache por hash de entrada, rate limit por usuário, controle de concorrência e **fallback
+  heurístico** silencioso quando o gateway falha.
+- Execuções registradas em `ai_runs` sem PII (hash, tamanho do resumo, latência, modelo).
 - A IA **sugere**; nada entra no perfil sem confirmação explícita do participante.
-- O matcher final continua determinístico; a IA é usada principalmente para entender/canonicalizar a linguagem ambígua do onboarding.
 
 ---
 
@@ -199,14 +180,16 @@ normalizadas contra a taxonomia real.
 
 - `/equipe`: fila de conexões com atribuição atômica, máquina de estados linear
   (`aguardando → em_atendimento → apresentados → contato_trocado → concluido`, com
-  `cancelado`), notas, revelação de contato auditada, pins no mapa físico e registro de resultados.
-- `/admin`: estatísticas, staff, participantes, matches, taxonomia e analytics agregados por evento.
+  `cancelado`), notas, revelação de contato auditada, marcação no mapa físico (pins) e
+  registro de resultados comerciais (conversa, reunião, proposta).
+- `/admin`: estatísticas do evento, staff, e card de analytics de experiência (funil de
+  onboarding, matches e conexões) — tudo agregado e sem PII.
 
 ## Ausência intencional de notificações
 
-O produto **não** envia e não deve enviar notificações push/e-mail/SMS/WhatsApp automáticas.
-A descoberta de matches é por consulta no painel e pela operação presencial da equipe. Isso é
-uma decisão de produto, não uma pendência.
+O produto **não** envia e não deve enviar notificações (push, e-mail, SMS ou WhatsApp
+automático). A descoberta de matches é por consulta do participante no painel e pela ação
+presencial da equipe. Isso é uma decisão de produto, não uma pendência.
 
 ---
 
@@ -214,33 +197,56 @@ uma decisão de produto, não uma pendência.
 
 Nenhuma senha vive no repositório e nenhuma migration deve criar credenciais.
 
-1. Crie a conta no provedor de autenticação (Lovable Cloud → Auth → Users), definindo a senha fora do repositório.
-2. Promova a conta a admin do evento com um admin existente via `/admin`. Se não houver nenhum admin, faça o provisionamento inicial fora de commit no console SQL do backend.
-3. Demais membros são adicionados com papel `staff` ou `admin`.
+1. Crie a conta no provedor de autenticação (Lovable Cloud → Auth → Users), definindo a senha
+   fora do repositório.
+2. Promova a conta a admin do evento com um admin já existente, via `/admin` (que usa
+   `admin_add_event_staff_by_email`). Não havendo nenhum admin ainda, execute uma única vez,
+   fora de commit, no console SQL do backend:
 
-> O histórico do repositório contém credenciais/identificadores de provisionamento antigos em migrations já aplicadas. Rotação ou remoção de conta deve ocorrer no provedor de autenticação; nunca adicione senha nova ao Git.
+   ```sql
+   INSERT INTO public.event_staff (event_id, user_id, role)
+   SELECT '<event_id>', u.id, 'admin'::public.app_role
+   FROM auth.users u
+   WHERE lower(u.email) = lower('<email>')
+   ON CONFLICT DO NOTHING;
+   ```
+
+3. Demais membros são adicionados por `/admin` com papel `staff` ou `admin`.
+
+> **Aviso de credencial exposta.** O histórico do repositório contém uma migration que promove
+> um e-mail administrativo específico (`admin@admin.com.br`), e a senha correspondente foi
+> combinada fora do código. Migrations já aplicadas não são reescritas. A rotação dessa
+> credencial (troca de senha ou remoção do usuário) deve ser feita **no provedor de
+> autenticação, fora do commit** — nunca colocando outra senha no repositório. Se a conta não
+> for mais necessária, remova também a linha correspondente em `public.event_staff`.
 
 ---
 
 ## Modelo de dados e segurança
 
-- Perfis: `profiles`, `profile_offers`, `profile_needs`, `profile_segments`, `consents`.
+- Perfis: `profiles` (sem PII de contato) + `profile_offers`, `profile_needs`,
+  `profile_segments`, `consents`.
 - Matching: `matches`, `match_reasons`, `match_decisions`, `match_status_history`.
-- Conexões: `connections`, `connection_events`, `connection_notes`, `connection_status_history`.
+- Conexões: `connections`, `connection_events`, `connection_notes`,
+  `connection_status_history`.
 - Taxonomia: `taxonomy_items`, `taxonomy_relations`.
 - Governança do matcher: `matcher_config_state`, `matcher_event_state`.
 - Operação e auditoria: `event_staff`, `staff_roles`, `audit_logs`, `analytics_events`, `ai_runs`.
-- Privado: `private.profile_contacts`, `private.profile_recovery`, `private.recovery_attempts`.
+- Privado (fora do Data API): `private.profile_contacts`, `private.profile_recovery`,
+  `private.recovery_attempts`.
 
-Contato do outro participante só é revelado conforme as regras de interesse/conexão e por RPCs
-auditadas (`reveal_contact_for_match`, `staff_reveal_contact_for_match`).
+Contato do outro participante só é revelado com **interesse mútuo + conexão em estágio
+apresentados ou além** (`reveal_contact_for_match`); a equipe usa
+`staff_reveal_contact_for_match`, sempre com registro em `audit_logs`.
 
----
+Visitantes usam sessão anônima do Supabase Auth vinculada a `profiles.owner_id`; equipe e
+admin entram com e-mail e senha. Recuperação de perfil usa telefone + código com hash,
+rate limit e bloqueio temporário (`recover_profile_v2`), transferindo o `owner_id`.
 
 ## Rascunho do wizard
 
 - Chave `sudoexpo:wizard-draft:v2` (envelope `{ version, savedAt, draft }`, expira em 24h).
 - Persiste apenas dados profissionais. Nunca vão ao localStorage: WhatsApp, e-mail, IDs de
   usuário/perfil, código de recuperação, matches, decisões, contatos ou tokens.
-- Criação exige WhatsApp e consentimento e termina com exibição única do código de recuperação;
-  edição mantém o código e torna o WhatsApp opcional.
+- Criação exige WhatsApp e consentimento e termina com exibição única do código de
+  recuperação; edição mantém o código e torna o WhatsApp opcional.
