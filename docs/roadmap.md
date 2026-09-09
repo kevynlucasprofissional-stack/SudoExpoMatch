@@ -410,7 +410,15 @@ Uma tarefa só recebe `[x]` quando:
 6. documentação canônica reflete o comportamento real;
 7. mudanças de score/semântica têm versão de algoritmo e decisão de produto explícita.
 
-<<<<<<< HEAD
+---
+
+# 16. Entregas por fase — histórico consolidado
+
+### Fase 1 — Fundação multi-eventos
+
+- [x] **Etapa 1.1: Registro do evento principal `sudoexpo-2026`**
+  - **Descrição**: Base ativa do matchmaking, isolada por `event_id`.
+
 - [x] **Etapa 1.2: Criação do Registro Oficial do "Café Entre Amigos"**
   - **Descrição**: Criar migration SQL adicionando o evento `'cafe-entre-amigos-ago-2026'` na tabela `public.events` com nome `"Café Entre Amigos — ACIRV (Agosto 2026)"`, cidade `"Rio Verde"`, status `is_active = false`.
   - **Critério de Sucesso**: Evento cadastrado sem conflitos de chave primária.
