@@ -477,6 +477,7 @@ function WizardPage() {
     social.result,
     targetEventId,
     isSandbox,
+    effectiveCatalog,
   ]);
 
   const retryContact = useCallback(async () => {
