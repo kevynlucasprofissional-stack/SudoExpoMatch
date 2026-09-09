@@ -15,7 +15,6 @@ import {
 
 import {
   MAX_RATIONALE_LENGTH,
-  RELATION_DIRECTION_TEXT,
   TAXONOMY_RELATION_TYPES,
   relationFormSchema,
   type RelationDirection,
@@ -23,13 +22,22 @@ import {
 } from "@/features/admin/taxonomySchemas";
 import { useAdminTaxonomy } from "@/features/admin/useAdminTaxonomy";
 
+const DIRECTION_TEXT: Record<RelationDirection, string> = {
+  outgoing: "Quem PRECISA deste item combina com quem OFERECE o outro",
+  incoming: "Quem PRECISA do outro item combina com quem OFERECE este",
+};
+
 /**
  * IMPL 12 — formulário de relação complementar.
- * Criação escolhe direção + item alvo; edição altera apenas peso e justificativa.
+ *
+ * Semântica do banco/matcher: from_taxonomy_item_id é uma NECESSIDADE e
+ * to_taxonomy_item_id é uma OFERTA. A UI explicita isso para evitar que o admin
+ * interprete a seta como uma complementaridade genérica ou automaticamente bidirecional.
  */
 export function TaxonomyRelationForm({
   eventId,
   currentItemId,
+  currentItemLabel = "este item",
   mode,
   initial,
   pending,
@@ -38,6 +46,7 @@ export function TaxonomyRelationForm({
 }: {
   eventId: string;
   currentItemId: string;
+  currentItemLabel?: string;
   mode: "create" | "edit";
   initial?: Partial<TaxonomyRelationFormValues> & { otherLabel?: string };
   pending: boolean;
@@ -72,6 +81,11 @@ export function TaxonomyRelationForm({
     () => (options.data?.items ?? []).filter((i) => i.id !== currentItemId),
     [options.data, currentItemId],
   );
+  const selectedOtherLabel =
+    (isCreate ? items.find((item) => item.id === otherItemId)?.label : initial?.otherLabel) ??
+    "outro item";
+  const needLabel = direction === "outgoing" ? currentItemLabel : selectedOtherLabel;
+  const offerLabel = direction === "outgoing" ? selectedOtherLabel : currentItemLabel;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -97,7 +111,7 @@ export function TaxonomyRelationForm({
       {isCreate ? (
         <>
           <div className="space-y-1.5">
-            <Label htmlFor="rel-direction">Direção da relação</Label>
+            <Label htmlFor="rel-direction">Sentido comercial (necessidade → oferta)</Label>
             <Select value={direction} onValueChange={(v) => setDirection(v as RelationDirection)}>
               <SelectTrigger id="rel-direction">
                 <SelectValue />
@@ -105,15 +119,19 @@ export function TaxonomyRelationForm({
               <SelectContent>
                 {(["outgoing", "incoming"] as const).map((d) => (
                   <SelectItem key={d} value={d}>
-                    {RELATION_DIRECTION_TEXT[d]}
+                    {DIRECTION_TEXT[d]}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
+            <p className="text-xs text-muted-foreground">
+              A relação é direcional. A seta significa “quem precisa de A pode se beneficiar de
+              quem oferece B”; o inverso só existe se for cadastrado separadamente.
+            </p>
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="rel-search">Buscar item relacionado</Label>
+            <Label htmlFor="rel-search">Buscar item da outra ponta</Label>
             <Input
               id="rel-search"
               value={search}
@@ -147,9 +165,17 @@ export function TaxonomyRelationForm({
         <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
           <span>Relação com</span>
           <Badge variant="outline">{initial?.otherLabel ?? "outro item"}</Badge>
-          <span>. Para mudar os itens, desative esta relação e crie outra.</span>
+          <span>. Para mudar os itens ou a direção, desative esta relação e crie outra.</span>
         </div>
       )}
+
+      <div className="rounded-md border bg-muted/30 p-3 text-xs" data-testid="relation-semantics-preview">
+        <p className="font-medium">Como o matcher interpreta</p>
+        <p className="mt-1 text-muted-foreground">
+          Quem PRECISA de <strong className="text-foreground">{needLabel}</strong> combina com uma
+          empresa que OFERECE <strong className="text-foreground">{offerLabel}</strong>.
+        </p>
+      </div>
 
       <div className="space-y-1.5">
         <Label htmlFor="rel-weight">Peso (1 a 100)</Label>
@@ -163,8 +189,8 @@ export function TaxonomyRelationForm({
         />
         {errors.weight ? <p className="text-xs text-destructive">{errors.weight}</p> : null}
         <p className="text-xs text-muted-foreground">
-          O matcher só considera relações com peso a partir de 40 e converte o peso em até 30 pontos
-          no score.
+          O matcher v2.4 só considera relações com peso a partir de 40 e converte o peso em até 30
+          pontos no score (peso × 0,30, arredondado).
         </p>
       </div>
 
@@ -176,7 +202,7 @@ export function TaxonomyRelationForm({
           maxLength={MAX_RATIONALE_LENGTH}
           value={rationale}
           onChange={(e) => setRationale(e.target.value)}
-          placeholder="Por que esses itens se complementam comercialmente."
+          placeholder="Por que essa necessidade se beneficia dessa oferta?"
         />
         {errors.rationale ? <p className="text-xs text-destructive">{errors.rationale}</p> : null}
       </div>
