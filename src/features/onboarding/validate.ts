@@ -6,7 +6,13 @@ import {
 } from "./schemas";
 import type { WizardDraft, WizardMode } from "./types";
 
-export type WizardValidationReason = "profile" | "phone" | "priority" | "target";
+export type WizardValidationReason =
+  | "profile"
+  | "phone"
+  | "priority"
+  | "target"
+  | "duplicate_offer"
+  | "duplicate_need";
 
 export type WizardValidation =
   | { ok: true }

@@ -851,6 +851,7 @@ export function StepNeeds({
   function addCustom() {
     const clean = label.trim();
     if (clean.length < 2 || draft.needs.length >= 5) return;
+    if (hasEquivalentItem(draft.needs, { label: clean, taxonomyItemId: null })) return;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: clean,
