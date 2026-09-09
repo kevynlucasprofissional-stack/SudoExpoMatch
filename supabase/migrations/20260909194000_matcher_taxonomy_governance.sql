@@ -47,7 +47,8 @@ BEGIN
   ON CONFLICT (singleton) DO UPDATE
     SET taxonomy_revision = public.matcher_config_state.taxonomy_revision + 1,
         updated_at = now();
-  RETURN COALESCE(NEW, OLD);
+  -- Trigger statement-level: o valor de retorno é ignorado.
+  RETURN NULL;
 END;
 $function$;
 
@@ -127,26 +128,26 @@ BEGIN
      );
 
   SELECT count(*)::int,
-         count(*) FILTER (WHERE po.taxonomy_item_id IS NOT NULL)::int
+         (count(*) FILTER (WHERE po.taxonomy_item_id IS NOT NULL))::int
     INTO v_offers_total, v_offers_canonical
     FROM public.profile_offers po
    WHERE po.event_id = _event_id AND po.active;
 
   SELECT count(*)::int,
-         count(*) FILTER (WHERE pn.taxonomy_item_id IS NOT NULL)::int
+         (count(*) FILTER (WHERE pn.taxonomy_item_id IS NOT NULL))::int
     INTO v_needs_total, v_needs_canonical
     FROM public.profile_needs pn
    WHERE pn.event_id = _event_id AND pn.active;
 
-  SELECT count(*) FILTER (WHERE ti.active)::int,
-         count(*) FILTER (
+  SELECT (count(*) FILTER (WHERE ti.active))::int,
+         (count(*) FILTER (
            WHERE ti.active AND COALESCE(array_length(ti.synonyms, 1), 0) > 0
-         )::int
+         ))::int
     INTO v_active_items, v_items_with_synonyms
     FROM public.taxonomy_items ti;
 
-  SELECT count(*) FILTER (WHERE r.active)::int,
-         count(*) FILTER (WHERE r.active AND r.weight >= 40)::int
+  SELECT (count(*) FILTER (WHERE r.active))::int,
+         (count(*) FILTER (WHERE r.active AND r.weight >= 40))::int
     INTO v_active_relations, v_effective_relations
     FROM public.taxonomy_relations r
    WHERE r.relation_type = 'complements';
