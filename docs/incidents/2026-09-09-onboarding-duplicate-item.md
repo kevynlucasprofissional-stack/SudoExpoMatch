@@ -128,3 +128,38 @@ recusada pelas defesas de fronteira do wizard.
 - **Payload da tentativa que falhou não é persistido**, o que limita futuras
   investigações do mesmo tipo.
 - Proteção contra envio duplo (`runningRef` com `finally`) auditada e mantida.
+
+## Canonicalização automática conservadora (correção do risco residual)
+
+O risco residual "texto livre com label idêntico ao catálogo salvo com
+`taxonomy_item_id` nulo" foi corrigido no front, sem alterar matcher, pesos,
+relações taxonômicas, schema ou dados de produção.
+
+Helper puro: `src/features/onboarding/canonicalizeItems.ts`.
+
+Regras (determinísticas, sem fuzzy):
+
+1. Item que já tem `taxonomyItemId` é preservado.
+2. Vínculo só com igualdade **exata** após a mesma `normalizeLabel` do
+   onboarding, contra o label canônico ou um sinônimo exato do item.
+3. Label canônico tem precedência sobre sinônimo.
+4. `kind` compatível: oferta ↔ `offer`/`both`; necessidade ↔ `need`/`both`.
+5. Mais de um candidato → não vincula (preserva texto livre).
+6. Só vincula item com `segment_id` autoritativo, porque `save_own_profile_v2`
+   exige `taxonomy_items.segment_id = segment_id do payload`, item `active` e
+   `kind` compatível; ao vincular, usa esse segmento autoritativo.
+7. Nunca reaproveita um id já usado por outro item da mesma lista.
+8. Sem substring, sem Levenshtein, sem IA — falso negativo é preferível a
+   vínculo taxonômico errado.
+
+Pontos de aplicação: texto manual e sugestões de IA/heurística sem id em
+`StepOffers`/`StepNeeds`, e `canonicalizeDraftItems` antes do submit em
+`/participar` (recupera rascunhos antigos salvos localmente).
+
+A detecção de duplicidade permanece exatamente como estava: nada é deduplicado
+em silêncio e a colisão continua sendo mostrada à pessoa antes de qualquer RPC.
+
+Caso real coberto: `Insumos agrícolas` no segmento agro passa a ser salvo com o
+`taxonomy_item_id` canônico quando a correspondência é única.
+
+Cobertura: `src/__tests__/canonicalizacao-taxonomia-onboarding.test.ts`.
