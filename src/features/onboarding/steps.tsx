@@ -808,8 +808,10 @@ export function StepNeeds({
         )
         .filter(
           (t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: null, label: t.label })),
-        ),
-    [segmentTaxAll, feedIdentities],
+        )
+        // Já adicionado pela pessoa não reaparece em "Comuns no seu segmento".
+        .filter((t) => !hasEquivalentItem(draft.needs, { label: t.label, taxonomyItemId: t.id })),
+    [segmentTaxAll, draft.needs, feedIdentities],
   );
 
 
@@ -817,7 +819,7 @@ export function StepNeeds({
   /** IA sugere, usuário confirma. `needKind` vem do item, nunca do seletor. */
   function addFromFeed(s: FeedSuggestion) {
     if (draft.needs.length >= 5) return;
-    if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
+    if (hasEquivalentItem(draft.needs, s)) return;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: s.label,
@@ -832,7 +834,7 @@ export function StepNeeds({
 
   function addFromCatalog(t: CatalogTaxonomyItem) {
     if (draft.needs.length >= 5) return;
-    if (draft.needs.some((n) => n.label.toLowerCase() === t.label.toLowerCase())) return;
+    if (hasEquivalentItem(draft.needs, { label: t.label, taxonomyItemId: t.id })) return;
     // IMPL 7: item sem segmento próprio não é autoritativo → vira texto livre.
     const seg = t.segment_id?.trim() || null;
     const need: WizardNeed = {
