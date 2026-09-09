@@ -82,6 +82,7 @@ Isso era o maior risco operacional antes de popular o grafo complementar.
 - [x] adicionar card em `/admin/taxonomia` com revisão, `dirty/clean`, cobertura taxonômica e botão de rebuild;
 - [x] invalidar a query de saúde após mutações taxonômicas;
 - [x] adicionar `scripts/matcher-taxonomy-governance-proof.sql` cobrindo dirty → rebuild → clean → mudança → dirty → rebuild → clean;
+- [x] adicionar contrato Vitest estático `matcher-taxonomy-governance.test.ts` para RLS, RPCs, evento selecionado e semântica da UI;
 - [ ] executar a migration/prova contra um PostgreSQL/Supabase real antes do merge final;
 - [ ] se rebuild síncrono ficar lento em escala, mover execução completa para job assíncrono com progresso/idempotência.
 
@@ -126,11 +127,11 @@ A frase correta é:
 - [x] explicar que a direção inversa precisa ser cadastrada separadamente;
 - [x] atualizar a visualização das relações para badges `PRECISA DE → OFERECE`;
 - [x] mostrar no formulário que peso `<40` não pontua;
-- [x] mostrar fórmula `round(weight × 0,30)` e teto de 30 pontos.
+- [x] mostrar fórmula `round(weight × 0,30)` e teto de 30 pontos;
+- [x] adicionar teste de UI garantindo que a direção apresentada é inequívoca.
 
 ## Pendente
 
-- [ ] adicionar teste de UI específico para a semântica direcional;
 - [ ] adicionar ajuda contextual com exemplos corretos/incorretos;
 - [ ] impedir/alertar curadoria quando uma relação parecer semanticamente invertida com base em `kind`/uso real.
 
@@ -357,8 +358,8 @@ Criar 20–30 duplas artificiais com resultado esperado cobrindo:
 
 ```text
 P0. governança/rebuild de snapshots                IMPLEMENTADO; validar em banco
-P0. direção NEED → OFFER na UI                     IMPLEMENTADO
-P0. corrigir contexto multi-evento da taxonomia    IMPLEMENTADO
+P0. direção NEED → OFFER na UI                     IMPLEMENTADO + teste de UI
+P0. corrigir contexto multi-evento da taxonomia    IMPLEMENTADO + contrato estático
 P1. executar prova SQL + typecheck/testes
 P1. medir cobertura canônica real do evento
 P1. curar sinônimos
