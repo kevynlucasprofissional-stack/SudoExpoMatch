@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Sheet,
   SheetContent,
@@ -9,13 +10,24 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Sparkles } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EVENT_ID } from "@/config/event";
 import { useStaffCheckinMutation } from "@/features/admin/useAdminEvents";
 import {
   useAdminParticipantDetail,
   useAdminParticipantSocial,
+  useAdminDeleteParticipantMutation,
 } from "@/features/admin/useAdminParticipants";
 import { ParticipantSocialPanel } from "@/features/admin/ParticipantSocialPanel";
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
@@ -68,6 +80,9 @@ export function ParticipantDetailSheet({
   const query = useAdminParticipantDetail(profileId, true);
   const socialQuery = useAdminParticipantSocial(profileId, true);
   const checkinMutation = useStaffCheckinMutation();
+  const deleteMutation = useAdminDeleteParticipantMutation();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
   const d = query.data;
   const isPreviousEvent = Boolean(d?.profile.event_id && d.profile.event_id !== EVENT_ID);
 
@@ -86,6 +101,24 @@ export function ParticipantDetailSheet({
               : "Carregando dados profissionais…"}
           </SheetDescription>
         </SheetHeader>
+
+        {d && (
+          <div className="mt-3 flex items-center justify-between border-b pb-2">
+            <span className="text-xs text-muted-foreground font-mono">
+              Evento: {d.profile.event_id}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+              onClick={() => setShowDeleteConfirm(true)}
+              data-testid="btn-sheet-delete-participant"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              Excluir cadastro / Resetar WhatsApp
+            </Button>
+          </div>
+        )}
 
         {isPreviousEvent && d && (
           <div className="mt-4 flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
@@ -335,6 +368,40 @@ export function ParticipantDetailSheet({
             </TabsContent>
           </Tabs>
         ) : null}
+
+        <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Excluir participante / Resetar cadastro?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Tem certeza que deseja excluir o cadastro de <strong>{d?.profile.name}</strong>?
+                Esta ação apagará todo o perfil, ofertas, necessidades e liberará o WhatsApp imediatamente para novos cadastros e testes.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                disabled={deleteMutation.isPending}
+                onClick={() => {
+                  if (!profileId) return;
+                  deleteMutation.mutate(profileId, {
+                    onSuccess: () => {
+                      toast.success(`Cadastro de ${d?.profile.name ?? "participante"} excluído com sucesso!`);
+                      setShowDeleteConfirm(false);
+                      onClose();
+                    },
+                    onError: (err) => {
+                      toast.error("Erro ao excluir participante: " + (err as Error).message);
+                    },
+                  });
+                }}
+              >
+                {deleteMutation.isPending ? "Excluindo…" : "Sim, excluir cadastro"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </SheetContent>
     </Sheet>
   );

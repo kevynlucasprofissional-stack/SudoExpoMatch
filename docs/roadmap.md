@@ -66,81 +66,64 @@
   - **O que foi feito**: Criada a branch `backup-pre-multi-eventos-20260909` e a tag `backup-pre-multi-eventos` no commit `46a35e6`, enviadas com sucesso para o repositório remoto oficial no GitHub.
   - **Evidência**: Verificado no remote `origin/backup-pre-multi-eventos-20260909`.
 
-- [ ] **Etapa 1.2: Criação do Registro Oficial do "Café Entre Amigos"**
+- [x] **Etapa 1.2: Criação do Registro Oficial do "Café Entre Amigos"**
   - **Descrição**: Criar migration SQL adicionando o evento `'cafe-entre-amigos-ago-2026'` na tabela `public.events` com nome `"Café Entre Amigos — ACIRV (Agosto 2026)"`, cidade `"Rio Verde"`, status `is_active = false`.
   - **Critério de Sucesso**: Evento cadastrado sem conflitos de chave primária.
 
-- [ ] **Etapa 1.3: Migração dos Dados Históricos do Piloto**
+- [x] **Etapa 1.3: Migração dos Dados Históricos do Piloto**
   - **Descrição**: Reatribuir com segurança todas as linhas existentes em `public.profiles`, `private.profile_contacts`, `public.profile_offers`, `public.profile_needs`, `public.consents`, `public.matches`, `public.connections`, `public.connection_notes` e `public.connection_events` que atualmente possuem `event_id = 'sudoexpo-2026'` para `event_id = 'cafe-entre-amigos-ago-2026'`.
   - **Critério de Sucesso**: Nenhum dado do piloto é apagado; todos passam a pertencer formalmente ao evento "Café Entre Amigos".
 
-- [ ] **Etapa 1.4: Preparação da SudoExpo 2026 como Base Ativa Limpa**
+- [x] **Etapa 1.4: Preparação da SudoExpo 2026 como Base Ativa Limpa**
   - **Descrição**: Garantir que o evento `'sudoexpo-2026'` exista em `public.events` com `is_active = true`, pronto para receber exclusivamente as novas inscrições e os check-ins realizados durante o evento.
 
 ---
 
 ### Fase 2 — Motor de Backend para Multi-Eventos e Check-in
 
-- [ ] **Etapa 2.1: RPC de Lookup Inteligente Multi-Evento (`lookup_participant_multi_event`)**
-  - **Descrição**: Criar função SQL `SECURITY DEFINER` que recebe o telefone normalizado E.164 e verifica:
-    1. Se o participante já está no evento atual (`is_registered_in_current_event = true`).
-    2. Se ele NÃO está no evento atual, mas possui perfil em algum evento anterior (`has_previous_profile = true`), retornando nome, empresa e id do perfil de origem.
-  - **Critério de Sucesso**: O front-end consegue saber em milissegundos se a pessoa é novata ou veterana de outro evento, preservando a privacidade (apenas nome abreviado e empresa retornados antes do login).
+- [x] **Etapa 2.1: RPC de Lookup Inteligente Multi-Evento (`lookup_participant_multi_event`)**
+  - **Descrição**: Criar função SQL `SECURITY DEFINER` que recebe o telefone normalizado E.164 e verifica histórico de eventos anteriores.
+  - **Critério de Sucesso**: Resposta em milissegundos preservando privacidade.
 
-- [ ] **Etapa 2.2: RPC Transacional de Check-in (`participant_checkin_to_event`)**
-  - **Descrição**: Criar função SQL `SECURITY DEFINER` que:
-    1. Localiza o perfil de origem no evento anterior.
-    2. Cria um novo registro em `public.profiles` para o evento de destino (`sudoexpo-2026`) clonando dados corporativos, segmentos e resumo.
-    3. Copia as ofertas e necessidades associadas.
-    4. Vincula o contato em `private.profile_contacts` para o novo evento.
-    5. Registra o consentimento de matchmaking para o novo evento.
-    6. Dispara imediatamente `public._recompute_matches_for_profile` no novo evento.
-  - **Critério de Sucesso**: Operação totalmente atômica (tudo ou nada) e idempotente (evita duplicação se o usuário tentar fazer check-in mais de uma vez).
+- [x] **Etapa 2.2: RPC Transacional de Check-in (`participant_checkin_to_event`)**
+  - **Descrição**: Criar função SQL `SECURITY DEFINER` para clonar perfil, ofertas e demandas para a SudoExpo 2026 e recomputar matches.
+  - **Critério de Sucesso**: Operação totalmente atômica e idempotente.
 
-- [ ] **Etapa 2.3: Garantia de Isolamento no Algoritmo de Matchmaking**
-  - **Descrição**: Auditar a função `public._recompute_matches_for_profile` para assegurar que a query de busca de outros participantes (`WHERE p.event_id = p_event_id`) permaneça imune a qualquer vazamento cross-event.
-  - **Critério de Sucesso**: Um participante do Café NUNCA gera score ou match com um participante da SudoExpo a menos que tenha feito check-in.
+- [x] **Etapa 2.3: Garantia de Isolamento no Algoritmo de Matchmaking**
+  - **Descrição**: Auditar a função `public._recompute_matches_for_profile` para assegurar que a query filtre estritamente por `p.event_id = p_event_id`.
+  - **Critério de Sucesso**: Isolamento estrito entre participantes de eventos distintos.
 
 ---
 
 ### Fase 3 — Experiência do Participante (UX de Boas-Vindas e Check-in)
 
-- [ ] **Etapa 3.1: Integração no Card de Acesso WhatsApp (`WhatsappAccessCard.tsx` / `PhoneLoginCard.tsx`)**
-  - **Descrição**: Ao digitar o WhatsApp no início do fluxo:
-    - Se for novato: segue normalmente para o wizard completo de 5 etapas.
-    - Se for participante já ativo na SudoExpo: entra direto na área de `/participante`.
-    - Se for veterano do Café Entre Amigos: abre modal especial de boas-vindas: *"Olá, [Nome] da [Empresa]! Identificamos seu cadastro do Café Entre Amigos. Deseja fazer Check-in na SudoExpo 2026?"*.
+- [x] **Etapa 3.1: Integração no Card de Acesso WhatsApp (`WhatsappAccessCard.tsx` / `PhoneLoginCard.tsx`)**
+  - **Descrição**: Detecção automática de cadastro anterior no login/onboarding com modal de boas-vindas do Café Entre Amigos.
 
-- [ ] **Etapa 3.2: Fluxo de Confirmação Rápida de Interesses**
-  - **Descrição**: Permitir ao veterano confirmar o check-in com 1 clique, ou optar por "Revisar ofertas e necessidades para a SudoExpo" antes de finalizar.
-  - **Critério de Sucesso**: O participante ingressa na SudoExpo em menos de 10 segundos, sem a fricção de preencher novamente todo o formulário.
+- [x] **Etapa 3.2: Fluxo de Confirmação Rápida de Interesses**
+  - **Descrição**: Check-in em 1 clique confirmando presença na SudoExpo 2026.
 
-- [ ] **Etapa 3.3: Feedback Visual e Notificações**
-  - **Descrição**: Feedback com toast de sucesso: *"Check-in realizado com sucesso! Seus matches na SudoExpo 2026 foram ativados."*, redirecionando para a lista de matches do evento corrente.
+- [x] **Etapa 3.3: Feedback Visual e Notificações**
+  - **Descrição**: Feedback com toast de sucesso e redirecionamento para o painel de matches.
 
 ---
 
 ### Fase 4 — Governança no Painel Administrativo (/admin)
 
-- [ ] **Etapa 4.1: Provedor de Contexto de Evento no Admin (`AdminEventContext`)**
-  - **Descrição**: Criar estado global/contexto que armazena qual evento o administrador está gerenciando no momento, com fallback para o evento ativo principal (`sudoexpo-2026`).
+- [x] **Etapa 4.1: Provedor de Contexto de Evento no Admin (`AdminEventContext`)**
+  - **Descrição**: Contexto global sincronizando o evento ativo no painel administrativo.
 
-- [ ] **Etapa 4.2: Seletor de Evento no Topo do Painel**
-  - **Descrição**: Inserir um seletor dropdown no cabeçalho do Admin (`src/routes/admin.tsx`) permitindo trocar a qualquer momento entre "SudoExpo 2026", "Café Entre Amigos" ou futuros eventos.
-  - **Critério de Sucesso**: Ao alternar o evento, as abas de Equipe, Participantes, Matches e Estatísticas recarregam os dados referentes àquele evento específico.
+- [x] **Etapa 4.2: Seletor de Evento no Topo do Painel**
+  - **Descrição**: Dropdown no cabeçalho do admin para alternar livremente entre SudoExpo 2026, Café Entre Amigos e Sandbox.
 
-- [ ] **Etapa 4.3: Tela / Gestor de Eventos (`/admin/eventos`)**
-  - **Descrição**: Visualizar todos os eventos cadastrados, data de início/fim, número de participantes, e botão para ativar/desativar eventos ou cadastrar novos eventos para o futuro da ACIRV.
-  - **Critério de Sucesso**: Sobrevivência garantida ao longo dos anos para infinitos eventos futuros.
+- [x] **Etapa 4.3: Tela / Gestor de Eventos (`/admin/eventos`)**
+  - **Descrição**: Gerenciamento de eventos cadastrados, status e métricas.
 
-- [ ] **Etapa 4.4: Filtros Avançados na Lista de Participantes (`/admin/participantes`)**
-  - **Descrição**:
-    - Adicionar filtro dropdown "Evento de Origem": "Todos", "SudoExpo 2026", "Café Entre Amigos".
-    - Adicionar coluna ou badge indicativo de presença: `"Presente na SudoExpo (Check-in Ativo)"` ou `"Apenas no Café Entre Amigos"`.
-    - Adicionar botão de ação na linha do participante: `"Fazer Check-in na SudoExpo"`, permitindo que a equipe de credenciamento ative participantes presencialmente com 1 clique.
+- [x] **Etapa 4.4: Filtros Avançados na Lista de Participantes (`/admin/participantes`)**
+  - **Descrição**: Filtro de evento, badges de presença e botão de check-in manual pela equipe de credenciamento.
 
-- [ ] **Etapa 4.5: Atualização de `/admin/matches` e Métricas Operacionais**
-  - **Descrição**: Garantir que a lista de matches e as métricas operacionais reflitam com exatidão o evento atualmente selecionado no Admin.
+- [x] **Etapa 4.5: Atualização de `/admin/matches` e Métricas Operacionais**
+  - **Descrição**: Métricas e matches delimitados pelo evento selecionado.
 
 ---
 
@@ -171,6 +154,31 @@
     - Cabeçalho de Ações (`ParticipantHeader.tsx`): presente de forma persistente em todas as abas (Matches, Conexões, Interesses, Perfil).
     - Cartão de Perfil (`ProfileCard.tsx`): botão secundário "Suporte do Administrador".
   - **Critério de Sucesso**: Participante clica e abre o WhatsApp diretamente com o administrador para suporte e esclarecimento de dúvidas durante o evento.
+
+---
+
+### Fase 7 — Ambiente de Testes (Sandbox) e Exclusão / Reset de Cadastro no Admin
+
+- [x] **Etapa 7.1: Evento Isolado de Sandbox (`sandbox-sudoexpo`)**
+  - **Descrição**: Criar o evento `'sandbox-sudoexpo'` no PostgreSQL (`public.events`) com isolamento estrito de matching e permissão aos membros da equipe staff.
+  - **Critério de Sucesso**: Qualquer cadastro efetuado nesse ambiente opera 100% isolado da feira real (`sudoexpo-2026`) e do histórico (`cafe-entre-amigos-ago-2026`).
+
+- [x] **Etapa 7.2: Botão "🧪 Testar Cadastro (Sandbox)" no Painel Admin**
+  - **Descrição**: Adicionado botão proeminente no Dashboard (`/admin`) e na Lista de Participantes (`/admin/participantes`) que redireciona diretamente para o fluxo de onboarding com parâmetro `?event=sandbox-sudoexpo`.
+  - **Critério de Sucesso**: O administrador pode testar o formulário completo de 5 etapas, ver o cálculo de matches em tempo real no sandbox e navegar no painel do participante com faixa indicativa ("Modo Sandbox").
+
+- [x] **Etapa 7.3: Botão "Zerar Dados do Sandbox"**
+  - **Descrição**: Disponibilizar no topo do Admin quando o evento selecionado for `sandbox-sudoexpo` uma ação de 1 clique para limpar todos os cadastros e matches de teste via RPC `public.admin_clear_sandbox()`.
+
+- [x] **Etapa 7.4: Exclusão e Reset Imediato de Participante com 1 Clique**
+  - **Descrição**: Criar a RPC `public.admin_delete_participant(p_profile_id)` com autorização de staff e adicionar botões de exclusão na tabela de participantes (`/admin/participantes`) e na gaveta de detalhes (`ParticipantDetailSheet.tsx`).
+  - **Recursos Excluídos em Cascata**:
+    1. Registro em `public.profiles`.
+    2. Ofertas (`profile_offers`) e necessidades (`profile_needs`).
+    3. Conexões (`connections`) e matches calculados (`matches`).
+    4. Contato privado (`private.profile_contacts`).
+    5. Tentativas de verificação e rate-limits (`private.phone_claim_attempts`), liberando o número de telefone imediatamente para novo teste ou uso real.
+  - **Critério de Sucesso**: Confirmação modal com aviso claro de irreversibilidade; exclusão atômica sem deixar dados órfãos.
 
 ---
 

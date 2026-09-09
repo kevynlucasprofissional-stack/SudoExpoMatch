@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { TestTube2 } from "lucide-react";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -9,6 +10,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 import { EVENT_ID } from "@/config/event";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import { useEnsureParticipantSession } from "@/features/participant/session";
 import { useOwnProfile } from "@/features/participant/useOwnProfile";
 import { useOwnMatchesQuery, useRecomputeMatchesMutation } from "@/features/matching/queries";
@@ -32,7 +35,12 @@ import { track } from "@/features/analytics/track";
 /** Polling interval real usado pela query — reutilizado nos testes. */
 export const PARTICIPANT_MATCHES_POLL_MS = 20_000;
 
+export const participanteSearchSchema = z.object({
+  event: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/participante")({
+  validateSearch: zodValidator(participanteSearchSchema),
   head: () => ({
     meta: [
       { title: "Área do participante — Matchmaker SudoExpo" },
@@ -56,8 +64,12 @@ export const Route = createFileRoute("/participante")({
 });
 
 function ParticipantPage() {
+  const search = Route.useSearch();
+  const activeEventId = search.event ? search.event : EVENT_ID;
+  const isSandbox = activeEventId === "sandbox-sudoexpo";
+
   const session = useEnsureParticipantSession();
-  const profileQuery = useOwnProfile(EVENT_ID, { enabled: session.isReady });
+  const profileQuery = useOwnProfile(activeEventId, { enabled: session.isReady });
   const state = resolveParticipantPageState({
     session,
     profile: profileQuery,
@@ -125,15 +137,29 @@ function ParticipantPage() {
     return <RecoveryView />;
   }
 
-  return <Panel profile={profileQuery.data!} />;
+  return (
+    <Panel
+      profile={profileQuery.data!}
+      eventId={activeEventId}
+      isSandbox={isSandbox}
+    />
+  );
 }
 
-function Panel({ profile }: { profile: OwnProfileDTO }) {
-  const matchesQuery = useOwnMatchesQuery(EVENT_ID, {
+function Panel({
+  profile,
+  eventId,
+  isSandbox,
+}: {
+  profile: OwnProfileDTO;
+  eventId: string;
+  isSandbox: boolean;
+}) {
+  const matchesQuery = useOwnMatchesQuery(eventId, {
     enabled: true,
     refetchIntervalMs: PARTICIPANT_MATCHES_POLL_MS,
   });
-  const recompute = useRecomputeMatchesMutation(EVENT_ID);
+  const recompute = useRecomputeMatchesMutation(eventId);
 
   const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
   const hasCachedResult = matchesQuery.data !== undefined;
@@ -150,13 +176,13 @@ function Panel({ profile }: { profile: OwnProfileDTO }) {
     for (const m of matches) {
       track({
         kind: "match_viewed",
-        eventId: EVENT_ID,
+        eventId,
         profileId: profile.id,
         payload: { match_id: m.match_id, label: m.label_me ?? m.label, score: m.score_me },
         dedupeKey: `match_viewed:${m.match_id}`,
       });
     }
-  }, [matches, profile.id]);
+  }, [matches, profile.id, eventId]);
 
   const handleRecompute = useCallback(() => {
     if (recompute.isPending) return;
@@ -186,6 +212,20 @@ function Panel({ profile }: { profile: OwnProfileDTO }) {
   return (
     <PageShell>
       <section className="mx-auto max-w-4xl px-4 py-8">
+        {isSandbox && (
+          <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+            <div className="flex items-center gap-2">
+              <TestTube2 className="h-5 w-5 shrink-0 text-amber-400" />
+              <div>
+                <p className="font-semibold text-amber-300">Painel do Participante em Modo Sandbox</p>
+                <p className="text-xs text-white/70">
+                  Você está visualizando o ambiente de testes isolado. Seus matches não afetam a SudoExpo 2026.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <ParticipantHeader
           firstName={profile.name.split(" ")[0] ?? profile.name}
           onRecompute={handleRecompute}

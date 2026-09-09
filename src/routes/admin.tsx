@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { LogOut, ShieldAlert, Trash2, UserPlus } from "lucide-react";
+import { LogOut, ShieldAlert, TestTube2, Trash2, UserPlus } from "lucide-react";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -31,6 +31,7 @@ import {
 import { EVENT_ID } from "@/config/event";
 import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
 import { EventSelector } from "@/features/admin/EventSelector";
+import { useAdminClearSandboxMutation } from "@/features/admin/useAdminParticipants";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { signOut } from "@/features/auth/actions";
@@ -128,6 +129,7 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
   const add = useAddStaffMember(selectedEventId);
   const change = useChangeStaffRole(selectedEventId);
   const remove = useRemoveStaffMember(selectedEventId);
+  const clearSandbox = useAdminClearSandboxMutation();
 
   const [emailInput, setEmailInput] = useState("");
   const [roleInput, setRoleInput] = useState<AppRole>("staff");
@@ -212,6 +214,23 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <EventSelector />
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+            >
+              <a
+                href="/participar?event=sandbox-sudoexpo"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 font-medium"
+                data-testid="btn-admin-test-sandbox"
+              >
+                <TestTube2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span>Testar Cadastro (Sandbox)</span>
+              </a>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/participantes">Participantes</Link>
             </Button>
@@ -229,6 +248,40 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             </Button>
           </div>
         </header>
+
+        {selectedEventId === "sandbox-sudoexpo" && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-900 dark:text-amber-200">
+            <div className="flex items-center gap-2">
+              <TestTube2 className="h-5 w-5 shrink-0 text-amber-600 dark:text-amber-400" />
+              <div>
+                <p className="font-semibold text-amber-800 dark:text-amber-200">Ambiente de Testes (Sandbox) Ativo</p>
+                <p className="text-xs opacity-80">
+                  Os cadastros e testes realizados aqui estão isolados da SudoExpo 2026.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="destructive"
+              size="sm"
+              disabled={clearSandbox.isPending}
+              onClick={() => {
+                if (window.confirm("Deseja realmente zerar todos os perfis e matches cadastrados no Sandbox?")) {
+                  clearSandbox.mutate(undefined, {
+                    onSuccess: (res) => {
+                      toast.success(`Sandbox zerado com sucesso! ${res.deleted_profiles_count} perfil(is) de teste removido(s).`);
+                    },
+                    onError: (err) => {
+                      toast.error("Falha ao zerar sandbox: " + (err as Error).message);
+                    },
+                  });
+                }
+              }}
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              {clearSandbox.isPending ? "Limpando…" : "Zerar Dados do Sandbox"}
+            </Button>
+          </div>
+        )}
 
         <section aria-labelledby="team-heading" className="space-y-6">
           <div className="flex items-end justify-between gap-4">

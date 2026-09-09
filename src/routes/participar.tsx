@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useServerFn } from "@tanstack/react-start";
-import { ChevronLeft, RotateCcw } from "lucide-react";
+import { ChevronLeft, RotateCcw, TestTube2 } from "lucide-react";
 
 import { analyzeSocialProfile } from "@/lib/social-context.functions";
 import { socialLookupMessage } from "@/lib/social-context";
@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { EVENT_ID } from "@/config/event";
+import { z } from "zod";
+import { fallback, zodValidator } from "@tanstack/zod-adapter";
 import {
   useEnsureParticipantSession,
   resetParticipantSession,
@@ -79,7 +81,12 @@ import { resolveWizardPageState } from "@/features/onboarding/pageState";
 import { runWizardReset, WIZARD_RESET_COPY } from "@/features/onboarding/wizardReset";
 import { runWizardSubmit } from "@/features/onboarding/submitOrchestrator";
 
+export const participarSearchSchema = z.object({
+  event: fallback(z.string(), "").default(""),
+});
+
 export const Route = createFileRoute("/participar")({
+  validateSearch: zodValidator(participarSearchSchema),
   head: () => ({
     meta: [
       { title: "Participar — Matchmaker SudoExpo" },
@@ -109,12 +116,16 @@ const STEPS = [
 ] as const;
 
 function WizardPage() {
+  const search = Route.useSearch();
+  const targetEventId = search.event ? search.event : EVENT_ID;
+  const isSandbox = targetEventId === "sandbox-sudoexpo";
+
   const navigate = useNavigate();
   const qc = useQueryClient();
   const session = useEnsureParticipantSession();
 
-  const catalogQuery = useEventTaxonomy(EVENT_ID, { enabled: session.isReady });
-  const profileQuery = useOwnProfile(EVENT_ID, { enabled: session.isReady });
+  const catalogQuery = useEventTaxonomy(targetEventId, { enabled: session.isReady });
+  const profileQuery = useOwnProfile(targetEventId, { enabled: session.isReady });
 
   const [draft, setDraft] = useState<WizardDraft>(() => createEmptyDraft());
   const [phone, setPhone] = useState("");
@@ -326,7 +337,7 @@ function WizardPage() {
     // para que a edição não apague o @ já informado. Falha aqui é silenciosa.
     void (async () => {
       try {
-        const link = await getOwnSocialProfile(EVENT_ID);
+        const link = await getOwnSocialProfile(targetEventId);
         if (link?.handle) setDraft((d) => ({ ...d, instagram: `@${link.handle}` }));
       } catch {
         /* enriquecimento opcional — nunca bloqueia a edição */
@@ -356,17 +367,20 @@ function WizardPage() {
 
   const runRecompute = useCallback(async () => {
     try {
-      await recomputeOwnMatches(EVENT_ID);
-      qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      await recomputeOwnMatches(targetEventId);
+      qc.invalidateQueries({ queryKey: qk.ownMatches(targetEventId) });
       dispatch({ type: "MATCH_OK" });
       clearWizardDraft();
       toast.success(mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…");
-      navigate({ to: "/participante" });
+      navigate({
+        to: "/participante",
+        search: { event: isSandbox ? targetEventId : "" },
+      });
     } catch (err) {
       dispatch({ type: "MATCH_FAIL" });
       toast.error(errorToUserMessage(err, "Não conseguimos calcular seus matches agora."));
     }
-  }, [mode, navigate, qc]);
+  }, [mode, navigate, qc, targetEventId, isSandbox]);
 
   // ------------------------------------------------------------------
   // Submit — delega ao orchestrator puro (`runWizardSubmit`) e aplica os
@@ -383,7 +397,7 @@ function WizardPage() {
         draft,
         mode,
         phone,
-        eventId: EVENT_ID,
+        eventId: targetEventId,
         socialContext: social.result?.status === "ok" ? social.result.context : null,
         deps: {
           saveOwnProfile,
@@ -399,7 +413,7 @@ function WizardPage() {
           return;
         }
         if (evt.type === "PROFILE_OK") {
-          qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
+          qc.invalidateQueries({ queryKey: qk.ownProfile(targetEventId) });
           dispatch({ type: "PROFILE_OK" });
         } else if (evt.type === "PROFILE_FAIL") {
           dispatch({ type: "PROFILE_FAIL" });
@@ -412,13 +426,16 @@ function WizardPage() {
           toast.error(errorToUserMessage(evt.error, "Perfil salvo, contato não."));
           return;
         } else if (evt.type === "MATCH_OK") {
-          qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+          qc.invalidateQueries({ queryKey: qk.ownMatches(targetEventId) });
           dispatch({ type: "MATCH_OK" });
           clearWizardDraft();
           toast.success(
             mode === "edit" ? "Alterações salvas!" : "Perfil criado! Buscando conexões…",
           );
-          navigate({ to: "/participante" });
+          navigate({
+            to: "/participante",
+            search: { event: isSandbox ? targetEventId : "" },
+          });
         } else if (evt.type === "MATCH_FAIL") {
           dispatch({ type: "MATCH_FAIL" });
           toast.error(
@@ -429,7 +446,7 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result]);
+  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result, targetEventId, isSandbox]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -471,8 +488,11 @@ function WizardPage() {
 
   const goToPanel = useCallback(() => {
     clearWizardDraft();
-    navigate({ to: "/participante" });
-  }, [navigate]);
+    navigate({
+      to: "/participante",
+      search: { event: isSandbox ? targetEventId : "" },
+    });
+  }, [navigate, isSandbox, targetEventId]);
 
   // ------------------------------------------------------------------
   // Guardas de renderização — precedência resolvida por helper puro.
@@ -603,6 +623,18 @@ function WizardPage() {
   return (
     <PageShell>
       <section className="mx-auto max-w-2xl px-4 py-8">
+        {isSandbox && (
+          <div className="mb-4 flex items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-200">
+            <TestTube2 className="h-5 w-5 shrink-0 text-amber-400" />
+            <div>
+              <p className="font-semibold text-amber-300">Ambiente de Testes (Sandbox)</p>
+              <p className="text-xs text-white/70">
+                Você está testando o cadastro de forma isolada. Seus dados e matches não aparecem para participantes da SudoExpo 2026.
+              </p>
+            </div>
+          </div>
+        )}
+
         {mode === "edit" && !showConflict && (
           <div className="mb-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
             Você está editando seu perfil.

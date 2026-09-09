@@ -50,3 +50,18 @@
   - `npm run typecheck`: 100% limpo, zero erros de TypeScript.
   - Vitest: Suíte `src/__tests__/multi-eventos-checkin.test.ts` passando com 7/7 testes.
   - Testes de regressão (`impl-1-label-perspectiva`, `impl-10-admin-matches`, `impl-9-admin-participantes`): 65/65 testes passando.
+
+## 5. Estado da Implementação Sandbox & Exclusão de Participantes (Fase 7 - Concluída)
+- **Migração SQL**: `supabase/migrations/20260909171500_sandbox_e_delecao_participante.sql`
+  - Criado evento `'sandbox-sudoexpo'` ("Ambiente de Testes / Sandbox — SudoExpo") isolado.
+  - RPC `admin_delete_participant(p_profile_id)`: remove perfil em cascata, ofertas, demandas, matches, conexões, contatos privados e limpa tentativas em `private.phone_claim_attempts` para liberação imediata do número de WhatsApp testado.
+  - RPC `admin_clear_sandbox()`: limpa em lote todos os perfis e conexões de teste criados no sandbox.
+- **Frontend & UX**:
+  - Botão `"🧪 Testar Cadastro (Sandbox)"` no Dashboard Admin (`/admin`) e na Lista de Participantes (`/admin/participantes`).
+  - Wizard de cadastro (`/participar?event=sandbox-sudoexpo`) isolado com faixa visual avisando o modo sandbox.
+  - Painel do participante (`/participante?event=sandbox-sudoexpo`) isolado com faixa visual de sandbox.
+  - Botão `"Excluir Participante"` com diálogo de confirmação seguro na tabela (`/admin/participantes`) e na gaveta lateral (`ParticipantDetailSheet.tsx`).
+  - Ação `"Zerar Dados do Sandbox"` no Admin para limpeza em 1 clique quando o evento sandbox estiver ativo.
+- **Testes**:
+  - Suíte `src/__tests__/sandbox-e-reset.test.ts`: 6/6 testes passando.
+  - `npm run typecheck`: 0 erros.

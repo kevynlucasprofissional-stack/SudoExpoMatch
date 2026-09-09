@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import {
   participantDetailSchema,
@@ -122,4 +122,41 @@ export function useDebouncedValue<T>(value: T, delay = 350): T {
     return () => clearTimeout(t);
   }, [value, delay]);
   return debounced;
+}
+
+export function useAdminDeleteParticipantMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (profileId: string) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase.rpc("admin_delete_participant" as any, {
+        _profile_id: profileId,
+      });
+      if (error) throw error;
+      return data as { success: boolean; profile_id: string; name: string; phone: string | null };
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "participants"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "events"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "matches"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "participant-detail"] });
+    },
+  });
+}
+
+export function useAdminClearSandboxMutation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await supabase.rpc("admin_clear_sandbox" as any);
+      if (error) throw error;
+      return data as { success: boolean; deleted_profiles_count: number };
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["admin", "participants"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "events"] });
+      void qc.invalidateQueries({ queryKey: ["admin", "matches"] });
+    },
+  });
 }

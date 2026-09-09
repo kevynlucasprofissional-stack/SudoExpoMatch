@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Search, ShieldAlert, Sparkles, Users, X } from "lucide-react";
+import { ArrowLeft, Search, ShieldAlert, Sparkles, TestTube2, Trash2, Users, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -18,6 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 import { EVENT_ID } from "@/config/event";
 import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
@@ -26,7 +36,11 @@ import { useStaffCheckinMutation } from "@/features/admin/useAdminEvents";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
-import { useAdminParticipants, useDebouncedValue } from "@/features/admin/useAdminParticipants";
+import {
+  useAdminParticipants,
+  useAdminDeleteParticipantMutation,
+  useDebouncedValue,
+} from "@/features/admin/useAdminParticipants";
 import {
   PARTICIPANTS_PAGE_SIZE,
   normalizeParticipantesSearch,
@@ -106,12 +120,14 @@ function ParticipantsBoard() {
   const { selectedEventId } = useAdminEvent();
   const staffCheckin = useStaffCheckinMutation(EVENT_ID);
 
+  const [participantToDelete, setParticipantToDelete] = useState<{ id: string; name: string } | null>(null);
+  const deleteMutation = useAdminDeleteParticipantMutation();
+
   const [qInput, setQInput] = useState(search.q);
-  const debouncedQ = useDebouncedValue(qInput, 350);
+  const debouncedQ = useDebouncedValue(qInput, 300);
 
   // Busca debounced entra na URL (estado compartilhável) sem empilhar histórico.
   useEffect(() => {
-    if (debouncedQ === search.q) return;
     navigate({
       search: (prev) => ({ ...prev, q: debouncedQ, page: 1 }),
       replace: true,
@@ -164,13 +180,30 @@ function ParticipantsBoard() {
           <div>
             <p className="text-xs uppercase tracking-wide text-primary">Administração</p>
             <h1 className="font-display text-2xl font-bold md:text-3xl">Participantes</h1>
-            <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Governança somente leitura: quem está cadastrado, o que oferece e procura, e como está
-              a geração de matches e conexões. Contatos privados não aparecem aqui.
+            <p className="mt-1 text-xs text-muted-foreground">
+              {data?.total ?? 0} participante{(data?.total ?? 0) === 1 ? "" : "s"} cadastrado
+              {(data?.total ?? 0) === 1 ? "" : "s"}.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <EventSelector />
+            <Button
+              asChild
+              variant="outline"
+              size="sm"
+              className="border-amber-500/40 bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 dark:text-amber-300"
+            >
+              <a
+                href="/participar?event=sandbox-sudoexpo"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="btn-admin-test-sandbox"
+                className="flex items-center gap-1.5 font-medium"
+              >
+                <TestTube2 className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <span>Testar Cadastro (Sandbox)</span>
+              </a>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/admin">
                 <ArrowLeft className="mr-1 h-4 w-4" /> Voltar ao admin
@@ -320,11 +353,8 @@ function ParticipantsBoard() {
                     </dl>
                   </div>
 
-                  {selectedEventId !== EVENT_ID && (
-                    <div className="mt-3 flex items-center justify-between border-t pt-2">
-                      <span className="text-xs text-muted-foreground">
-                        Participante do {selectedEventId === "cafe-entre-amigos-ago-2026" ? "Café Entre Amigos" : "evento anterior"}
-                      </span>
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-2">
+                    {selectedEventId !== EVENT_ID ? (
                       <Button
                         size="sm"
                         variant="secondary"
@@ -342,8 +372,26 @@ function ParticipantsBoard() {
                         <Sparkles className="mr-1 h-3 w-3 text-primary" />
                         Check-in na SudoExpo 2026
                       </Button>
-                    </div>
-                  )}
+                    ) : (
+                      <span className="text-xs text-muted-foreground font-mono">
+                        {p.city || "SudoExpo 2026"}
+                      </span>
+                    )}
+
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 text-xs text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setParticipantToDelete({ id: p.id, name: p.name });
+                      }}
+                      data-testid="btn-delete-participant"
+                    >
+                      <Trash2 className="mr-1 h-3 w-3" />
+                      Excluir
+                    </Button>
+                  </div>
                 </Card>
               </li>
             ))}
@@ -374,6 +422,45 @@ function ParticipantsBoard() {
           </nav>
         )}
       </section>
+
+      <AlertDialog
+        open={participantToDelete !== null}
+        onOpenChange={(open) => !open && setParticipantToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir participante / Resetar cadastro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja excluir o cadastro de <strong>{participantToDelete?.name}</strong>?
+              Esta ação apagará o perfil, ofertas, necessidades e liberará o WhatsApp imediatamente para novos cadastros e testes.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleteMutation.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleteMutation.isPending}
+              onClick={() => {
+                if (!participantToDelete) return;
+                deleteMutation.mutate(participantToDelete.id, {
+                  onSuccess: () => {
+                    toast.success(`Cadastro de ${participantToDelete.name} excluído com sucesso! WhatsApp liberado.`);
+                    if (search.selected === participantToDelete.id) {
+                      closeDetail();
+                    }
+                    setParticipantToDelete(null);
+                  },
+                  onError: (err) => {
+                    toast.error("Erro ao excluir participante: " + (err as Error).message);
+                  },
+                });
+              }}
+            >
+              {deleteMutation.isPending ? "Excluindo…" : "Sim, excluir cadastro"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <ParticipantDetailSheet profileId={search.selected} onClose={closeDetail} />
     </PageShell>
