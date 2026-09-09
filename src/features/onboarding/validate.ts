@@ -5,6 +5,7 @@ import {
   wizardEditSchema,
 } from "./schemas";
 import type { WizardDraft, WizardMode } from "./types";
+import { findDuplicatePair } from "./itemIdentity";
 
 export type WizardValidationReason =
   | "profile"
@@ -30,6 +31,27 @@ export function validateWizardForSubmit(args: {
   mode: WizardMode;
   phone: string;
 }): WizardValidation {
+  // Incidente de cadastro de 09/09/2026: o banco compara itens com
+  // `public.norm_label` (sem acentos, espaços colapsados). Detectamos a
+  // colisão AQUI, antes de qualquer RPC, sem deduplicar o rascunho em
+  // silêncio — a pessoa decide qual item remover.
+  const dupOffer = findDuplicatePair(args.draft.offers);
+  if (dupOffer) {
+    return {
+      ok: false,
+      reason: "duplicate_offer",
+      message: `Em "o que você oferece", "${dupOffer.first.label}" e "${dupOffer.second.label}" são o mesmo item. Remova um deles.`,
+    };
+  }
+  const dupNeed = findDuplicatePair(args.draft.needs);
+  if (dupNeed) {
+    return {
+      ok: false,
+      reason: "duplicate_need",
+      message: `Em "o que você procura", "${dupNeed.first.label}" e "${dupNeed.second.label}" são o mesmo item. Remova um deles.`,
+    };
+  }
+
   const schema = args.mode === "create" ? wizardCreateSchema : wizardEditSchema;
   const parsed = schema.safeParse(args.draft);
   if (!parsed.success) {
