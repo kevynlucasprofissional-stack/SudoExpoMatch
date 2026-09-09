@@ -11,6 +11,7 @@ import { useAutoAiSuggestions } from "./useAutoAiSuggestions";
 import { normalizeConfirmedOffers } from "./aiAnalysisState";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
+import { hasEquivalentItem } from "./itemIdentity";
 import type { SocialBusinessContext } from "@/lib/social-context";
 import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
@@ -494,7 +495,7 @@ export function StepOffers({
 
   function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
-    if (draft.offers.some((o) => o.label.toLowerCase() === s.label.toLowerCase())) return;
+    if (hasEquivalentItem(draft.offers, s)) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: s.label,
@@ -509,7 +510,7 @@ export function StepOffers({
   function addCustom(label: string) {
     const clean = label.trim();
     if (clean.length < 2 || draft.offers.length >= 5) return;
-    if (draft.offers.some((o) => o.label.toLowerCase() === clean.toLowerCase())) return;
+    if (hasEquivalentItem(draft.offers, { label: clean, taxonomyItemId: null })) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: clean,
@@ -537,8 +538,10 @@ export function StepOffers({
         )
         .filter((t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: t.id, label: t.label })))
         .filter((t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: null, label: t.label })))
+        // Já adicionado pela pessoa não reaparece em "Comuns no seu segmento".
+        .filter((t) => !hasEquivalentItem(draft.offers, { label: t.label, taxonomyItemId: t.id }))
         .slice(0, 8),
-    [catalog, draft.segmentId, feedIdentities],
+    [catalog, draft.segmentId, draft.offers, feedIdentities],
   );
 
 
@@ -605,10 +608,9 @@ export function StepOffers({
           </p>
           <div className="flex flex-wrap gap-2">
             {segmentTax.map((t) => {
-              const added = draft.offers.some(
-                (o) => o.label.toLowerCase() === t.label.toLowerCase(),
-              );
-              if (added) return null;
+              if (hasEquivalentItem(draft.offers, { label: t.label, taxonomyItemId: t.id })) {
+                return null;
+              }
               return (
                 <button
                   key={t.id}
@@ -806,8 +808,10 @@ export function StepNeeds({
         )
         .filter(
           (t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: null, label: t.label })),
-        ),
-    [segmentTaxAll, feedIdentities],
+        )
+        // Já adicionado pela pessoa não reaparece em "Comuns no seu segmento".
+        .filter((t) => !hasEquivalentItem(draft.needs, { label: t.label, taxonomyItemId: t.id })),
+    [segmentTaxAll, draft.needs, feedIdentities],
   );
 
 
@@ -815,7 +819,7 @@ export function StepNeeds({
   /** IA sugere, usuário confirma. `needKind` vem do item, nunca do seletor. */
   function addFromFeed(s: FeedSuggestion) {
     if (draft.needs.length >= 5) return;
-    if (draft.needs.some((n) => n.label.toLowerCase() === s.label.toLowerCase())) return;
+    if (hasEquivalentItem(draft.needs, s)) return;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: s.label,
@@ -830,7 +834,7 @@ export function StepNeeds({
 
   function addFromCatalog(t: CatalogTaxonomyItem) {
     if (draft.needs.length >= 5) return;
-    if (draft.needs.some((n) => n.label.toLowerCase() === t.label.toLowerCase())) return;
+    if (hasEquivalentItem(draft.needs, { label: t.label, taxonomyItemId: t.id })) return;
     // IMPL 7: item sem segmento próprio não é autoritativo → vira texto livre.
     const seg = t.segment_id?.trim() || null;
     const need: WizardNeed = {
@@ -847,6 +851,7 @@ export function StepNeeds({
   function addCustom() {
     const clean = label.trim();
     if (clean.length < 2 || draft.needs.length >= 5) return;
+    if (hasEquivalentItem(draft.needs, { label: clean, taxonomyItemId: null })) return;
     const need: WizardNeed = {
       localId: cryptoUid(),
       label: clean,

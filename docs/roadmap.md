@@ -61,6 +61,29 @@ Rótulos: `75+ alta_compatibilidade`, `40–74 boa_oportunidade`, `<40 conexao_p
 
 ---
 
+# 3.0 P0 RESOLVIDO — Item duplicado no onboarding (incidente de 09/09/2026)
+
+**Status: resolvido.**
+
+Sintoma: o save final do cadastro retornava `duplicate_need_label` sem duplicata
+visível na tela. Causa: o front comparava itens por `toLowerCase()` enquanto o
+banco compara por `public.norm_label` (minúsculas, sem acentos, espaços
+colapsados), e nenhuma defesa de fronteira checava duplicidade antes da RPC.
+
+- [x] identidade canônica única de item (`src/features/onboarding/itemIdentity.ts`);
+- [x] aplicada a todos os caminhos de entrada de ofertas e necessidades (feed de IA/heurística, catálogo, texto livre, "Aceitar todas");
+- [x] "Comuns no seu segmento" não exibe item já adicionado;
+- [x] `validateWizardForSubmit` bloqueia antes de qualquer RPC, cita os dois labels e a etapa; a rota volta para a etapa certa;
+- [x] `mapWizardToSaveProfileInput` como última defesa de fronteira;
+- [x] rascunho antigo inválido preservado, sem dedupe silencioso;
+- [x] check do banco, pesos, matcher e taxonomia inalterados;
+- [x] regressão em `src/__tests__/incidente-2026-09-09-item-duplicado.test.ts`.
+
+Risco residual e melhoria separada (canonicalização de texto livre) em
+`docs/incidents/2026-09-09-onboarding-duplicate-item.md`.
+
+---
+
 # 3. P0 — Governança de taxonomia e snapshots do matcher
 
 ## Problema descoberto

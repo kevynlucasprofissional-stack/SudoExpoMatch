@@ -326,6 +326,14 @@ function WizardPage() {
   const goToIdentity = useCallback(() => {
     setDraft((d) => ({ ...d, step: 0 }));
   }, []);
+  /** Etapa "O que eu ofereço". */
+  const goToOffers = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 2 }));
+  }, []);
+  /** Etapa "Quem eu procuro". */
+  const goToNeeds = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 3 }));
+  }, []);
 
   function loadServerProfile() {
     if (!profileQuery.data) return;
@@ -410,6 +418,8 @@ function WizardPage() {
           dispatch({ type: "RESET" });
           toast.error(evt.message);
           if (evt.reason === "phone") goToIdentity();
+          else if (evt.reason === "duplicate_offer") goToOffers();
+          else if (evt.reason === "duplicate_need") goToNeeds();
           return;
         }
         if (evt.type === "PROFILE_OK") {
@@ -446,7 +456,19 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result, targetEventId, isSandbox]);
+  }, [
+    draft,
+    mode,
+    phone,
+    qc,
+    navigate,
+    goToIdentity,
+    goToOffers,
+    goToNeeds,
+    social.result,
+    targetEventId,
+    isSandbox,
+  ]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
