@@ -282,10 +282,28 @@ describe("IMPL 9 — query keys e wrapper de API", () => {
     expect(API).toContain("Math.max(0, f.offset)");
   });
 
-  it("é read-only: nenhuma mutation nesta área", () => {
-    expect(API).not.toContain("useMutation");
-    expect(ROUTE).not.toContain("useMutation");
-    expect(SHEET).not.toContain("useMutation");
+  /**
+   * Contrato atualizado: a listagem/detalhe continua sendo leitura pura, mas a
+   * área ganhou ações administrativas explícitas (check-in manual, exclusão de
+   * participante e limpeza do sandbox). O invariante que importa é que as
+   * únicas escritas sejam essas ações nomeadas — nenhuma mutação implícita.
+   */
+  it("leitura pura + apenas as ações administrativas nomeadas", () => {
+    const allowed = [
+      "useAdminDeleteParticipantMutation",
+      "useAdminClearSandboxMutation",
+      "useStaffCheckinMutation",
+    ];
+    for (const name of allowed) expect(API + ROUTE + SHEET).toContain(name);
+
+    // Nenhum useMutation anônimo fora do wrapper de dados.
+    expect(ROUTE).not.toContain("useMutation(");
+    expect(SHEET).not.toContain("useMutation(");
+
+    // As escritas do wrapper são exatamente as RPCs administrativas esperadas.
+    expect(API).toContain("admin_delete_participant");
+    expect(API).toContain("admin_clear_sandbox");
+    expect(API.match(/useMutation\(/g)?.length).toBe(2);
   });
 
   it("traduz erros do backend", () => {
