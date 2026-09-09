@@ -828,11 +828,22 @@ export function StepNeeds({
 
 
 
+  /** Vincula ao item canônico do catálogo quando a correspondência é exata e única. */
+  function canonicalizeNeed(need: WizardNeed): WizardNeed {
+    return canonicalizeItem(need, {
+      kind: "need",
+      catalog: catalog.taxonomy,
+      usedTaxonomyIds: draft.needs
+        .map((n) => n.taxonomyItemId)
+        .filter((v): v is string => Boolean(v)),
+    });
+  }
+
   /** IA sugere, usuário confirma. `needKind` vem do item, nunca do seletor. */
   function addFromFeed(s: FeedSuggestion) {
     if (draft.needs.length >= 5) return;
     if (hasEquivalentItem(draft.needs, s)) return;
-    const need: WizardNeed = {
+    const need: WizardNeed = canonicalizeNeed({
       localId: cryptoUid(),
       label: s.label,
       segmentId: s.segmentId ?? draft.segmentId,
@@ -840,7 +851,7 @@ export function StepNeeds({
       needKind: s.needKind ?? (s.fromAi ? "outro" : kind),
       isPriority: false,
       source: s.source,
-    };
+    });
     update("needs", [...draft.needs, need]);
   }
 
@@ -864,14 +875,14 @@ export function StepNeeds({
     const clean = label.trim();
     if (clean.length < 2 || draft.needs.length >= 5) return;
     if (hasEquivalentItem(draft.needs, { label: clean, taxonomyItemId: null })) return;
-    const need: WizardNeed = {
+    const need: WizardNeed = canonicalizeNeed({
       localId: cryptoUid(),
       label: clean,
       segmentId: draft.segmentId,
       taxonomyItemId: null,
       needKind: kind,
       isPriority: false,
-    };
+    });
     update("needs", [...draft.needs, need]);
     setLabel("");
   }
