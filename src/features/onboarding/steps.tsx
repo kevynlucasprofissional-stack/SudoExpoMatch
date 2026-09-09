@@ -11,6 +11,7 @@ import { useAutoAiSuggestions } from "./useAutoAiSuggestions";
 import { normalizeConfirmedOffers } from "./aiAnalysisState";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
+import { hasEquivalentItem } from "./itemIdentity";
 import type { SocialBusinessContext } from "@/lib/social-context";
 import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
@@ -494,7 +495,7 @@ export function StepOffers({
 
   function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
-    if (draft.offers.some((o) => o.label.toLowerCase() === s.label.toLowerCase())) return;
+    if (hasEquivalentItem(draft.offers, s)) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: s.label,
@@ -509,7 +510,7 @@ export function StepOffers({
   function addCustom(label: string) {
     const clean = label.trim();
     if (clean.length < 2 || draft.offers.length >= 5) return;
-    if (draft.offers.some((o) => o.label.toLowerCase() === clean.toLowerCase())) return;
+    if (hasEquivalentItem(draft.offers, { label: clean, taxonomyItemId: null })) return;
     const offer: WizardOffer = {
       localId: cryptoUid(),
       label: clean,
@@ -537,8 +538,10 @@ export function StepOffers({
         )
         .filter((t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: t.id, label: t.label })))
         .filter((t) => !feedIdentities.has(suggestionIdentity({ taxonomyItemId: null, label: t.label })))
+        // Já adicionado pela pessoa não reaparece em "Comuns no seu segmento".
+        .filter((t) => !hasEquivalentItem(draft.offers, { label: t.label, taxonomyItemId: t.id }))
         .slice(0, 8),
-    [catalog, draft.segmentId, feedIdentities],
+    [catalog, draft.segmentId, draft.offers, feedIdentities],
   );
 
 
