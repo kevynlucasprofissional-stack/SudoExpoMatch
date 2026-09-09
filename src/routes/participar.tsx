@@ -76,6 +76,7 @@ import {
 } from "@/features/onboarding/steps";
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
+import { canonicalizeDraftItems } from "@/features/onboarding/canonicalizeItems";
 import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
 import { resolveWizardPageState } from "@/features/onboarding/pageState";
 import { runWizardReset, WIZARD_RESET_COPY } from "@/features/onboarding/wizardReset";
