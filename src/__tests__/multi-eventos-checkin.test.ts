@@ -60,4 +60,16 @@ describe("Multi-eventos: separação e check-in", () => {
     expect(migrationSql).toMatch(/staff_checkin_participant/);
     expect(migrationSql).toMatch(/admin_list_events/);
   });
+
+  it("Painel do participante possui botão de Suporte apontando para o WhatsApp do Administrador (64992470988)", () => {
+    const headerSrc = read("src/features/participant/components/ParticipantHeader.tsx");
+    expect(headerSrc).toMatch(/https:\/\/wa\.me\/5564992470988/);
+    expect(headerSrc).toMatch(/Suporte/);
+    expect(headerSrc).toMatch(/btn-participant-support/);
+
+    const profileCardSrc = read("src/features/participant/components/ProfileCard.tsx");
+    expect(profileCardSrc).toMatch(/ADMIN_SUPPORT_WHATSAPP_URL/);
+    expect(profileCardSrc).toMatch(/Suporte do Administrador/);
+    expect(profileCardSrc).toMatch(/link-profile-support/);
+  });
 });

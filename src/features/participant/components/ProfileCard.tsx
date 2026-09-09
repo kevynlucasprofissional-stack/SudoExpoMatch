@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
+import { MessageCircle } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+import { ADMIN_SUPPORT_WHATSAPP_URL } from "@/features/participant/components/ParticipantHeader";
 import { NEED_KIND_TEXT, formatSegmentLabel } from "@/features/participant/presentation";
 import type { OwnProfileDTO } from "@/features/participant/types";
 
@@ -51,11 +53,23 @@ export function ProfileCard({ profile }: Props) {
           </ul>
         </div>
       </div>
-      <div className="mt-6 flex gap-2">
+      <div className="mt-6 flex flex-wrap gap-2">
         <Button asChild variant="outline">
           <Link to="/participar" data-testid="link-edit-profile">
             Editar perfil
           </Link>
+        </Button>
+        <Button asChild variant="secondary">
+          <a
+            href={ADMIN_SUPPORT_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-testid="link-profile-support"
+            className="inline-flex items-center gap-1.5"
+          >
+            <MessageCircle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            Suporte do Administrador
+          </a>
         </Button>
       </div>
     </Card>
