@@ -456,7 +456,19 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result, targetEventId, isSandbox]);
+  }, [
+    draft,
+    mode,
+    phone,
+    qc,
+    navigate,
+    goToIdentity,
+    goToOffers,
+    goToNeeds,
+    social.result,
+    targetEventId,
+    isSandbox,
+  ]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
