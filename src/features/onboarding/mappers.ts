@@ -1,6 +1,7 @@
 import type { SaveOwnProfileInput } from "@/features/participant/types";
 import type { OwnProfileDTO } from "@/features/participant/types";
 import { createEmptyDraft, cryptoUid } from "./draft";
+import { findDuplicatePair } from "./itemIdentity";
 import type { WizardDraft, WizardNeed, WizardOffer } from "./types";
 
 export class WizardMappingError extends Error {
@@ -32,6 +33,14 @@ export function mapWizardToSaveProfileInput(
   const needs = draft.needs.map((n) => normalizeNeed(n, segmentId));
   if (needs.length < 1 || needs.length > 5) {
     throw new WizardMappingError("invalid_needs_count");
+  }
+  // Última defesa antes da RPC (incidente de cadastro de 09/09/2026): mesma
+  // identidade de item usada na UI, espelhando `public.norm_label`.
+  if (findDuplicatePair(offers.map((o) => ({ label: o.label, taxonomyItemId: o.taxonomy_item_id })))) {
+    throw new WizardMappingError("duplicate_offer_label");
+  }
+  if (findDuplicatePair(needs.map((n) => ({ label: n.label, taxonomyItemId: n.taxonomy_item_id })))) {
+    throw new WizardMappingError("duplicate_need_label");
   }
   const priorityCount = needs.filter((n) => n.is_priority).length;
   if (priorityCount !== 1) {
