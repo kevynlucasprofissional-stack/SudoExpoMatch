@@ -101,6 +101,64 @@ export function filterPendingConnections(matches: OwnMatchDTO[]): OwnMatchDTO[] 
   return matches.filter((m) => isMatchMutual(m) && m.connection == null);
 }
 
+/**
+ * Identifica se um match pertence ao grupo de Alta Sinergia Mútua:
+ * - Score de ambos os lados >= 60
+ * - Assimetria estritamente menor que 30 (|score_me - score_other| < 30)
+ */
+export function isHighSynergyMatch(match: OwnMatchDTO): boolean {
+  const me = match.score_me ?? 0;
+  const other = match.score_other ?? 0;
+  const asymmetry = Math.abs(me - other);
+  return me >= 60 && other >= 60 && asymmetry < 30;
+}
+
+/**
+ * Ordena os matches do participante priorizando o topo com:
+ * 1. Matches de Alta Sinergia Mútua (score de ambos >= 60 e assimetria < 30),
+ *    ordenados pela menor assimetria (mais equilibrados primeiro) e maior score total.
+ * 2. Matches com ambos >= 60, mas com assimetria >= 30.
+ * 3. Demais matches ordenados pelo score da perspectiva do participante (score_me DESC).
+ */
+export function sortMatchesByMutualInterest(matches: OwnMatchDTO[]): OwnMatchDTO[] {
+  return [...matches].sort((a, b) => {
+    const meA = a.score_me ?? 0;
+    const otherA = a.score_other ?? 0;
+    const gapA = Math.abs(meA - otherA);
+    const tierA = meA >= 60 && otherA >= 60 ? (gapA < 30 ? 1 : 2) : 3;
+
+    const meB = b.score_me ?? 0;
+    const otherB = b.score_other ?? 0;
+    const gapB = Math.abs(meB - otherB);
+    const tierB = meB >= 60 && otherB >= 60 ? (gapB < 30 ? 1 : 2) : 3;
+
+    // Prioridade por Tier
+    if (tierA !== tierB) {
+      return tierA - tierB;
+    }
+
+    // Dentro do Tier 1 ou Tier 2: menor assimetria primeiro
+    if (tierA === 1 || tierA === 2) {
+      if (gapA !== gapB) {
+        return gapA - gapB; // menor assimetria primeiro
+      }
+      // Desempate: maior score combinado
+      const sumA = meA + otherA;
+      const sumB = meB + otherB;
+      if (sumA !== sumB) {
+        return sumB - sumA;
+      }
+      return meB - meA;
+    }
+
+    // Tier 3: maior score_me primeiro, depois maior soma
+    if (meA !== meB) {
+      return meB - meA;
+    }
+    return otherB - otherA;
+  });
+}
+
 export function canRevealForMatch(match: OwnMatchDTO): boolean {
   const c = match.connection;
   if (!c) return false;

@@ -21,6 +21,7 @@ import {
   filterCancelledConnections,
   filterInterests,
   filterPendingConnections,
+  sortMatchesByMutualInterest,
   translateRecomputeErrorCode,
 } from "@/features/participant/presentation";
 import { ApiError } from "@/features/participant/api";
@@ -161,7 +162,10 @@ function Panel({
   });
   const recompute = useRecomputeMatchesMutation(eventId);
 
-  const matches = useMemo(() => matchesQuery.data ?? [], [matchesQuery.data]);
+  const matches = useMemo(
+    () => sortMatchesByMutualInterest(matchesQuery.data ?? []),
+    [matchesQuery.data],
+  );
   const hasCachedResult = matchesQuery.data !== undefined;
   const interested = useMemo(() => filterInterests(matches), [matches]);
   const activeConn = useMemo(() => filterActiveConnections(matches), [matches]);

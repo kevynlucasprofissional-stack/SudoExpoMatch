@@ -1,5 +1,5 @@
 import { toast } from "sonner";
-import { Heart, HeartHandshake, MapPin, X, Loader2 } from "lucide-react";
+import { Heart, HeartHandshake, MapPin, X, Loader2, Sparkles } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -12,9 +12,11 @@ import { ApiError } from "@/features/participant/api";
 import {
   NEED_KIND_TEXT,
   formatSegmentLabel,
+  isHighSynergyMatch,
   isMatchMutual,
   translateDecideErrorCode,
 } from "@/features/participant/presentation";
+import { generateMatchAiSummary } from "@/features/participant/matchAiSummary";
 import type { OwnMatchDTO } from "@/features/participant/types";
 
 interface Props {
@@ -27,9 +29,11 @@ export function MatchCard({ match, eventId }: Props) {
   const myDecision = match.my_decision;
   const theirDecision = match.other_decision;
   const mutual = isMatchMutual(match);
+  const isHighSynergy = isHighSynergyMatch(match);
   const other = match.other;
   const segmentLabel = formatSegmentLabel(other.segment_id);
   const myLabel = participantMatchLabel(match);
+  const aiSummary = generateMatchAiSummary(match);
 
   function submit(d: "interesse" | "agora_nao") {
     decide.mutate(
@@ -58,6 +62,15 @@ export function MatchCard({ match, eventId }: Props) {
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex flex-wrap items-center gap-2">
+              {isHighSynergy && (
+                <Badge
+                  data-testid="badge-high-synergy"
+                  className="bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30"
+                >
+                  <Sparkles className="mr-1 h-3 w-3 text-amber-400" /> Alta Sinergia Mútua
+                </Badge>
+              )}
+
               <Badge
                 data-testid="match-label"
                 className={
@@ -92,41 +105,85 @@ export function MatchCard({ match, eventId }: Props) {
         </div>
       </div>
       <div className="space-y-4 p-4">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Por que este match
-          </p>
-          <ul className="mt-2 space-y-1 text-sm">
-            {match.reasons.map((r) => (
-              <li key={r.code} className="flex items-start gap-2">
-                <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
-                <span>{r.label}</span>
-              </li>
-            ))}
-            {match.reasons.length === 0 && (
-              <li className="text-muted-foreground">Motivos ainda estão sendo calculados…</li>
-            )}
-          </ul>
+        {/* Resumo Inteligente por IA (Perguntas Solicitadas) */}
+        <div className="rounded-lg border border-primary/25 bg-primary/5 p-3.5 space-y-3">
+          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase tracking-wider">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span>Resumo de Oportunidade (IA)</span>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                1
+              </span>
+              <span>Por qual motivo você deveria se conectar com essa pessoa?</span>
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pl-5">
+              {aiSummary.why_connect}
+            </p>
+          </div>
+
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+              <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
+                2
+              </span>
+              <span>O que você ganha se conectando com essa pessoa?</span>
+            </p>
+            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pl-5">
+              {aiSummary.what_you_gain}
+            </p>
+          </div>
         </div>
 
         <details className="text-sm">
           <summary className="cursor-pointer text-primary hover:underline">
-            Ver perfil resumido
+            Ver detalhes técnicos e perfil completo
           </summary>
-          <div className="mt-3 space-y-2">
-            <p className="text-muted-foreground">{other.summary}</p>
+          <div className="mt-3 space-y-3">
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Oferece</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Motivos computados pelo matcher
+              </p>
+              <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                {match.reasons.map((r) => (
+                  <li key={r.code} className="flex items-start gap-2">
+                    <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-secondary" />
+                    <span>{r.label}</span>
+                  </li>
+                ))}
+                {match.reasons.length === 0 && (
+                  <li className="text-muted-foreground">Nenhum motivo específico registrado.</li>
+                )}
+              </ul>
+            </div>
+
+            {other.summary && (
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Resumo da empresa
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">{other.summary}</p>
+              </div>
+            )}
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Oferece</p>
               <div className="mt-1 flex flex-wrap gap-1">
                 {match.other_offers.map((o, i) => (
                   <Badge key={`o-${i}`} variant="secondary">
                     {o.label}
                   </Badge>
                 ))}
+                {match.other_offers.length === 0 && (
+                  <span className="text-xs text-muted-foreground">Nenhuma oferta detalhada</span>
+                )}
               </div>
             </div>
+
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Procura</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Procura</p>
               <ul className="mt-1 space-y-0.5 text-xs">
                 {match.other_needs.map((n, i) => (
                   <li key={`n-${i}`}>
@@ -136,6 +193,9 @@ export function MatchCard({ match, eventId }: Props) {
                     {n.label}
                   </li>
                 ))}
+                {match.other_needs.length === 0 && (
+                  <li className="text-muted-foreground">Nenhuma necessidade detalhada</li>
+                )}
               </ul>
             </div>
           </div>

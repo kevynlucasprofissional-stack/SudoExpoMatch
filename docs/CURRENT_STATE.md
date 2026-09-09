@@ -41,6 +41,23 @@
   - Suíte `src/__tests__/multi-eventos-checkin.test.ts`: 7/7 testes passando.
   - `npm run typecheck`: 0 erros.
 
+### Priorização por Sinergia Mútua & Resumo por IA nos Cartões (Fase 8)
+
+- **Ordenação dos Matches**:
+  - Implementado `sortMatchesByMutualInterest` em `src/features/participant/presentation.ts` e na migration `supabase/migrations/20260909205000_ordenacao_matches_e_insights.sql` (`list_own_matches_v2`).
+  - Tier 1 (Topo absoluto): `score_me >= 60 AND score_other >= 60 AND abs(score_me - score_other) < 30`, ordenados pela menor assimetria primeiro e maior score combinado como desempate.
+  - Tier 2: `score_me >= 60 AND score_other >= 60` com assimetria $\ge 30$.
+  - Tier 3: Demais matches ordenados por `score_me DESC`.
+  - Badge visual `✨ Alta Sinergia Mútua` exibido no topo do cartão para matches do Tier 1 (`isHighSynergyMatch`).
+- **Resumo Inteligente (IA) nos Cartões**:
+  - Módulo `src/features/participant/matchAiSummary.ts` com o motor de síntese `generateMatchAiSummary`.
+  - Exibe em cada cartão na rota `/participante` as duas respostas personalizadas em linguagem comercial ("você"):
+    1. *Por qual motivo você deveria se conectar com essa pessoa?*
+    2. *O que você ganha se conectando com essa pessoa?*
+- **Testes**:
+  - Suíte `src/__tests__/match-ordering-and-ai-summary.test.ts`: 5/5 testes passando.
+  - `npm run typecheck`: 0 erros.
+
 ---
 
 ## 3. Matcher v2.4 — comportamento confirmado pela codebase

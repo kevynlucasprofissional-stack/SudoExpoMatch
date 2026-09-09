@@ -504,6 +504,25 @@ Uma tarefa só recebe `[x]` quando:
 
 ---
 
+### Fase 8 — Priorização por Sinergia Mútua & Resumo de Oportunidade por IA nos Cartões
+
+- [x] **Etapa 8.1: Algoritmo de Ranking de Matches por Sinergia Mútua**
+  - **Descrição**: Priorizar no topo da lista os matches em que ambos os lados possuem score $\ge 60$ e assimetria $< 30$ ($|score_{me} - score_{other}| < 30$), ordenados pela menor assimetria primeiro e maior score combinado.
+  - **Critério de Sucesso**: Matches mais equilibrados e fortes aparecem logo no topo da visão do participante.
+  - **Evidência**: Implementado em `src/features/participant/presentation.ts` (`sortMatchesByMutualInterest`) e na migration `supabase/migrations/20260909205000_ordenacao_matches_e_insights.sql` (`list_own_matches_v2`).
+
+- [x] **Etapa 8.2: Badge de Destaque "✨ Alta Sinergia Mútua"**
+  - **Descrição**: Identificar visualmente nos cartões de match da tela `/participante` os pares de alta compatibilidade mútua através do helper `isHighSynergyMatch(match)`.
+
+- [x] **Etapa 8.3: Resumo Comercial Estruturado por IA em Todos os Cartões**
+  - **Descrição**: Adicionado bloco de resumo de oportunidade em cada cartão respondendo diretamente:
+    1. *Por qual motivo você deveria se conectar com essa pessoa?*
+    2. *O que você ganha se conectando com essa pessoa?*
+  - **Critério de Sucesso**: Linguagem comercial em segunda pessoa ("você"), clara e contextualizada com os dados reais de ofertas, necessidades, segmentos e sinergias das empresas.
+  - **Evidência**: Módulo `src/features/participant/matchAiSummary.ts` e suíte `src/__tests__/match-ordering-and-ai-summary.test.ts`.
+
+---
+
 ## Critérios de Pronto (Definition of Done)
 
 Uma etapa deste roadmap só é considerada pronta quando:
