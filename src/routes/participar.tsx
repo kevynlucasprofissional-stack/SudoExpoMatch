@@ -326,6 +326,14 @@ function WizardPage() {
   const goToIdentity = useCallback(() => {
     setDraft((d) => ({ ...d, step: 0 }));
   }, []);
+  /** Etapa "O que eu ofereço". */
+  const goToOffers = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 2 }));
+  }, []);
+  /** Etapa "Quem eu procuro". */
+  const goToNeeds = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 3 }));
+  }, []);
 
   function loadServerProfile() {
     if (!profileQuery.data) return;
