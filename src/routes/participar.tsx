@@ -418,6 +418,8 @@ function WizardPage() {
           dispatch({ type: "RESET" });
           toast.error(evt.message);
           if (evt.reason === "phone") goToIdentity();
+          else if (evt.reason === "duplicate_offer") goToOffers();
+          else if (evt.reason === "duplicate_need") goToNeeds();
           return;
         }
         if (evt.type === "PROFILE_OK") {
