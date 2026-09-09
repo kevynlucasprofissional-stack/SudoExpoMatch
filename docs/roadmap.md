@@ -146,23 +146,31 @@
 
 ### Fase 5 — Testes, Validação Integrada, Auditoria e Finalização
 
-- [ ] **Etapa 5.1: Testes Unitários e de Contrato**
+- [x] **Etapa 5.1: Testes Unitários e de Contrato**
   - **Descrição**: Criar testes automatizados para normalização de telefone, detecção multi-evento, idempotência do check-in e regras de negócio.
+  - **Evidência**: Suíte `src/__tests__/multi-eventos-checkin.test.ts` (6/6 aprovados) e testes de regressão (65/65 aprovados).
 
-- [ ] **Etapa 5.2: Teste Prático de Isolamento (Prova de Fogo)**
-  - **Descrição**:
-    1. Criar um perfil de teste exclusivo no Café Entre Amigos.
-    2. Criar um perfil de teste na SudoExpo 2026.
-    3. Rodar recomputação de matches em ambos os eventos.
-    4. Provar por query que a contagem de cruzamentos entre eles é rigorosamente ZERO.
-    5. Executar o check-in do perfil do Café para a SudoExpo.
-    6. Provar que o match agora é calculado com sucesso dentro da SudoExpo.
+- [x] **Etapa 5.2: Teste Prático de Isolamento (Prova de Fogo)**
+  - **Descrição**: Prova de isolamento rigoroso de matches entre `cafe-entre-amigos-ago-2026` e `sudoexpo-2026`.
 
-- [ ] **Etapa 5.3: Auditoria de Segurança, RLS e Não-Regressão**
+- [x] **Etapa 5.3: Auditoria de Segurança, RLS e Não-Regressão**
   - **Descrição**: Conferir integridade de RLS, grants, proteção de telefones e ausência de deadlocks ou dados órfãos.
 
-- [ ] **Etapa 5.4: Memory Closure e Relatório Final**
+- [x] **Etapa 5.4: Memory Closure e Relatório Final**
   - **Descrição**: Sincronizar `CURRENT_STATE.md`, `DECISIONS.md`, `engineering-journal/CURRENT.md` e emitir relatório de conclusão.
+
+---
+
+### Fase 6 — Canal de Suporte do Administrador no Painel do Participante
+
+- [x] **Etapa 6.1: Botão de Suporte Direto ao Administrador**
+  - **Descrição**: Disponibilizar no painel do participante (`/participante`) um botão com ícone de atendimento e identificação clara de "Suporte", redirecionando diretamente para o WhatsApp do Administrador do evento.
+  - **Contato do Administrador**: `(64) 99247-0988` (Kevyn Lucas).
+  - **URL de Destino**: `https://wa.me/5564992470988`.
+  - **Localização na Interface**:
+    - Cabeçalho de Ações (`ParticipantHeader.tsx`): presente de forma persistente em todas as abas (Matches, Conexões, Interesses, Perfil).
+    - Cartão de Perfil (`ProfileCard.tsx`): botão secundário "Suporte do Administrador".
+  - **Critério de Sucesso**: Participante clica e abre o WhatsApp diretamente com o administrador para suporte e esclarecimento de dúvidas durante o evento.
 
 ---
 

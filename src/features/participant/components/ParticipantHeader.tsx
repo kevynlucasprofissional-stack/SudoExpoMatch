@@ -1,4 +1,4 @@
-import { LogOut, Loader2, RefreshCw, Sparkles } from "lucide-react";
+import { LogOut, Loader2, MessageCircle, RefreshCw, Sparkles } from "lucide-react";
 import { useCallback, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate } from "@tanstack/react-router";
@@ -6,6 +6,8 @@ import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+
+export const ADMIN_SUPPORT_WHATSAPP_URL = "https://wa.me/5564992470988";
 
 interface Props {
   firstName: string;
@@ -94,6 +96,23 @@ export function ParticipantHeader({
             <RefreshCw className="mr-1 h-4 w-4" />
           )}
           Atualizar
+        </Button>
+        <Button
+          asChild
+          variant="outline"
+          size="sm"
+          className="border-emerald-600/30 text-emerald-700 hover:bg-emerald-500/10 hover:text-emerald-800 dark:border-emerald-500/40 dark:text-emerald-400 dark:hover:text-emerald-300"
+        >
+          <a
+            href={ADMIN_SUPPORT_WHATSAPP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Falar com o administrador e suporte pelo WhatsApp"
+            data-testid="btn-participant-support"
+          >
+            <MessageCircle className="mr-1 h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            Suporte
+          </a>
         </Button>
         <Button
           variant="ghost"

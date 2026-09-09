@@ -42,8 +42,11 @@
   - `src/features/admin/EventSelector.tsx`: Dropdown selector integrado ao cabeçalho do painel de administração (`/admin`, `/admin/participantes`, `/admin/matches`, `/admin/taxonomia`).
   - `src/features/admin/ParticipantDetailSheet.tsx`: Alerta visual e botão de ação rápida para realizar check-in de participantes antigos diretamente pela gaveta lateral de detalhes.
   - `src/routes/admin_.participantes.tsx`: Botão de check-in na lista de participantes ao inspecionar edições anteriores.
+  - `src/features/participant/components/ParticipantHeader.tsx`: Adicionado botão persistente "Suporte" com ícone de atendimento e link direto para o WhatsApp do Administrador (`https://wa.me/5564992470988`).
+  - `src/features/participant/components/ProfileCard.tsx`: Adicionado botão "Suporte do Administrador" no rodapé do perfil do participante.
+  - `AGENTS.md`: Guia completo do repositório, arquitetura do SudoExpo Match e espelho do Playbook de Qualidade consolidado.
 
 - **Testes & Validação**:
   - `npm run typecheck`: 100% limpo, zero erros de TypeScript.
-  - Vitest: Suíte `src/__tests__/multi-eventos-checkin.test.ts` passando com 6/6 testes.
+  - Vitest: Suíte `src/__tests__/multi-eventos-checkin.test.ts` passando com 7/7 testes.
   - Testes de regressão (`impl-1-label-perspectiva`, `impl-10-admin-matches`, `impl-9-admin-participantes`): 65/65 testes passando.
