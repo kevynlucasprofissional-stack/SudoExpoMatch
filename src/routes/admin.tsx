@@ -29,6 +29,8 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import { EVENT_ID } from "@/config/event";
+import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
+import { EventSelector } from "@/features/admin/EventSelector";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { signOut } from "@/features/auth/actions";
@@ -113,14 +115,19 @@ function AdminPage() {
     );
   }
 
-  return <AdminDashboard email={user?.email ?? ""} userId={user?.id ?? ""} />;
+  return (
+    <AdminEventProvider>
+      <AdminDashboard email={user?.email ?? ""} userId={user?.id ?? ""} />
+    </AdminEventProvider>
+  );
 }
 
 function AdminDashboard({ email, userId }: { email: string; userId: string }) {
-  const listQuery = useEventStaffMembers(EVENT_ID, true);
-  const add = useAddStaffMember(EVENT_ID);
-  const change = useChangeStaffRole(EVENT_ID);
-  const remove = useRemoveStaffMember(EVENT_ID);
+  const { selectedEventId } = useAdminEvent();
+  const listQuery = useEventStaffMembers(selectedEventId, true);
+  const add = useAddStaffMember(selectedEventId);
+  const change = useChangeStaffRole(selectedEventId);
+  const remove = useRemoveStaffMember(selectedEventId);
 
   const [emailInput, setEmailInput] = useState("");
   const [roleInput, setRoleInput] = useState<AppRole>("staff");
@@ -203,7 +210,8 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
               <Badge>admin</Badge>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <EventSelector />
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/participantes">Participantes</Link>
             </Button>
@@ -344,8 +352,8 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             </Button>
           </div>
           <div className="space-y-4">
-            <ExperienceAnalyticsCard eventId={EVENT_ID} enabled />
-            <OperationalStatsCard eventId={EVENT_ID} />
+            <ExperienceAnalyticsCard eventId={selectedEventId} enabled />
+            <OperationalStatsCard eventId={selectedEventId} />
           </div>
         </section>
       </section>

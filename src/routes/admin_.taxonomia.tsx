@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/select";
 
 import { EVENT_ID } from "@/config/event";
+import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
+import { EventSelector } from "@/features/admin/EventSelector";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
@@ -107,7 +109,11 @@ function TaxonomyPage() {
     );
   }
 
-  return <TaxonomyBoard />;
+  return (
+    <AdminEventProvider>
+      <TaxonomyBoard />
+    </AdminEventProvider>
+  );
 }
 
 function TaxonomyRowCard({ row, onOpen }: { row: TaxonomyItemRow; onOpen: (id: string) => void }) {
@@ -150,13 +156,14 @@ function TaxonomyBoard() {
   const navigate = useNavigate({ from: "/admin/taxonomia" });
   const rawSearch = Route.useSearch();
   const search = normalizeTaxonomySearch(rawSearch);
-  const segmentsQuery = useEventSegments(EVENT_ID);
+  const { selectedEventId } = useAdminEvent();
+  const segmentsQuery = useEventSegments(selectedEventId);
   const segments = segmentsQuery.data ?? [];
 
   const [qInput, setQInput] = useState(search.q);
   const debouncedQ = useDebouncedValue(qInput, 300);
   const [createOpen, setCreateOpen] = useState(false);
-  const create = useCreateTaxonomyItem(EVENT_ID);
+  const create = useCreateTaxonomyItem(selectedEventId);
 
   // A busca digitada vira estado de URL (auditoria compartilhável).
   useEffect(() => {
@@ -168,7 +175,7 @@ function TaxonomyBoard() {
   }, [debouncedQ, search.q, navigate]);
 
   const listQuery = useAdminTaxonomy(
-    EVENT_ID,
+    selectedEventId,
     {
       q: search.q,
       segments: search.segments,
@@ -199,7 +206,8 @@ function TaxonomyBoard() {
               registrada em auditoria.
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <EventSelector />
             <Button size="sm" onClick={() => setCreateOpen(true)}>
               <Plus className="mr-1 h-4 w-4" /> Novo item
             </Button>

@@ -7,7 +7,12 @@ import {
 } from "@/components/ui/sheet";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { EVENT_ID } from "@/config/event";
+import { useStaffCheckinMutation } from "@/features/admin/useAdminEvents";
 import {
   useAdminParticipantDetail,
   useAdminParticipantSocial,
@@ -62,7 +67,9 @@ export function ParticipantDetailSheet({
 }) {
   const query = useAdminParticipantDetail(profileId, true);
   const socialQuery = useAdminParticipantSocial(profileId, true);
+  const checkinMutation = useStaffCheckinMutation();
   const d = query.data;
+  const isPreviousEvent = Boolean(d?.profile.event_id && d.profile.event_id !== EVENT_ID);
 
   return (
     <Sheet open={profileId !== null} onOpenChange={(o) => !o && onClose()}>
@@ -79,6 +86,39 @@ export function ParticipantDetailSheet({
               : "Carregando dados profissionais…"}
           </SheetDescription>
         </SheetHeader>
+
+        {isPreviousEvent && d && (
+          <div className="mt-4 flex flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-3 text-sm">
+            <div className="flex items-center gap-2 font-medium text-primary">
+              <Sparkles className="h-4 w-4" />
+              <span>Participante de edição anterior ({d.profile.event_id})</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Este participante está cadastrado em um evento anterior e não participa do matchmaking da SudoExpo 2026 até realizar o check-in.
+            </p>
+            <Button
+              size="sm"
+              className="mt-1 w-full sm:w-auto"
+              disabled={checkinMutation.isPending}
+              onClick={() => {
+                if (!profileId) return;
+                checkinMutation.mutate(profileId, {
+                  onSuccess: () => {
+                    toast.success(
+                      `Check-in concluído! ${d.profile.name} agora está ativo na SudoExpo 2026.`
+                    );
+                    onClose();
+                  },
+                  onError: (err) => {
+                    toast.error("Erro ao realizar check-in: " + err.message);
+                  },
+                });
+              }}
+            >
+              {checkinMutation.isPending ? "Realizando check-in…" : "Realizar Check-in na SudoExpo 2026"}
+            </Button>
+          </div>
+        )}
 
         {query.isLoading ? (
           <div className="mt-6 space-y-3" data-testid="detail-loading">

@@ -18,8 +18,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-
 import { EVENT_ID } from "@/config/event";
+import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
+import { EventSelector } from "@/features/admin/EventSelector";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
@@ -117,7 +118,11 @@ function MatchesPage() {
     );
   }
 
-  return <MatchesBoard />;
+  return (
+    <AdminEventProvider>
+      <MatchesBoard />
+    </AdminEventProvider>
+  );
 }
 
 /**
@@ -253,9 +258,11 @@ function MatchesBoard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQ]);
 
-  const segmentsQuery = useEventSegments(EVENT_ID);
+  const { selectedEventId } = useAdminEvent();
+
+  const segmentsQuery = useEventSegments(selectedEventId);
   const listQuery = useAdminMatches(
-    EVENT_ID,
+    selectedEventId,
     {
       q: search.q,
       kinds: search.kinds,
@@ -280,7 +287,7 @@ function MatchesBoard() {
 
   const data = listQuery.data;
   const pages = matchesTotalPages(data?.total ?? 0);
-  const reviewMutation = useSetMatchReviewed(EVENT_ID);
+  const reviewMutation = useSetMatchReviewed(selectedEventId);
   const pendingReviewId =
     reviewMutation.isPending ? (reviewMutation.variables?.matchId ?? null) : null;
 
@@ -301,11 +308,14 @@ function MatchesBoard() {
               status da conexão. Nada aqui edita o algoritmo nem revela contatos.
             </p>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin">
-              <ArrowLeft className="mr-1 h-4 w-4" /> Voltar ao admin
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <EventSelector />
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin">
+                <ArrowLeft className="mr-1 h-4 w-4" /> Voltar ao admin
+              </Link>
+            </Button>
+          </div>
         </header>
 
         <Card className="mb-4 space-y-3 p-4">

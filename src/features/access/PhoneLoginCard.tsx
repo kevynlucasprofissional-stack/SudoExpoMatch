@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { EVENT_ID } from "@/config/event";
 import { qk } from "@/features/participant/queryKeys";
 import {
+  checkinParticipantByPhone,
   claimProfileByPhone,
   lookupProfileByPhone,
   PhoneLoginError,
@@ -28,7 +29,7 @@ export const PHONE_LOGIN_MAX = 5;
 export const PHONE_LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const limiter = createAttemptLimiter(PHONE_LOGIN_MAX, PHONE_LOGIN_WINDOW_MS);
 
-type Phase = "phone" | "confirm";
+type Phase = "phone" | "confirm" | "checkin";
 
 export function PhoneLoginCard() {
   const qc = useQueryClient();
@@ -67,12 +68,17 @@ export function PhoneLoginCard() {
     try {
       const res = await lookupProfileByPhone(EVENT_ID, phone);
       if (!mounted.current) return;
-      if (!res.found) {
-        setError(translatePhoneLoginError("not_found"));
+      if (res.found) {
+        setFound(res);
+        setPhase("confirm");
         return;
       }
-      setFound(res);
-      setPhase("confirm");
+      if (res.hasPreviousEvent) {
+        setFound(res);
+        setPhase("checkin");
+        return;
+      }
+      setError(translatePhoneLoginError("not_found"));
     } catch (err) {
       if (!mounted.current) return;
       setError(
@@ -94,6 +100,27 @@ export function PhoneLoginCard() {
       await qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
       await qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
       toast.success("Bem-vindo(a) de volta!");
+    } catch (err) {
+      if (!mounted.current) return;
+      setError(
+        translatePhoneLoginError(err instanceof PhoneLoginError ? err.code : "unknown"),
+      );
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  }, [phone, key, qc]);
+
+  const handleCheckin = useCallback(async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await checkinParticipantByPhone(EVENT_ID, phone);
+      limiter.reset(key);
+      if (!mounted.current) return;
+      setPhone("");
+      await qc.invalidateQueries({ queryKey: qk.ownProfile(EVENT_ID) });
+      await qc.invalidateQueries({ queryKey: qk.ownMatches(EVENT_ID) });
+      toast.success("Check-in realizado com sucesso na SudoExpo 2026! Suas conexões foram ativadas.");
     } catch (err) {
       if (!mounted.current) return;
       setError(
@@ -142,6 +169,58 @@ export function PhoneLoginCard() {
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             Continuar
           </Button>
+        </>
+      ) : phase === "checkin" ? (
+        <>
+          <div className="rounded-md border border-primary/25 bg-primary/5 p-4">
+            <div className="flex items-center gap-2 text-primary">
+              <Sparkles className="h-4 w-4" />
+              <p className="text-sm font-semibold">Participante de evento anterior</p>
+            </div>
+            <p className="mt-2 font-semibold text-foreground">{found?.displayName}</p>
+            {found?.company ? (
+              <p className="text-sm text-muted-foreground">{found.company}</p>
+            ) : null}
+            <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+              Identificamos seu cadastro realizado no <strong>{found?.previousEventName || "evento anterior"}</strong>.
+              Deseja confirmar presença e ativar seus matches na <strong>SudoExpo 2026</strong> com seus dados atuais?
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              WhatsApp: {maskPhone(phone)}
+            </p>
+          </div>
+          {error && (
+            <p
+              role="alert"
+              className="rounded-md border border-destructive/40 bg-destructive/5 p-2 text-sm text-destructive"
+            >
+              {error}
+            </p>
+          )}
+          <div className="space-y-2">
+            <Button
+              className="w-full"
+              onClick={() => void handleCheckin()}
+              disabled={busy}
+              aria-busy={busy}
+              data-testid="phone-login-checkin"
+            >
+              {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Confirmar Check-in na SudoExpo 2026
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full"
+              disabled={busy}
+              onClick={() => {
+                setFound(null);
+                setError(null);
+                setPhase("phone");
+              }}
+            >
+              Não sou eu / Trocar número
+            </Button>
+          </div>
         </>
       ) : (
         <>

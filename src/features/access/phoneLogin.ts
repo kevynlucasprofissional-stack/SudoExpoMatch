@@ -32,7 +32,9 @@ export function mapPhoneLoginError(message: string | undefined): PhoneLoginError
   if (m.includes("invalid_phone")) return "invalid_phone";
   if (m.includes("current_user_already_has_profile")) return "already_has_profile";
   if (m.includes("event_not_active")) return "event_not_active";
-  if (m.includes("claim_failed")) return "not_found";
+  if (m.includes("claim_failed") || m.includes("not_found") || m.includes("checkin_source_profile_not_found")) {
+    return "not_found";
+  }
   if (/network|fetch/i.test(m)) return "network";
   return "unknown";
 }
@@ -58,6 +60,10 @@ export function translatePhoneLoginError(code: PhoneLoginErrorCode): string {
 
 export interface PhoneLookupResult {
   found: boolean;
+  hasPreviousEvent?: boolean;
+  previousEventId?: string;
+  previousEventName?: string;
+  previousProfileId?: string;
   displayName?: string;
   company?: string;
 }
@@ -74,9 +80,21 @@ export async function lookupProfileByPhone(
     _phone_e164: norm.e164,
   });
   if (error) throw new PhoneLoginError(mapPhoneLoginError(error.message));
-  const row = (data ?? {}) as { found?: boolean; display_name?: string; company?: string };
+  const row = (data ?? {}) as {
+    found?: boolean;
+    has_previous_event?: boolean;
+    previous_event_id?: string;
+    previous_event_name?: string;
+    previous_profile_id?: string;
+    display_name?: string;
+    company?: string;
+  };
   return {
     found: Boolean(row.found),
+    hasPreviousEvent: Boolean(row.has_previous_event),
+    previousEventId: row.previous_event_id,
+    previousEventName: row.previous_event_name,
+    previousProfileId: row.previous_profile_id,
     displayName: row.display_name,
     company: row.company,
   };
@@ -97,4 +115,26 @@ export async function claimProfileByPhone(
   const row = Array.isArray(data) ? data[0] : null;
   if (!row?.profile_id) throw new PhoneLoginError("not_found");
   return { profileId: row.profile_id, claimed: Boolean(row.claimed) };
+}
+
+export async function checkinParticipantByPhone(
+  targetEventId: string,
+  rawPhone: string,
+): Promise<{ profileId: string; checkedIn: boolean }> {
+  const norm = normalizePhoneToE164(rawPhone);
+  if (!norm.ok) throw new PhoneLoginError("invalid_phone");
+  await ensureParticipantSession();
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await supabase.rpc("participant_checkin_by_phone" as any, {
+    _target_event_id: targetEventId,
+    _phone_e164: norm.e164,
+  });
+  if (error) throw new PhoneLoginError(mapPhoneLoginError(error.message));
+  const row = (data ?? {}) as {
+    profile_id?: string;
+    checked_in?: boolean;
+    already_registered?: boolean;
+  };
+  if (!row?.profile_id) throw new PhoneLoginError("not_found");
+  return { profileId: row.profile_id, checkedIn: Boolean(row.checked_in || row.already_registered) };
 }

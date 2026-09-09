@@ -1,7 +1,8 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Search, ShieldAlert, Users, X } from "lucide-react";
+import { ArrowLeft, Search, ShieldAlert, Sparkles, Users, X } from "lucide-react";
+import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -19,6 +20,9 @@ import {
 } from "@/components/ui/select";
 
 import { EVENT_ID } from "@/config/event";
+import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
+import { EventSelector } from "@/features/admin/EventSelector";
+import { useStaffCheckinMutation } from "@/features/admin/useAdminEvents";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
@@ -87,13 +91,20 @@ function ParticipantesPage() {
     );
   }
 
-  return <ParticipantsBoard />;
+  return (
+    <AdminEventProvider>
+      <ParticipantsBoard />
+    </AdminEventProvider>
+  );
 }
 
 function ParticipantsBoard() {
   const navigate = useNavigate({ from: "/admin/participantes" });
   const rawSearch = Route.useSearch();
   const search = normalizeParticipantesSearch(rawSearch);
+
+  const { selectedEventId } = useAdminEvent();
+  const staffCheckin = useStaffCheckinMutation(EVENT_ID);
 
   const [qInput, setQInput] = useState(search.q);
   const debouncedQ = useDebouncedValue(qInput, 350);
@@ -108,9 +119,9 @@ function ParticipantsBoard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedQ]);
 
-  const segmentsQuery = useEventSegments(EVENT_ID);
+  const segmentsQuery = useEventSegments(selectedEventId);
   const listQuery = useAdminParticipants(
-    EVENT_ID,
+    selectedEventId,
     {
       q: search.q,
       segments: search.segments,
@@ -158,11 +169,14 @@ function ParticipantsBoard() {
               a geração de matches e conexões. Contatos privados não aparecem aqui.
             </p>
           </div>
-          <Button asChild variant="outline" size="sm">
-            <Link to="/admin">
-              <ArrowLeft className="mr-1 h-4 w-4" /> Voltar ao admin
-            </Link>
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <EventSelector />
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin">
+                <ArrowLeft className="mr-1 h-4 w-4" /> Voltar ao admin
+              </Link>
+            </Button>
+          </div>
         </header>
 
         <Card className="mb-4 p-4">
@@ -305,6 +319,31 @@ function ParticipantsBoard() {
                       </div>
                     </dl>
                   </div>
+
+                  {selectedEventId !== EVENT_ID && (
+                    <div className="mt-3 flex items-center justify-between border-t pt-2">
+                      <span className="text-xs text-muted-foreground">
+                        Participante do {selectedEventId === "cafe-entre-amigos-ago-2026" ? "Café Entre Amigos" : "evento anterior"}
+                      </span>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        className="h-7 text-xs"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          staffCheckin.mutate(p.id, {
+                            onSuccess: () =>
+                              toast.success(`Check-in de ${p.name} na SudoExpo 2026 realizado com sucesso!`),
+                            onError: () => toast.error("Não foi possível realizar o check-in do participante."),
+                          });
+                        }}
+                        disabled={staffCheckin.isPending}
+                      >
+                        <Sparkles className="mr-1 h-3 w-3 text-primary" />
+                        Check-in na SudoExpo 2026
+                      </Button>
+                    </div>
+                  )}
                 </Card>
               </li>
             ))}
