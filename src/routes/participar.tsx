@@ -76,6 +76,7 @@ import {
 } from "@/features/onboarding/steps";
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
+import { canonicalizeDraftItems } from "@/features/onboarding/canonicalizeItems";
 import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
 import { resolveWizardPageState } from "@/features/onboarding/pageState";
 import { runWizardReset, WIZARD_RESET_COPY } from "@/features/onboarding/wizardReset";
@@ -406,8 +407,11 @@ function WizardPage() {
     try {
       const withContactUpfront = mode === "create" ? true : !!phone.trim();
       dispatch({ type: "START", mode, withContact: withContactUpfront });
+      // Rascunhos antigos podem ter itens de texto livre com label idêntico a
+      // um item ativo do catálogo. Vinculamos ao id canônico (conservador,
+      // só correspondência exata e única) antes de enviar — sem deduplicar.
       const events = await runWizardSubmit({
-        draft,
+        draft: canonicalizeDraftItems(draft, effectiveCatalog?.taxonomy ?? null),
         mode,
         phone,
         eventId: targetEventId,
@@ -473,6 +477,7 @@ function WizardPage() {
     social.result,
     targetEventId,
     isSandbox,
+    effectiveCatalog,
   ]);
 
   const retryContact = useCallback(async () => {

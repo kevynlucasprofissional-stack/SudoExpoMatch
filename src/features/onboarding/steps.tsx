@@ -12,6 +12,7 @@ import { normalizeConfirmedOffers } from "./aiAnalysisState";
 import type { SharedAiAnalysis } from "./aiAnalysisState";
 import { mergeCapped } from "./mergeItems";
 import { hasEquivalentItem } from "./itemIdentity";
+import { canonicalizeItem } from "./canonicalizeItems";
 import type { SocialBusinessContext } from "@/lib/social-context";
 import type { SocialEnrichmentResult } from "@/lib/social-enrichment";
 import type { SocialBusinessAnalysis } from "@/lib/social-analysis";
@@ -493,17 +494,28 @@ export function StepOffers({
     );
   }
 
+  /** Vincula ao item canônico do catálogo quando a correspondência é exata e única. */
+  function canonicalizeOffer(offer: WizardOffer): WizardOffer {
+    return canonicalizeItem(offer, {
+      kind: "offer",
+      catalog: catalog.taxonomy,
+      usedTaxonomyIds: draft.offers
+        .map((o) => o.taxonomyItemId)
+        .filter((v): v is string => Boolean(v)),
+    });
+  }
+
   function addFromSuggestion(s: SuggestionItem, source: WizardOffer["source"] = "heuristic") {
     if (draft.offers.length >= 5) return;
     if (hasEquivalentItem(draft.offers, s)) return;
-    const offer: WizardOffer = {
+    const offer: WizardOffer = canonicalizeOffer({
       localId: cryptoUid(),
       label: s.label,
       // IMPL 7: segmento do taxonomy item; perfil só como fallback (texto livre).
       segmentId: s.segmentId ?? draft.segmentId,
       taxonomyItemId: s.taxonomyItemId,
       source,
-    };
+    });
     update("offers", [...draft.offers, offer]);
   }
 
@@ -511,12 +523,12 @@ export function StepOffers({
     const clean = label.trim();
     if (clean.length < 2 || draft.offers.length >= 5) return;
     if (hasEquivalentItem(draft.offers, { label: clean, taxonomyItemId: null })) return;
-    const offer: WizardOffer = {
+    const offer: WizardOffer = canonicalizeOffer({
       localId: cryptoUid(),
       label: clean,
       segmentId: draft.segmentId,
       taxonomyItemId: null,
-    };
+    });
     update("offers", [...draft.offers, offer]);
     setCustom("");
   }
@@ -816,11 +828,22 @@ export function StepNeeds({
 
 
 
+  /** Vincula ao item canônico do catálogo quando a correspondência é exata e única. */
+  function canonicalizeNeed(need: WizardNeed): WizardNeed {
+    return canonicalizeItem(need, {
+      kind: "need",
+      catalog: catalog.taxonomy,
+      usedTaxonomyIds: draft.needs
+        .map((n) => n.taxonomyItemId)
+        .filter((v): v is string => Boolean(v)),
+    });
+  }
+
   /** IA sugere, usuário confirma. `needKind` vem do item, nunca do seletor. */
   function addFromFeed(s: FeedSuggestion) {
     if (draft.needs.length >= 5) return;
     if (hasEquivalentItem(draft.needs, s)) return;
-    const need: WizardNeed = {
+    const need: WizardNeed = canonicalizeNeed({
       localId: cryptoUid(),
       label: s.label,
       segmentId: s.segmentId ?? draft.segmentId,
@@ -828,7 +851,7 @@ export function StepNeeds({
       needKind: s.needKind ?? (s.fromAi ? "outro" : kind),
       isPriority: false,
       source: s.source,
-    };
+    });
     update("needs", [...draft.needs, need]);
   }
 
@@ -852,14 +875,14 @@ export function StepNeeds({
     const clean = label.trim();
     if (clean.length < 2 || draft.needs.length >= 5) return;
     if (hasEquivalentItem(draft.needs, { label: clean, taxonomyItemId: null })) return;
-    const need: WizardNeed = {
+    const need: WizardNeed = canonicalizeNeed({
       localId: cryptoUid(),
       label: clean,
       segmentId: draft.segmentId,
       taxonomyItemId: null,
       needKind: kind,
       isPriority: false,
-    };
+    });
     update("needs", [...draft.needs, need]);
     setLabel("");
   }
