@@ -29,6 +29,7 @@ import {
 import { EVENT_ID } from "@/config/event";
 import { AdminEventProvider, useAdminEvent } from "@/features/admin/AdminEventContext";
 import { EventSelector } from "@/features/admin/EventSelector";
+import { MatcherTaxonomyStatusCard } from "@/features/admin/MatcherTaxonomyStatusCard";
 import { useSession } from "@/features/auth/useSession";
 import { useEventRole } from "@/features/staff/useEventRole";
 import { useEventSegments } from "@/features/staff/useEventSegments";
@@ -217,6 +218,8 @@ function TaxonomyBoard() {
           </div>
         </header>
 
+        <MatcherTaxonomyStatusCard eventId={selectedEventId} />
+
         <Card className="mb-4 p-4">
           <div className="grid gap-3 md:grid-cols-4">
             <div className="space-y-1.5 md:col-span-2">
@@ -376,7 +379,7 @@ function TaxonomyBoard() {
       </section>
 
       <TaxonomyItemSheet
-        eventId={EVENT_ID}
+        eventId={selectedEventId}
         itemId={search.selected}
         segments={segments}
         onOpenChange={(open) => {
