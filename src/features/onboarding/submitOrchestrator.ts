@@ -37,6 +37,16 @@ export function preSubmit(args: {
   return { ok: true, phoneE164, withContact };
 }
 
+/**
+ * Retry de contato após `CONTACT_FAIL`: depois de `CONTACT_OK` a máquina fica
+ * em `recomputing_matches`, então ALGUÉM precisa finalizar. Antes isso só
+ * acontecia em modo edição e o cadastro novo ficava preso em
+ * "Buscando conexões…". Recuperação explícita: recomputa nos dois modos.
+ */
+export function shouldRecomputeAfterContactRetry(_mode: WizardMode): boolean {
+  return true;
+}
+
 export type SubmitEvent =
   | { type: "PRE_FAIL"; reason: WizardValidationReason; message: string }
   | { type: "PROFILE_OK" }

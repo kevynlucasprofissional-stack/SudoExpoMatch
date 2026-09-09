@@ -82,6 +82,16 @@ colapsados), e nenhuma defesa de fronteira checava duplicidade antes da RPC.
 Risco residual e melhoria separada (canonicalização de texto livre) em
 `docs/incidents/2026-09-09-onboarding-duplicate-item.md`.
 
+## Hardening pós-incidente (09/09/2026) — concluído
+
+- [x] `/participar` passa `targetEventId` (não `EVENT_ID`) para "O que eu ofereço" e "Quem eu procuro" — IA/sugestões deixam de consultar o evento errado no sandbox;
+- [x] analytics `onboarding_started` / `onboarding_completed` passam a usar `targetEventId`, com dedupe por evento;
+- [x] retry de contato após falha parcial conclui o fluxo também em modo criação (`shouldRecomputeAfterContactRetry`) — fim do travamento em "Buscando conexões…";
+- [x] roadmap consolidado (marcador de conflito `<<<<<<< HEAD` removido, sem perda de conteúdo);
+- [x] scripts temporários `forensic-h*.ts` removidos da raiz;
+- [x] revisão de drift front x RPC registrada no documento do incidente;
+- [x] regressões em `src/__tests__/hardening-onboarding-2026-09-09.test.ts`.
+
 ---
 
 # 3. P0 — Governança de taxonomia e snapshots do matcher
@@ -410,7 +420,15 @@ Uma tarefa só recebe `[x]` quando:
 6. documentação canônica reflete o comportamento real;
 7. mudanças de score/semântica têm versão de algoritmo e decisão de produto explícita.
 
-<<<<<<< HEAD
+---
+
+# 16. Entregas por fase — histórico consolidado
+
+### Fase 1 — Fundação multi-eventos
+
+- [x] **Etapa 1.1: Registro do evento principal `sudoexpo-2026`**
+  - **Descrição**: Base ativa do matchmaking, isolada por `event_id`.
+
 - [x] **Etapa 1.2: Criação do Registro Oficial do "Café Entre Amigos"**
   - **Descrição**: Criar migration SQL adicionando o evento `'cafe-entre-amigos-ago-2026'` na tabela `public.events` com nome `"Café Entre Amigos — ACIRV (Agosto 2026)"`, cidade `"Rio Verde"`, status `is_active = false`.
   - **Critério de Sucesso**: Evento cadastrado sem conflitos de chave primária.

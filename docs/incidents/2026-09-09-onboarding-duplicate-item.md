@@ -67,12 +67,66 @@ gravação do perfil é uma transação única e o rascunho local é preservado.
 
 Regressão coberta em `src/__tests__/incidente-2026-09-09-item-duplicado.test.ts`.
 
+## Auditoria pós-incidente / evidência de produção / riscos adicionais
+
+### Evidência de produção (somente leitura, sem PII)
+
+O perfil que concluiu o cadastro depois ficou com uma necessidade de texto livre
+`Insumos agrícolas` (`source=user`, `taxonomy_item_id = null`), enquanto existe
+item **ativo** do catálogo com o mesmo label canônico. Isso é **evidência forte
+da classe de causa confirmada** — coexistência de entrada manual e entrada de
+catálogo/sugestão equivalentes — e **não** uma reconstrução forense completa: o
+payload exato da tentativa que falhou não é persistido, então o segundo item do
+draft não pode ser provado item a item.
+
+### Riscos adicionais encontrados na auditoria do fluxo (corrigidos)
+
+1. **Evento errado nas etapas 3 e 4** — `/participar` calculava `targetEventId`
+   mas passava `eventId={EVENT_ID}` para `StepOffers`/`StepWhoISeek`, fazendo a
+   IA e as sugestões consultarem a feira real mesmo no sandbox. Corrigido para
+   `targetEventId`.
+2. **Analytics contaminando métricas entre eventos** — `onboarding_started` e
+   `onboarding_completed` usavam `EVENT_ID`. Agora usam `targetEventId`, com
+   `dedupeKey` também por evento.
+3. **Travamento no retry de contato em modo criação** — após `CONTACT_OK`, o
+   retry só chamava `runRecompute()` quando `mode !== "create"`, deixando a
+   máquina em `recomputing_matches` ("Buscando conexões…") sem nada finalizar.
+   Agora `shouldRecomputeAfterContactRetry(mode)` recupera nos dois modos; o
+   recompute é redundante em relação ao já feito por `save_own_profile_v2`, mas
+   é a recuperação explícita e determinística mais simples e testável.
+4. **Sujeira documental** — `docs/roadmap.md` tinha marcador literal
+   `<<<<<<< HEAD`; consolidado sem perda de conteúdo.
+5. **Scripts temporários** — `forensic-h2.ts`, `forensic-h3.ts` e
+   `forensic-h3b.ts` (investigação de Instagram, sem referências) removidos.
+
+### Drift front x RPC (revisão de limites e regras)
+
+Front igual ou mais restritivo que o servidor em todos os campos revisados:
+
+| Campo | Front | RPC / schema de payload |
+| --- | --- | --- |
+| nome / empresa / cidade | `trim`, mín. 2, máx. 120/120/80 | mín. 1 |
+| resumo | `trim`, mín. 1, máx. 500 | mín. 1, sem máximo |
+| nicho | máx. 120 | máx. 120 |
+| ofertas / necessidades | 1..5, label 2..80, detalhe ≤200 | 1..5, label ≥1 |
+| prioridade | exatamente 1 (schema + mapper) | validada no banco |
+| perfil desejado | os 3 controles respondidos; `any`/`""` → NULL | nulável |
+| consentimento | `literal(true)` | booleano |
+
+Drift residual aceito: o servidor não limita o tamanho do resumo nem exige
+mínimo de 2 caracteres em nome/empresa/cidade. Nada é relaxado no servidor para
+acomodar o front; qualquer chamada programática mais frouxa continua sendo
+recusada pelas defesas de fronteira do wizard.
+
 ## Risco residual
 
 - **Escrita em duas etapas:** o perfil e o contato (WhatsApp) são gravados por
   RPCs separadas. Se o perfil grava e o contato falha, o perfil permanece salvo
-  e a UI oferece repetir o contato. Não alterado nesta correção.
+  e a UI oferece repetir o contato — agora concluindo o fluxo também em modo
+  criação. A separação em si não foi alterada.
 - **Sem canonicalização automática:** texto livre com label idêntico a um item
   do catálogo continua sendo salvo com `taxonomy_item_id` nulo. Melhoria
   separada (afeta o matcher e exige avaliação própria).
+- **Payload da tentativa que falhou não é persistido**, o que limita futuras
+  investigações do mesmo tipo.
 - Proteção contra envio duplo (`runningRef` com `finally`) auditada e mantida.
