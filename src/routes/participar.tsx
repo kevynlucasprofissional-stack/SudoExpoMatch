@@ -406,8 +406,11 @@ function WizardPage() {
     try {
       const withContactUpfront = mode === "create" ? true : !!phone.trim();
       dispatch({ type: "START", mode, withContact: withContactUpfront });
+      // Rascunhos antigos podem ter itens de texto livre com label idêntico a
+      // um item ativo do catálogo. Vinculamos ao id canônico (conservador,
+      // só correspondência exata e única) antes de enviar — sem deduplicar.
       const events = await runWizardSubmit({
-        draft,
+        draft: canonicalizeDraftItems(draft, effectiveCatalog?.taxonomy ?? null),
         mode,
         phone,
         eventId: targetEventId,
