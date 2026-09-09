@@ -124,9 +124,7 @@ recusada pelas defesas de fronteira do wizard.
   RPCs separadas. Se o perfil grava e o contato falha, o perfil permanece salvo
   e a UI oferece repetir o contato — agora concluindo o fluxo também em modo
   criação. A separação em si não foi alterada.
-- **Sem canonicalização automática:** texto livre com label idêntico a um item
-  do catálogo continua sendo salvo com `taxonomy_item_id` nulo. Melhoria
-  separada (afeta o matcher e exige avaliação própria).
+- ~~**Sem canonicalização automática**~~ — **resolvido** (ver seção abaixo).
 - **Payload da tentativa que falhou não é persistido**, o que limita futuras
   investigações do mesmo tipo.
 - Proteção contra envio duplo (`runningRef` com `finally`) auditada e mantida.

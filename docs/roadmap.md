@@ -226,6 +226,27 @@ O catálogo atual mistura serviços, produtos, modelos de negócio, capacidades 
 
 # 6. P1 — Canonicalização e matching semântico
 
+## Concluído — canonicalização conservadora no onboarding (09/09/2026)
+
+Risco residual do incidente de 09/09/2026 resolvido no front, sem tocar em
+matcher, pesos, relações taxonômicas, schema ou dados de produção.
+
+`src/features/onboarding/canonicalizeItems.ts` vincula um item sem
+`taxonomyItemId` ao item ativo do catálogo quando — e somente quando — há
+correspondência **exata e única** após `normalizeLabel` com o label canônico
+(ou com um sinônimo exato), o `kind` é compatível (oferta ↔ `offer`/`both`,
+necessidade ↔ `need`/`both`) e o item tem `segment_id` autoritativo, exigido
+por `save_own_profile_v2`. Ao vincular, o `segment_id` do item taxonômico é
+usado. Ambiguidade, item já canônico ou id já usado por outro item da lista →
+permanece texto livre. Sem substring, sem Levenshtein, sem IA: falso negativo é
+preferível a vínculo errado.
+
+Aplicado no texto manual, nas sugestões de IA/heurística sem id e antes do
+submit (recupera rascunhos antigos). A regra de duplicidade continua intacta e
+o erro continua sendo mostrado à pessoa — nada é deduplicado em silêncio.
+
+Cobertura: `src/__tests__/canonicalizacao-taxonomia-onboarding.test.ts`.
+
 ## O que existe hoje
 
 `taxonomy_match()` é determinístico e usa:
