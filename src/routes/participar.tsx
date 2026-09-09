@@ -775,7 +775,7 @@ function WizardPage() {
             onNext={next}
             onBack={back}
             catalog={catalog}
-            eventId={EVENT_ID}
+            eventId={targetEventId}
             aiAnalysis={aiAnalysis}
             socialContext={social.result?.status === "ok" ? social.result.context : null}
             socialAnalysis={
@@ -791,7 +791,7 @@ function WizardPage() {
             onNext={next}
             onBack={back}
             catalog={catalog}
-            eventId={EVENT_ID}
+            eventId={targetEventId}
             aiAnalysis={aiAnalysis}
             socialContext={social.result?.status === "ok" ? social.result.context : null}
             socialAnalysis={
