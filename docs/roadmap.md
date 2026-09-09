@@ -82,6 +82,16 @@ colapsados), e nenhuma defesa de fronteira checava duplicidade antes da RPC.
 Risco residual e melhoria separada (canonicalização de texto livre) em
 `docs/incidents/2026-09-09-onboarding-duplicate-item.md`.
 
+## Hardening pós-incidente (09/09/2026) — concluído
+
+- [x] `/participar` passa `targetEventId` (não `EVENT_ID`) para "O que eu ofereço" e "Quem eu procuro" — IA/sugestões deixam de consultar o evento errado no sandbox;
+- [x] analytics `onboarding_started` / `onboarding_completed` passam a usar `targetEventId`, com dedupe por evento;
+- [x] retry de contato após falha parcial conclui o fluxo também em modo criação (`shouldRecomputeAfterContactRetry`) — fim do travamento em "Buscando conexões…";
+- [x] roadmap consolidado (marcador de conflito `<<<<<<< HEAD` removido, sem perda de conteúdo);
+- [x] scripts temporários `forensic-h*.ts` removidos da raiz;
+- [x] revisão de drift front x RPC registrada no documento do incidente;
+- [x] regressões em `src/__tests__/hardening-onboarding-2026-09-09.test.ts`.
+
 ---
 
 # 3. P0 — Governança de taxonomia e snapshots do matcher
