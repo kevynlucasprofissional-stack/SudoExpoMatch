@@ -118,6 +118,41 @@ describe("Ordenação de Matches (Prioridade para Alta Sinergia Mútua)", () => 
     expect(ordenada[0].match_id).toBe("m2");
     expect(ordenada[1].match_id).toBe("m1");
   });
+
+  it("envia matches marcados como 'agora_nao' para o final da fila, mantendo os em aberto no topo", () => {
+    // Match de alta sinergia, mas marcado como agora_nao
+    const mHighDismissed = makeMatch({
+      match_id: "m-high-dismissed",
+      score_me: 90,
+      score_other: 90,
+      my_decision: "agora_nao",
+    });
+
+    // Match modesto, mas em aberto (sem_decisao)
+    const mLowOpen = makeMatch({
+      match_id: "m-low-open",
+      score_me: 40,
+      score_other: 40,
+      my_decision: "sem_decisao",
+    });
+
+    // Match de alta sinergia em aberto
+    const mHighOpen = makeMatch({
+      match_id: "m-high-open",
+      score_me: 85,
+      score_other: 85,
+      my_decision: "sem_decisao",
+    });
+
+    const ordenada = sortMatchesByMutualInterest([mHighDismissed, mLowOpen, mHighOpen]);
+
+    // Topo da lista: apenas matches em aberto / ativos
+    expect(ordenada[0].match_id).toBe("m-high-open");
+    expect(ordenada[1].match_id).toBe("m-low-open");
+
+    // Final da fila: match marcado como 'agora_nao'
+    expect(ordenada[2].match_id).toBe("m-high-dismissed");
+  });
 });
 
 describe("Resumo de IA nos Cartões de Match", () => {

@@ -122,6 +122,14 @@ export function isHighSynergyMatch(match: OwnMatchDTO): boolean {
  */
 export function sortMatchesByMutualInterest(matches: OwnMatchDTO[]): OwnMatchDTO[] {
   return [...matches].sort((a, b) => {
+    // 0. Prioridade máxima: matches em aberto ou com interesse ficam no topo;
+    // matches marcados como "agora_nao" vão para o final da fila.
+    const isDismissedA = a.my_decision === "agora_nao";
+    const isDismissedB = b.my_decision === "agora_nao";
+    if (isDismissedA !== isDismissedB) {
+      return isDismissedA ? 1 : -1;
+    }
+
     const meA = a.score_me ?? 0;
     const otherA = a.score_other ?? 0;
     const gapA = Math.abs(meA - otherA);

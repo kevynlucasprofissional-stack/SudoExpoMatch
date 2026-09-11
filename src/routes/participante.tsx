@@ -256,7 +256,7 @@ function Panel({
               hasError={matchesQuery.isError}
               retrying={matchesQuery.isFetching}
               onRetry={handleRefresh}
-              eventId={EVENT_ID}
+              eventId={eventId}
             />
           </TabsContent>
           <TabsContent value="interested" className="mt-6">
@@ -267,7 +267,7 @@ function Panel({
               hasError={matchesQuery.isError}
               retrying={matchesQuery.isFetching}
               onRetry={handleRefresh}
-              eventId={EVENT_ID}
+              eventId={eventId}
               emptyMessage="Você ainda não marcou interesse em ninguém."
             />
           </TabsContent>

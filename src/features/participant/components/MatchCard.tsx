@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { toast } from "sonner";
 import { Heart, HeartHandshake, MapPin, X, Loader2, Sparkles } from "lucide-react";
 
@@ -26,6 +27,7 @@ interface Props {
 
 export function MatchCard({ match, eventId }: Props) {
   const decide = useDecideMatchMutation(eventId);
+  const [activeAction, setActiveAction] = useState<"interesse" | "agora_nao" | null>(null);
   const myDecision = match.my_decision;
   const theirDecision = match.other_decision;
   const mutual = isMatchMutual(match);
@@ -36,6 +38,7 @@ export function MatchCard({ match, eventId }: Props) {
   const aiSummary = generateMatchAiSummary(match);
 
   function submit(d: "interesse" | "agora_nao") {
+    setActiveAction(d);
     decide.mutate(
       { matchId: match.match_id, decision: d },
       {
@@ -46,11 +49,16 @@ export function MatchCard({ match, eventId }: Props) {
             toast.success("Interesse mútuo — preparando conexão…");
           } else if (d === "interesse") {
             toast("Interesse registrado. Aguardando a outra parte.");
+          } else if (d === "agora_nao") {
+            toast("Marcado como 'Agora não'. Match movido para o final da fila.");
           }
         },
         onError: (err) => {
           const code = err instanceof ApiError ? err.code : "unknown";
           toast.error(translateDecideErrorCode(code));
+        },
+        onSettled: () => {
+          setActiveAction(null);
         },
       },
     );
@@ -90,6 +98,15 @@ export function MatchCard({ match, eventId }: Props) {
               {mutual && (
                 <Badge className="bg-primary text-primary-foreground">
                   <HeartHandshake className="mr-1 h-3 w-3" /> Deu match
+                </Badge>
+              )}
+              {myDecision === "agora_nao" && (
+                <Badge
+                  variant="outline"
+                  className="border-slate-500/40 text-slate-400 bg-slate-900/40"
+                  data-testid="badge-agora-nao"
+                >
+                  <X className="mr-1 h-3 w-3 text-slate-400" /> Agora não
                 </Badge>
               )}
             </div>
@@ -228,9 +245,9 @@ export function MatchCard({ match, eventId }: Props) {
               variant={myDecision === "interesse" ? "secondary" : "default"}
               onClick={() => submit("interesse")}
               disabled={myDecision === "interesse" || decide.isPending}
-              aria-busy={decide.isPending}
+              aria-busy={decide.isPending && activeAction === "interesse"}
             >
-              {decide.isPending && myDecision !== "interesse" ? (
+              {decide.isPending && activeAction === "interesse" ? (
                 <Loader2 className="mr-1 h-4 w-4 animate-spin" />
               ) : (
                 <Heart className="mr-1 h-4 w-4" />
@@ -238,11 +255,17 @@ export function MatchCard({ match, eventId }: Props) {
               {myDecision === "interesse" ? "Interesse enviado" : "Tenho interesse"}
             </Button>
             <Button
-              variant="ghost"
+              variant={myDecision === "agora_nao" ? "secondary" : "ghost"}
               onClick={() => submit("agora_nao")}
               disabled={myDecision === "agora_nao" || decide.isPending}
+              aria-busy={decide.isPending && activeAction === "agora_nao"}
             >
-              <X className="mr-1 h-4 w-4" /> Agora não
+              {decide.isPending && activeAction === "agora_nao" ? (
+                <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+              ) : (
+                <X className="mr-1 h-4 w-4" />
+              )}
+              {myDecision === "agora_nao" ? "Marcado: Agora não" : "Agora não"}
             </Button>
             {theirDecision === "interesse" && myDecision !== "interesse" && (
               <span className="self-center text-xs text-muted-foreground">
