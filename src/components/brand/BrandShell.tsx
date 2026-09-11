@@ -27,15 +27,15 @@ export function BrandHeader() {
           </button>
           <Link
             to="/participante"
-            className="truncate text-white/75 transition-colors hover:text-white font-medium"
-            activeProps={{ className: "text-white font-bold" }}
+            className="inline-flex shrink-0 items-center gap-2 truncate rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            activeProps={{ className: "bg-white/20" }}
           >
             Participante
           </Link>
           <Link
             to="/publico"
-            className="truncate text-white/75 transition-colors hover:text-white font-medium"
-            activeProps={{ className: "text-white font-bold" }}
+            className="inline-flex shrink-0 items-center gap-2 truncate rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            activeProps={{ className: "bg-white/20" }}
           >
             Painel público
           </Link>
