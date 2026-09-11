@@ -61,6 +61,39 @@ Rótulos: `75+ alta_compatibilidade`, `40–74 boa_oportunidade`, `<40 conexao_p
 
 ---
 
+# 3.0 P0 RESOLVIDO — Item duplicado no onboarding (incidente de 09/09/2026)
+
+**Status: resolvido.**
+
+Sintoma: o save final do cadastro retornava `duplicate_need_label` sem duplicata
+visível na tela. Causa: o front comparava itens por `toLowerCase()` enquanto o
+banco compara por `public.norm_label` (minúsculas, sem acentos, espaços
+colapsados), e nenhuma defesa de fronteira checava duplicidade antes da RPC.
+
+- [x] identidade canônica única de item (`src/features/onboarding/itemIdentity.ts`);
+- [x] aplicada a todos os caminhos de entrada de ofertas e necessidades (feed de IA/heurística, catálogo, texto livre, "Aceitar todas");
+- [x] "Comuns no seu segmento" não exibe item já adicionado;
+- [x] `validateWizardForSubmit` bloqueia antes de qualquer RPC, cita os dois labels e a etapa; a rota volta para a etapa certa;
+- [x] `mapWizardToSaveProfileInput` como última defesa de fronteira;
+- [x] rascunho antigo inválido preservado, sem dedupe silencioso;
+- [x] check do banco, pesos, matcher e taxonomia inalterados;
+- [x] regressão em `src/__tests__/incidente-2026-09-09-item-duplicado.test.ts`.
+
+Risco residual e melhoria separada (canonicalização de texto livre) em
+`docs/incidents/2026-09-09-onboarding-duplicate-item.md`.
+
+## Hardening pós-incidente (09/09/2026) — concluído
+
+- [x] `/participar` passa `targetEventId` (não `EVENT_ID`) para "O que eu ofereço" e "Quem eu procuro" — IA/sugestões deixam de consultar o evento errado no sandbox;
+- [x] analytics `onboarding_started` / `onboarding_completed` passam a usar `targetEventId`, com dedupe por evento;
+- [x] retry de contato após falha parcial conclui o fluxo também em modo criação (`shouldRecomputeAfterContactRetry`) — fim do travamento em "Buscando conexões…";
+- [x] roadmap consolidado (marcador de conflito `<<<<<<< HEAD` removido, sem perda de conteúdo);
+- [x] scripts temporários `forensic-h*.ts` removidos da raiz;
+- [x] revisão de drift front x RPC registrada no documento do incidente;
+- [x] regressões em `src/__tests__/hardening-onboarding-2026-09-09.test.ts`.
+
+---
+
 # 3. P0 — Governança de taxonomia e snapshots do matcher
 
 ## Problema descoberto
@@ -192,6 +225,27 @@ O catálogo atual mistura serviços, produtos, modelos de negócio, capacidades 
 ---
 
 # 6. P1 — Canonicalização e matching semântico
+
+## Concluído — canonicalização conservadora no onboarding (09/09/2026)
+
+Risco residual do incidente de 09/09/2026 resolvido no front, sem tocar em
+matcher, pesos, relações taxonômicas, schema ou dados de produção.
+
+`src/features/onboarding/canonicalizeItems.ts` vincula um item sem
+`taxonomyItemId` ao item ativo do catálogo quando — e somente quando — há
+correspondência **exata e única** após `normalizeLabel` com o label canônico
+(ou com um sinônimo exato), o `kind` é compatível (oferta ↔ `offer`/`both`,
+necessidade ↔ `need`/`both`) e o item tem `segment_id` autoritativo, exigido
+por `save_own_profile_v2`. Ao vincular, o `segment_id` do item taxonômico é
+usado. Ambiguidade, item já canônico ou id já usado por outro item da lista →
+permanece texto livre. Sem substring, sem Levenshtein, sem IA: falso negativo é
+preferível a vínculo errado.
+
+Aplicado no texto manual, nas sugestões de IA/heurística sem id e antes do
+submit (recupera rascunhos antigos). A regra de duplicidade continua intacta e
+o erro continua sendo mostrado à pessoa — nada é deduplicado em silêncio.
+
+Cobertura: `src/__tests__/canonicalizacao-taxonomia-onboarding.test.ts`.
 
 ## O que existe hoje
 
@@ -387,7 +441,15 @@ Uma tarefa só recebe `[x]` quando:
 6. documentação canônica reflete o comportamento real;
 7. mudanças de score/semântica têm versão de algoritmo e decisão de produto explícita.
 
-<<<<<<< HEAD
+---
+
+# 16. Entregas por fase — histórico consolidado
+
+### Fase 1 — Fundação multi-eventos
+
+- [x] **Etapa 1.1: Registro do evento principal `sudoexpo-2026`**
+  - **Descrição**: Base ativa do matchmaking, isolada por `event_id`.
+
 - [x] **Etapa 1.2: Criação do Registro Oficial do "Café Entre Amigos"**
   - **Descrição**: Criar migration SQL adicionando o evento `'cafe-entre-amigos-ago-2026'` na tabela `public.events` com nome `"Café Entre Amigos — ACIRV (Agosto 2026)"`, cidade `"Rio Verde"`, status `is_active = false`.
   - **Critério de Sucesso**: Evento cadastrado sem conflitos de chave primária.

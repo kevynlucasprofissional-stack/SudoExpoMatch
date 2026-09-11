@@ -61,3 +61,13 @@
 - **Status**: NÃO VALIDADA; MANTER COMO DECISÃO PENDENTE
 - **Motivo**: o matcher sobrepõe oportunidade comercial e networking por perfil-alvo; mudanças em score podem alterar semântica, operação e comparabilidade histórica.
 - **Decisão provisória**: não mudar scoring silenciosamente. Qualquer alteração relevante deve versionar o algoritmo (ex.: v2.5), possuir matriz de cenários e evidência em dados reais.
+
+### H-011 — A falha `duplicate_need_label` do incidente de cadastro de 09/09/2026 vinha de divergência de normalização entre front e banco?
+- **Status**: CONFIRMADA
+- **Evidência**: o banco compara com `public.norm_label` (minúsculas, sem acentos, espaços colapsados); os caminhos de adição em `steps.tsx` e o `mergeCapped` comparavam só por `toLowerCase()`. `validateWizardForSubmit` e `mapWizardToSaveProfileInput` não checavam duplicidade, então o erro só surgia na RPC final.
+- **Implicação**: identidade canônica única (`itemIdentity`) aplicada a todos os caminhos de entrada e às defesas de fronteira, sem alterar o check do banco, pesos ou matcher. Detalhes em `docs/incidents/2026-09-09-onboarding-duplicate-item.md`.
+
+### H-012 — Texto livre e item de catálogo podem convergir para o mesmo label?
+- **Status**: CONFIRMADA
+- **Evidência**: existe perfil real com necessidade de texto livre cujo label coincide com item ativo do catálogo, mas com `taxonomy_item_id` nulo. O catálogo ativo, por si só, não tem colisões internas por `norm_label`.
+- **Implicação**: a equivalência de itens precisa considerar label normalizado além do id; a canonicalização automática de texto livre fica como melhoria separada por afetar o matcher.

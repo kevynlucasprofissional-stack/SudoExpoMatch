@@ -71,10 +71,14 @@ import { StepProfile } from "@/features/onboarding/StepProfile";
 import { StepConnections } from "@/features/onboarding/StepConnections";
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
 import { validateWizardForSubmit } from "@/features/onboarding/validate";
+import { canonicalizeDraftItems } from "@/features/onboarding/canonicalizeItems";
 import { resolveCatalogAvailability } from "@/features/onboarding/catalogAvailability";
 import { resolveWizardPageState } from "@/features/onboarding/pageState";
 import { runWizardReset, WIZARD_RESET_COPY } from "@/features/onboarding/wizardReset";
-import { runWizardSubmit } from "@/features/onboarding/submitOrchestrator";
+import {
+  runWizardSubmit,
+  shouldRecomputeAfterContactRetry,
+} from "@/features/onboarding/submitOrchestrator";
 
 export const participarSearchSchema = z.object({
   event: fallback(z.string(), "").default(""),
@@ -167,25 +171,27 @@ function WizardPage() {
   }, [session.isReady, profileQuery.isPending, profileQuery.isError, profileQuery.data, hydrated]);
 
   // Analytics do funil: início e conclusão do cadastro (sem PII).
+  // Sempre no evento efetivo (`targetEventId`) para não contaminar as métricas
+  // da feira real com cadastros de sandbox / outros eventos.
   useEffect(() => {
     if (!hydrated) return;
     track({
       kind: "onboarding_started",
-      eventId: EVENT_ID,
+      eventId: targetEventId,
       payload: { source: mode },
-      dedupeKey: `onboarding_started:${mode}`,
+      dedupeKey: `onboarding_started:${targetEventId}:${mode}`,
     });
-  }, [hydrated, mode]);
+  }, [hydrated, mode, targetEventId]);
 
   useEffect(() => {
     if (submit.stage !== "completed") return;
     track({
       kind: "onboarding_completed",
-      eventId: EVENT_ID,
+      eventId: targetEventId,
       payload: { source: mode, segment_id: draft.segmentId || undefined },
-      dedupeKey: "onboarding_completed",
+      dedupeKey: `onboarding_completed:${targetEventId}`,
     });
-  }, [submit.stage, mode, draft.segmentId]);
+  }, [submit.stage, mode, draft.segmentId, targetEventId]);
 
   // Persistência: apenas depois de hidratado e antes de completar.
   useEffect(() => {
@@ -325,6 +331,14 @@ function WizardPage() {
   const goToIdentity = useCallback(() => {
     setDraft((d) => ({ ...d, step: 0 }));
   }, []);
+  /** Etapa "O que eu ofereço". */
+  const goToOffers = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 2 }));
+  }, []);
+  /** Etapa "Quem eu procuro". */
+  const goToNeeds = useCallback(() => {
+    setDraft((d) => ({ ...d, step: 3 }));
+  }, []);
 
   function loadServerProfile() {
     if (!profileQuery.data) return;
@@ -392,8 +406,11 @@ function WizardPage() {
     try {
       const withContactUpfront = mode === "create" ? true : !!phone.trim();
       dispatch({ type: "START", mode, withContact: withContactUpfront });
+      // Rascunhos antigos podem ter itens de texto livre com label idêntico a
+      // um item ativo do catálogo. Vinculamos ao id canônico (conservador,
+      // só correspondência exata e única) antes de enviar — sem deduplicar.
       const events = await runWizardSubmit({
-        draft,
+        draft: canonicalizeDraftItems(draft, effectiveCatalog?.taxonomy ?? null),
         mode,
         phone,
         eventId: targetEventId,
@@ -409,6 +426,8 @@ function WizardPage() {
           dispatch({ type: "RESET" });
           toast.error(evt.message);
           if (evt.reason === "phone") goToIdentity();
+          else if (evt.reason === "duplicate_offer") goToOffers();
+          else if (evt.reason === "duplicate_need") goToNeeds();
           return;
         }
         if (evt.type === "PROFILE_OK") {
@@ -445,7 +464,20 @@ function WizardPage() {
     } finally {
       runningRef.current = false;
     }
-  }, [draft, mode, phone, qc, navigate, goToIdentity, social.result, targetEventId, isSandbox]);
+  }, [
+    draft,
+    mode,
+    phone,
+    qc,
+    navigate,
+    goToIdentity,
+    goToOffers,
+    goToNeeds,
+    social.result,
+    targetEventId,
+    isSandbox,
+    effectiveCatalog,
+  ]);
 
   const retryContact = useCallback(async () => {
     if (runningRef.current) return;
@@ -466,7 +498,11 @@ function WizardPage() {
         return;
       }
       dispatch({ type: "CONTACT_OK" });
-      if (mode !== "create") {
+      // Hardening 09/09/2026: antes, no modo "create", o retry parava aqui e a
+      // máquina de estados ficava presa em `recomputing_matches` ("Buscando
+      // conexões…"). O save do perfil já recomputa transacionalmente, então o
+      // recompute aqui é recuperação explícita e determinística nos dois modos.
+      if (shouldRecomputeAfterContactRetry(mode)) {
         await runRecompute();
       }
     } finally {
