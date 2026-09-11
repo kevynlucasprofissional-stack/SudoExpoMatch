@@ -53,9 +53,6 @@ export function BrandFooter() {
           Aqui, ninguém cresce <span className="text-[#00c8ff]">isolado</span>. A gente cresce{" "}
           <span className="text-[#a3e635]">conectado</span>.
         </p>
-        <p className="mt-1 text-xs text-white/60">
-          SudoExpo Match · Conexões que impulsionam.
-        </p>
       </div>
     </footer>
   );
