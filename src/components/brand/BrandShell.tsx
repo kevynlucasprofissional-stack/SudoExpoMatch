@@ -14,56 +14,47 @@ export function BrandHeader() {
   }
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/85 text-white backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/90 text-white backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-center px-3 sm:px-4">
-        <nav className="grid w-full max-w-md grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 text-sm sm:gap-6">
-          <div className="flex min-w-0 justify-end">
-            <Link
-              to="/participar"
-              className="truncate text-white/70 transition-colors hover:text-white"
-              activeProps={{ className: "text-white font-semibold" }}
-            >
-              Participar
-            </Link>
-          </div>
+        <nav className="flex items-center justify-center gap-4 sm:gap-8 text-sm">
           <button
             type="button"
             onClick={goHome}
-            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20 cursor-pointer"
           >
             <Home className="h-4 w-4" aria-hidden />
             Início
           </button>
-          <div className="flex min-w-0 justify-start">
-            <Link
-              to="/publico"
-              className="truncate text-white/70 transition-colors hover:text-white"
-            >
-              Painel público
-            </Link>
-          </div>
+          <Link
+            to="/participante"
+            className="truncate text-white/75 transition-colors hover:text-white font-medium"
+            activeProps={{ className: "text-white font-bold" }}
+          >
+            Participante
+          </Link>
+          <Link
+            to="/publico"
+            className="truncate text-white/75 transition-colors hover:text-white font-medium"
+            activeProps={{ className: "text-white font-bold" }}
+          >
+            Painel público
+          </Link>
         </nav>
       </div>
-
-
     </header>
   );
 }
 
 export function BrandFooter() {
   return (
-    <footer className="border-t border-white/10 text-white">
-      <div className="mx-auto max-w-[1480px] px-8 py-6 md:px-32">
-        <p className="text-center font-display text-sm font-semibold">
-          <span className="block md:inline">
-            Aqui, ninguém cresce <span className="text-[#039de3]">isolado</span>.
-          </span>{" "}
-          <span className="block md:inline">
-            A gente cresce <span className="text-success">conectado</span>.
-          </span>
+    <footer className="border-t border-white/10 py-6 text-white">
+      <div className="mx-auto max-w-[1480px] px-6 text-center">
+        <p className="font-display text-sm font-semibold">
+          Aqui, ninguém cresce <span className="text-[#00c8ff]">isolado</span>. A gente cresce{" "}
+          <span className="text-[#a3e635]">conectado</span>.
         </p>
-        <p className="mt-1 text-center text-xs text-white/60">
-          SudoExpo · realização <span className="font-semibold text-white/85">ACIRV</span>
+        <p className="mt-1 text-xs text-white/60">
+          SudoExpo Match · Conexões que impulsionam.
         </p>
       </div>
     </footer>
