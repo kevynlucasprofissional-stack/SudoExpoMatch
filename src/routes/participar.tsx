@@ -745,7 +745,7 @@ function WizardPage() {
             }}
             aria-label="Voltar"
             data-testid="wizard-back"
-            className="inline-flex items-center gap-2 rounded-xl border-blue-900/60 bg-[#09122c]/80 px-3.5 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border-blue-900/60 bg-[#09122c]/80 px-3.5 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             {currentStep > 0 ? "Voltar para o perfil" : "Voltar ao início"}
