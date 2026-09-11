@@ -67,6 +67,7 @@ import {
   isSubmitting,
   submitReducer,
 } from "@/features/onboarding/submitMachine";
+import { OTHER_SEGMENT_ID } from "@/features/onboarding/schemas";
 import { StepProfile } from "@/features/onboarding/StepProfile";
 import { StepConnections } from "@/features/onboarding/StepConnections";
 import { useSharedAiAnalysis } from "@/features/onboarding/aiAnalysisState";
@@ -261,14 +262,23 @@ function WizardPage() {
         socialBusy.current = false;
       }
     }
-    setDraft((d) => ({
-      ...d,
-      step: 1,
-      city: d.city.trim() || "Rio Verde",
-      targetBusinessSize: d.targetBusinessSize || "any",
-      targetBusinessType: d.targetBusinessType || "any",
-      targetSegmentId: d.targetSegmentId || "any",
-    }));
+    setDraft((d) => {
+      const isOther = d.segmentId === OTHER_SEGMENT_ID;
+      const resolvedNiche =
+        isOther && !d.niche.trim() && d.summary.trim()
+          ? d.summary.trim().slice(0, 120)
+          : d.niche;
+
+      return {
+        ...d,
+        niche: resolvedNiche,
+        step: 1,
+        city: d.city.trim() || "Rio Verde",
+        targetBusinessSize: d.targetBusinessSize || "any",
+        targetBusinessType: d.targetBusinessType || "any",
+        targetSegmentId: d.targetSegmentId || "any",
+      };
+    });
   }, [draft.city, draft.instagram, draft.targetBusinessSize, draft.targetBusinessType, draft.targetSegmentId, runSocialEnrich, social]);
 
 
@@ -425,7 +435,7 @@ function WizardPage() {
         if (evt.type === "PRE_FAIL") {
           dispatch({ type: "RESET" });
           toast.error(evt.message);
-          if (evt.reason === "phone") goToIdentity();
+          if (evt.reason === "phone" || evt.reason === "profile") goToIdentity();
           else if (evt.reason === "duplicate_offer") goToOffers();
           else if (evt.reason === "duplicate_need") goToNeeds();
           return;
@@ -766,6 +776,7 @@ function WizardPage() {
             manualMode={manualCatalogMode}
             resetAction={resetAction}
             social={social}
+            eventId={targetEventId}
           />
         )}
 

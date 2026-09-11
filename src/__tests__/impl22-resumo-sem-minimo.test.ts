@@ -99,3 +99,28 @@ describe("Etapa 2 — Instagram automático preservado", () => {
     expect(page).toContain("analyzeSocialProfile");
   });
 });
+
+describe("Segmento 'outros' e campo nicho", () => {
+  const stepProfileSrc = readFileSync("src/features/onboarding/StepProfile.tsx", "utf8");
+
+  it("StepProfile.tsx renderiza o campo niche quando o segmento é 'outros'", () => {
+    expect(stepProfileSrc).toContain('id="niche"');
+    expect(stepProfileSrc).toContain("OTHER_SEGMENT_ID");
+    expect(stepProfileSrc).toContain("Ramo de atividade / Nicho");
+  });
+
+  it("quando segmento é outros e nicho tem menos de 3 caracteres, validação rejeita", () => {
+    const draft = { ...validDraft("Resumo legal"), segmentId: "outros", niche: "ab" };
+    const res = validateWizardForSubmit({ draft, mode: "create", phone: PHONE });
+    expect(res.ok).toBe(false);
+    if (!res.ok) {
+      expect(res.message).toBe("Descreva sua atividade no campo nicho");
+    }
+  });
+
+  it("quando segmento é outros e nicho é preenchido adequadamente, validação aceita", () => {
+    const draft = { ...validDraft("Resumo legal"), segmentId: "outros", niche: "Manutenção agrícola" };
+    const res = validateWizardForSubmit({ draft, mode: "create", phone: PHONE });
+    expect(res.ok).toBe(true);
+  });
+});

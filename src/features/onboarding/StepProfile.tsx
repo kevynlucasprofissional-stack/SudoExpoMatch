@@ -10,6 +10,7 @@ import {
   FileText,
   ArrowRight,
   Loader2,
+  Tag,
 } from "lucide-react";
 import type { SocialLookupUiState } from "./steps";
 
@@ -33,7 +34,7 @@ import {
   BUSINESS_TYPE_OPTIONS,
   profileSelectableSegments,
 } from "./BusinessProfileCriteria";
-import { phoneCreateSchema, phoneEditSchema } from "./schemas";
+import { OTHER_SEGMENT_ID, phoneCreateSchema, phoneEditSchema } from "./schemas";
 
 interface StepProfileProps {
   draft: WizardDraft;
@@ -46,6 +47,7 @@ interface StepProfileProps {
   resetAction?: ReactNode;
   manualMode?: boolean;
   social?: SocialLookupUiState;
+  eventId?: string;
 }
 
 export function StepProfile({
@@ -58,6 +60,7 @@ export function StepProfile({
   onNext,
   manualMode = false,
   social,
+  eventId: _eventId,
 }: StepProfileProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -80,6 +83,12 @@ export function StepProfile({
       );
     }
     update("segmentId", segmentId);
+    if (errors.segmentId) {
+      setErrors((prev) => ({ ...prev, segmentId: "" }));
+    }
+    if (segmentId !== OTHER_SEGMENT_ID && errors.niche) {
+      setErrors((prev) => ({ ...prev, niche: "" }));
+    }
   }
 
   function handleContinue() {
@@ -100,6 +109,9 @@ export function StepProfile({
 
     if (!draft.segmentId) {
       errs.segmentId = "Selecione o segmento de atuação.";
+    }
+    if (draft.segmentId === OTHER_SEGMENT_ID && draft.niche.trim().length < 3) {
+      errs.niche = "Descreva sua atividade no campo nicho (mínimo 3 caracteres).";
     }
     if (!draft.businessSize) {
       errs.businessSize = "Selecione o porte da empresa.";
@@ -320,14 +332,17 @@ export function StepProfile({
           </div>
         </div>
 
-        {/* Row 4: Tipo principal */}
+        {/* Row 4: Tipo principal e Nicho (obrigatório se segmento for Outros) */}
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div>
             <Label className="text-xs font-semibold text-slate-300">Tipo principal</Label>
             <div className="mt-1.5">
               <Select
                 value={draft.businessType || undefined}
-                onValueChange={(v) => update("businessType", v as BusinessType)}
+                onValueChange={(v) => {
+                  update("businessType", v as BusinessType);
+                  if (errors.businessType) setErrors((prev) => ({ ...prev, businessType: "" }));
+                }}
               >
                 <SelectTrigger className="h-11 w-full rounded-xl border-blue-900/60 bg-[#09122c] text-white hover:border-blue-700/70 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40">
                   <div className="flex items-center gap-2 text-slate-200">
@@ -352,6 +367,37 @@ export function StepProfile({
               <p className="mt-1 text-xs text-rose-400">{errors.businessType}</p>
             )}
           </div>
+
+          {draft.segmentId === OTHER_SEGMENT_ID && (
+            <div className="animate-in fade-in duration-200">
+              <Label htmlFor="niche" className="text-xs font-semibold text-slate-300">
+                Ramo de atividade / Nicho <span className="text-cyan-400">*</span>
+              </Label>
+              <div className="relative mt-1.5">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                  <Tag className="h-4 w-4" />
+                </div>
+                <Input
+                  id="niche"
+                  value={draft.niche}
+                  onChange={(e) => {
+                    update("niche", e.target.value.slice(0, 120));
+                    if (errors.niche) setErrors((prev) => ({ ...prev, niche: "" }));
+                  }}
+                  placeholder="Ex.: Manutenção de máquinas agrícolas"
+                  maxLength={120}
+                  className="h-11 rounded-xl border-blue-900/60 bg-[#09122c] pl-10 text-white placeholder:text-slate-500 hover:border-blue-700/70 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40"
+                />
+              </div>
+              {errors.niche ? (
+                <p className="mt-1 text-xs text-rose-400">{errors.niche}</p>
+              ) : (
+                <p className="mt-1 text-[11px] text-slate-400">
+                  Como você escolheu &quot;Outros&quot;, descreva sua atividade aqui.
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Row 5: O que sua empresa faz? */}
