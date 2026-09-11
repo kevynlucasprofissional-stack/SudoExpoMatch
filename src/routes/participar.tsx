@@ -655,11 +655,11 @@ function WizardPage() {
   const resetAction = (
     <Button
       type="button"
-      variant="outline"
-      size="lg"
+      variant="ghost"
+      size="sm"
       data-testid="wizard-reset-trigger"
       onClick={() => setShowReset(true)}
-      className="gap-2 font-medium text-foreground hover:border-destructive hover:text-destructive"
+      className="inline-flex h-10 items-center gap-2 rounded-xl border border-transparent px-3.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
     >
       <RotateCcw className="h-4 w-4" aria-hidden="true" />
       {WIZARD_RESET_COPY.trigger}
@@ -755,7 +755,7 @@ function WizardPage() {
             }}
             aria-label="Voltar"
             data-testid="wizard-back"
-            className="inline-flex items-center gap-2 rounded-xl border-blue-900/60 bg-[#09122c]/80 px-3.5 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex h-10 items-center gap-2 rounded-xl border-blue-900/60 bg-[#09122c]/80 px-3.5 py-2 text-xs font-medium text-slate-300 hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
           >
             <ChevronLeft className="h-4 w-4" aria-hidden="true" />
             {currentStep > 0 ? "Voltar para o perfil" : "Voltar ao início"}
