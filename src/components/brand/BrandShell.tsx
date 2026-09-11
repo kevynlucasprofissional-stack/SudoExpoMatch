@@ -15,8 +15,15 @@ export function BrandHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1252]/90 text-white backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-center px-3 sm:px-4">
-        <nav className="flex items-center justify-center gap-4 sm:gap-8 text-sm">
+      <div className="mx-auto flex h-14 w-full max-w-6xl items-center justify-center px-3 sm:px-4">
+        <nav className="flex flex-nowrap items-center justify-center gap-4 sm:gap-8 text-sm">
+          <Link
+            to="/participante"
+            className="inline-flex shrink-0 items-center gap-2 truncate rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
+            activeProps={{ className: "bg-white/20" }}
+          >
+            Participante
+          </Link>
           <button
             type="button"
             onClick={goHome}
@@ -25,13 +32,6 @@ export function BrandHeader() {
             <Home className="h-4 w-4" aria-hidden />
             Início
           </button>
-          <Link
-            to="/participante"
-            className="inline-flex shrink-0 items-center gap-2 truncate rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
-            activeProps={{ className: "bg-white/20" }}
-          >
-            Participante
-          </Link>
           <Link
             to="/publico"
             className="inline-flex shrink-0 items-center gap-2 truncate rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-sm font-semibold text-white transition-colors hover:bg-white/20"
