@@ -765,6 +765,7 @@ function WizardPage() {
             onNext={() => void continueFromProfile()}
             manualMode={manualCatalogMode}
             resetAction={resetAction}
+            social={social}
           />
         )}
 

@@ -9,7 +9,9 @@ import {
   Briefcase,
   FileText,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
+import type { SocialLookupUiState } from "./steps";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -43,6 +45,7 @@ interface StepProfileProps {
   onNext: () => void;
   resetAction?: ReactNode;
   manualMode?: boolean;
+  social?: SocialLookupUiState;
 }
 
 export function StepProfile({
@@ -54,6 +57,7 @@ export function StepProfile({
   mode,
   onNext,
   manualMode = false,
+  social,
 }: StepProfileProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -240,6 +244,15 @@ export function StepProfile({
                 className="h-11 rounded-xl border-blue-900/60 bg-[#09122c] pl-10 text-white placeholder:text-slate-500 hover:border-blue-700/70 focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400/40"
               />
             </div>
+            {social && social.status === "done" && social.message && (
+              <p
+                className={`mt-1 text-xs ${
+                  social.result?.status === "ok" ? "text-emerald-400" : "text-slate-400"
+                }`}
+              >
+                {social.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -385,10 +398,20 @@ export function StepProfile({
         <Button
           type="button"
           onClick={handleContinue}
-          className="h-11 shrink-0 rounded-xl bg-[#00c8ff] px-6 text-sm font-bold text-[#02182b] hover:bg-cyan-300 shadow-[0_0_20px_rgba(0,200,255,0.3)] transition-all cursor-pointer flex items-center justify-center gap-2"
+          disabled={social?.status === "loading"}
+          className="h-11 shrink-0 rounded-xl bg-[#00c8ff] px-6 text-sm font-bold text-[#02182b] hover:bg-cyan-300 shadow-[0_0_20px_rgba(0,200,255,0.3)] transition-all cursor-pointer flex items-center justify-center gap-2 disabled:opacity-75"
         >
-          Continuar
-          <ArrowRight className="h-4 w-4" />
+          {social?.status === "loading" ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin text-[#02182b]" />
+              Preparando sugestões…
+            </>
+          ) : (
+            <>
+              Continuar
+              <ArrowRight className="h-4 w-4" />
+            </>
+          )}
         </Button>
       </div>
       {errors.consent && (
