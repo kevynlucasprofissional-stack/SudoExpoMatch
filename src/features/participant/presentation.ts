@@ -169,11 +169,10 @@ export function sortMatchesByMutualInterest(matches: OwnMatchDTO[]): OwnMatchDTO
 
 export function canRevealForMatch(match: OwnMatchDTO): boolean {
   const c = match.connection;
-  if (!c) return false;
-  if (c.status === "cancelado") return false;
+  if (c?.status === "cancelado") return false;
   if (isContactReleasedByStaff(match)) return true;
   if (!isMatchMutual(match)) return false;
-  return c.status === "apresentados" || c.status === "contato_trocado" || c.status === "concluido";
+  return true;
 }
 
 /**
@@ -181,21 +180,13 @@ export function canRevealForMatch(match: OwnMatchDTO): boolean {
  * explicando quando o contato será liberado.
  */
 export function revealDisabledHint(match: OwnMatchDTO): string {
-  if (!isMatchMutual(match)) {
+  if (match.connection?.status === "cancelado") {
+    return "Contato indisponível: atendimento cancelado.";
+  }
+  if (!isMatchMutual(match) && !isContactReleasedByStaff(match)) {
     return "Contato liberado após interesse mútuo.";
   }
-  const c = match.connection;
-  if (!c) return "Preparando conexão — aguarde a equipe.";
-  switch (c.status) {
-    case "aguardando":
-      return "Contato liberado assim que a equipe apresentar vocês.";
-    case "em_atendimento":
-      return "A equipe já está organizando a apresentação.";
-    case "cancelado":
-      return "Contato indisponível: atendimento cancelado.";
-    default:
-      return "Contato liberado assim que a equipe apresentar vocês.";
-  }
+  return "";
 }
 
 // ---------------------------------------------------------------------------

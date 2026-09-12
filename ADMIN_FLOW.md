@@ -124,3 +124,18 @@ Rastreia cada abordagem realizada para cada participante dentro do escopo estrit
 1. **Priorizar Sempre Matches com Interesse**: Atenda primeiro as pessoas que já clicaram em "Tenho interesse" no seu aplicativo de participante. Elas têm a maior taxa de conversão em negócios na feira.
 2. **Revisão Humana do Briefing**: Antes de disparar para contatos estratégicos (ex.: grandes indústrias), confira rapidamente a leitura comercial gerada pela IA.
 3. **Respeito aos Dados Pessoais**: Contatos telefônicos são sensíveis. O sistema audita cada consulta e disparo em `public.audit_logs` para conformidade com a LGPD e a política de privacidade da ACIRV.
+
+---
+
+## 7. Liberação Automática de WhatsApp em Interesse Mútuo
+
+Para garantir agilidade máxima e eliminar atritos na feira de negócios:
+1. **Detecção Imediata de Mutualidade**: No exato momento em que ambos os participantes marcarem "Tenho interesse" (seja reciprocamente pelo aplicativo ou via confirmação rápida), o WhatsApp de ambos é **liberado automaticamente**.
+2. **Ciclo no Banco de Dados**: A RPC `record_match_decision_v2` cria ou avança a conexão para o status `'apresentados'` com `contact_released_at = now()` e motivo `'Liberação automática por interesse mútuo'`.
+3. **Experiência do Participante**:
+   - No [MatchCard](file:///c:/Github/SudoExpoMatch/src/features/participant/components/MatchCard.tsx), os participantes recebem a comemoração imediata e o botão direto **"Ver WhatsApp"** para conversar de pronto.
+   - Na lista de conexões ativas (`/participante`), a conexão fica com status ativo e com o contato disponível para visualização e cópia.
+4. **Papel da Equipe/Admin**:
+   - Para **matches mútuos**, os participantes são autossuficientes e já iniciam o diálogo pelo WhatsApp. A equipe intervém apenas para suporte presencial no estande, se solicitado.
+   - Para **matches unilaterais** (Pessoa A quer Pessoa B, mas Pessoa B ainda não respondeu), a equipe utiliza o funil operacional de abordagem proativa (Seções 2 a 4) para engajar a Pessoa B e converter em match mútuo.
+

@@ -212,9 +212,11 @@ describe("canRevealForMatch — matriz completa dos 6 status", () => {
     "concluido",
     "cancelado",
   ];
+  // Com a regra de liberação automática em interesse mútuo,
+  // qualquer status ativo (não cancelado) com interesse mútuo libera a revelação.
   const table: Record<ConnectionStatus, boolean> = {
-    aguardando: false,
-    em_atendimento: false,
+    aguardando: true,
+    em_atendimento: true,
     apresentados: true,
     contato_trocado: true,
     concluido: true,
@@ -247,29 +249,6 @@ describe("canRevealForMatch — matriz completa dos 6 status", () => {
 describe("revealDisabledHint — texto auxiliar acessível", () => {
   it("sem mutualidade menciona interesse mútuo", () => {
     expect(revealDisabledHint(makeMatch({ id: "x" }))).toMatch(/mútuo/i);
-  });
-  it("mútuo sem conexão menciona equipe", () => {
-    expect(
-      revealDisabledHint(
-        makeMatch({
-          id: "y",
-          myDecision: "interesse",
-          otherDecision: "interesse",
-        }),
-      ),
-    ).toMatch(/equipe/i);
-  });
-  it("aguardando/em_atendimento mostram próxima etapa", () => {
-    expect(
-      revealDisabledHint(
-        makeMatch({
-          id: "z",
-          myDecision: "interesse",
-          otherDecision: "interesse",
-          connection: makeConnection("aguardando"),
-        }),
-      ),
-    ).toMatch(/apresent/i);
   });
   it("cancelado é sanitizado, sem detalhes internos", () => {
     const h = revealDisabledHint(

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Heart, HeartHandshake, MapPin, X, Loader2, Sparkles } from "lucide-react";
+import { Heart, HeartHandshake, MapPin, X, Loader2, Sparkles, MessageCircle } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import {
   translateDecideErrorCode,
 } from "@/features/participant/presentation";
 import { generateMatchAiSummary } from "@/features/participant/matchAiSummary";
+import { RevealContactDialog } from "./RevealContactDialog";
 import type { OwnMatchDTO } from "@/features/participant/types";
 
 interface Props {
@@ -28,6 +29,7 @@ interface Props {
 export function MatchCard({ match, eventId }: Props) {
   const decide = useDecideMatchMutation(eventId);
   const [activeAction, setActiveAction] = useState<"interesse" | "agora_nao" | null>(null);
+  const [revealOpen, setRevealOpen] = useState(false);
   const myDecision = match.my_decision;
   const theirDecision = match.other_decision;
   const mutual = isMatchMutual(match);
@@ -43,10 +45,8 @@ export function MatchCard({ match, eventId }: Props) {
       { matchId: match.match_id, decision: d },
       {
         onSuccess: (res) => {
-          if (res.mutual && res.connection_created) {
-            toast.success("Deu match! 🎉 A equipe vai apresentar vocês.");
-          } else if (res.mutual) {
-            toast.success("Interesse mútuo — preparando conexão…");
+          if (res.mutual) {
+            toast.success("Deu match! 🎉 WhatsApp liberado para vocês se conectarem.");
           } else if (d === "interesse") {
             toast("Interesse registrado. Aguardando a outra parte.");
           } else if (d === "agora_nao") {
@@ -218,23 +218,34 @@ export function MatchCard({ match, eventId }: Props) {
           </div>
         </details>
 
-        {mutual && match.connection == null && (
-          <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
-            <p className="font-medium">Interesse mútuo — preparando conexão…</p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Estamos organizando a apresentação. Aguarde a atualização.
-            </p>
+        {mutual && match.connection?.status !== "cancelado" && (
+          <div className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2.5">
+              <div>
+                <p className="font-semibold text-foreground">
+                  🎉 Deu match mútuo!
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  O WhatsApp de vocês foi liberado automaticamente. Inicie a conversa agora mesmo!
+                </p>
+              </div>
+              <Button
+                variant="default"
+                size="sm"
+                className="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm shrink-0 self-start sm:self-auto"
+                onClick={() => setRevealOpen(true)}
+                data-testid={`btn-card-reveal-${match.match_id}`}
+              >
+                <MessageCircle className="mr-1.5 h-4 w-4" />
+                Ver WhatsApp
+              </Button>
+            </div>
           </div>
         )}
 
-        {mutual && match.connection != null && match.connection.status !== "cancelado" && (
-          <div className="rounded-lg border border-success/40 bg-success/10 p-3 text-sm">
-            <p className="font-medium">
-              🎉 Interesse mútuo! A equipe da ACIRV vai apresentar vocês pessoalmente na feira.
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Contato liberado quando a equipe registrar a apresentação.
-            </p>
+        {mutual && match.connection?.status === "cancelado" && (
+          <div className="rounded-lg border border-muted bg-muted/20 p-3 text-sm">
+            <p className="font-medium text-muted-foreground">Conexão cancelada pela equipe.</p>
           </div>
         )}
 
@@ -274,6 +285,13 @@ export function MatchCard({ match, eventId }: Props) {
             )}
           </div>
         )}
+
+        <RevealContactDialog
+          open={revealOpen}
+          matchId={match.match_id}
+          otherFirstName={other.name.split(" ")[0]}
+          onClose={() => setRevealOpen(false)}
+        />
       </div>
     </Card>
   );
