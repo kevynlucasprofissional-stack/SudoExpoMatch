@@ -2,7 +2,7 @@
 
 > **Método:** Quality-First. Uma etapa só é concluída quando código, evidência, não-regressão e documentação estão sincronizados.
 >
-> **Atualizado em:** 09/09/2026, após auditoria da codebase do matcher v2.4, taxonomia, onboarding com IA e implementação multi-eventos.
+> **Atualizado em:** 12/09/2026, após auditoria dos dados reais de matches/decisões/outcomes da SudoExpo 2026 e revisão da estratégia de evolução do matcher.
 
 ---
 
@@ -408,6 +408,212 @@ Criar 20–30 duplas artificiais com resultado esperado cobrindo:
 
 ---
 
+# 13.1 P0/P1 — Calibração comportamental e aprendizado com dados reais (auditoria de 12/09/2026)
+
+## Evidência observada no snapshot real
+
+A análise cruzou `matches`, `match_decisions`, `match_reasons`, perfis, ofertas,
+necessidades, conexões, eventos e taxonomia. O objetivo foi investigar por que
+existem tantos `interesse` em perspectivas com score baixo e se isso representa
+ruído de comportamento ou falso negativo do matcher.
+
+Baseline do snapshot analisado:
+
+- 2.471 matches / 4.942 perspectivas;
+- 509 decisões registradas;
+- 332 decisões `interesse`;
+- 223/332 interesses (67,2%) ocorreram com score da perspectiva `<40`;
+- 148/223 desses interesses baixos (66,4%) vieram de 17 participantes que, com pelo menos 5 decisões observadas, marcaram `interesse` em 100% delas;
+- entre participantes que efetivamente alternaram entre `interesse` e `agora_nao`, o score voltou a discriminar melhor: média aproximada 43,7 nos `interesse` vs. 23,2 nos `agora_nao`;
+- AUC do score isolado no conjunto completo ficou em ~0,625 e subiu para ~0,733 entre participantes seletivos;
+- a propensão histórica individual de aceitar/rejeitar mostrou poder preditivo muito alto para a decisão seguinte, evidenciando que `interesse` não pode ser tratado como ground truth homogêneo;
+- o sinal `outro_oferece_o_que_procuro` (+55) mostrou associação forte com interesse entre usuários seletivos; o sinal `outro_procura_o_que_ofereco` (+25) não mostrou poder discriminativo comparável nesta amostra;
+- `perfil_desejado` sozinho apresentou conversão inferior à evidência comercial direta, reforçando a necessidade de separar networking de oportunidade comercial;
+- há apenas 4 matches com interesse mútuo explícito suficiente para análise e os outcomes fortes ainda são escassos, portanto **não há evidência para reotimizar pesos com segurança agora**;
+- 109/509 decisões (21,4%) estão associadas hoje a um `generated_at` do match posterior ao `decided_at`, indicando recomputações posteriores e perda do snapshot exato que o participante viu ao decidir;
+- cobertura taxonômica observada: ~65,2% das necessidades e ~51,9% das ofertas com `taxonomy_item_id`; 44 itens ativos, sinônimos efetivamente vazios e zero relações complementares no snapshot;
+- os pesos registrados em `match_reasons` fecharam com os scores analisados, sem evidência de erro aritmético sistêmico no cálculo v2.4.
+
+### Conclusão operacional
+
+`interesse` é um **sinal comportamental ruidoso**, não um rótulo direto de
+“match correto”. A evolução do motor deve separar pelo menos quatro dimensões:
+
+```text
+compatibilidade objetiva da dupla
++ intenção / seletividade do participante
++ natureza do match (comercial x networking)
++ resultado real produzido pela conexão
+```
+
+Não alterar pesos do v2.4 apenas porque há muitos `interesse` em scores baixos.
+Primeiro corrigir mensuração, construir labels mais fortes e medir falsos
+negativos de forma controlada.
+
+## 13.1.1 P0 — Preservar o contexto histórico exato da decisão
+
+Hoje uma recomputação pode alterar score/reasons depois do clique e dificultar a
+reconstrução do que a pessoa realmente viu.
+
+- [ ] criar trilha append-only de decisões (`match_decision_events` ou equivalente) sem depender apenas do estado atual em `match_decisions`;
+- [ ] persistir no instante da decisão: `match_id`, `profile_id`, `decision`, `decision_origin`, `algorithm_version`, `score_me`, `score_other`, `kind`, labels, `score_gap` e timestamp;
+- [ ] persistir snapshot dos `reason codes`/pesos relevantes no instante do clique, ou uma referência imutável ao snapshot do matcher;
+- [ ] persistir versão da UI/experimento que apresentou o card;
+- [ ] distinguir explicitamente `participant`, `admin/staff`, automação e migração/backfill como origem da decisão;
+- [ ] garantir que ações administrativas não sejam confundidas com intenção espontânea do participante em análises futuras;
+- [ ] criar migration/backfill conservador para os dados históricos possíveis, marcando campos desconhecidos como `unknown` em vez de inferir;
+- [ ] adicionar prova/teste de que um rebuild futuro não altera o contexto histórico de uma decisão já tomada.
+
+## 13.1.2 P0 — Instrumentar exposição real e comportamento no card
+
+`match_viewed` não deve significar apenas “veio na resposta/carregou na lista”.
+Sem exposição real, não existe denominador confiável para taxa de interesse.
+
+- [ ] criar evento de impressão real quando o card entrar efetivamente na viewport (ex.: `IntersectionObserver`);
+- [ ] registrar `rank_position`/posição do card no momento da impressão;
+- [ ] registrar `first_impression_at` e quantidade de impressões;
+- [ ] registrar abertura/expansão de detalhes e resumo comercial;
+- [ ] registrar `decision_latency_ms` a partir da primeira impressão real;
+- [ ] medir dwell time de forma conservadora, sem transformar tempo de tela em falsa certeza de leitura;
+- [ ] registrar mudança/undo de decisão e intervalo entre primeira decisão e correção;
+- [ ] separar `loaded`, `impressed`, `details_opened` e `decided` como eventos diferentes;
+- [ ] versionar o schema de analytics para permitir comparação histórica;
+- [ ] adicionar testes garantindo que cards fora da viewport não geram impressão.
+
+## 13.1.3 P0 — Remover viés persuasivo indevido da apresentação
+
+O produto não deve comunicar “alta compatibilidade” quando não há evidência
+suficiente apenas para tornar o card mais atraente.
+
+- [ ] remover fallback de `matchAiSummary` que afirma compatibilidade alta/genérica quando não há reasons suficientes;
+- [ ] fazer o texto refletir a força e a natureza da evidência realmente existente;
+- [ ] distinguir visualmente “oportunidade comercial”, “perfil estratégico/networking” e “conexão exploratória”;
+- [ ] evitar CTA/copy que faça `interesse` parecer confirmação de que o algoritmo está correto;
+- [ ] avaliar copy mais semântica, por exemplo “Tenho interesse em conversar”, deixando claro que o clique mede abertura para contato;
+- [ ] testar compreensão antes/depois com participantes e equipe;
+- [ ] versionar mudanças relevantes da UI para não misturar comportamento de experiências diferentes.
+
+## 13.1.4 P1 — Calibrar o score com propensão individual
+
+A auditoria mostrou que alguns participantes usam `interesse` para quase todas
+as opções, enquanto outros são seletivos. A mesma ação tem força informacional
+diferente nesses dois casos.
+
+- [ ] calcular `interest_propensity` por participante usando apenas decisões anteriores ao ponto previsto;
+- [ ] exigir amostra mínima antes de considerar a propensão estável;
+- [ ] nunca reduzir visibilidade de alguém apenas por ser receptivo — usar propensão para **interpretar o label**, não para punir o usuário;
+- [ ] calcular curvas `P(interesse | score)` por faixa de score e por `algorithm_version`;
+- [ ] recalcular essas curvas controlando por propensão individual e exposição real;
+- [ ] medir AUC, PR-AUC, Brier score/log loss e calibração por buckets, não apenas acurácia;
+- [ ] comparar score v2.4 contra baseline “propensão do participante” e contra modelo combinado;
+- [ ] criar painel/relatório admin de calibração por evento e versão do matcher;
+- [ ] tratar usuários que sempre dizem “sim” ou sempre dizem “não” como segmentos de comportamento, não como erro de dados.
+
+## 13.1.5 P1 — Construir ground truth de valor real
+
+`interesse` deve ser um sinal intermediário. O objetivo do produto é criar
+conexões úteis.
+
+- [ ] aumentar cobertura operacional de `conversa_realizada`;
+- [ ] aumentar cobertura de `reuniao_agendada`;
+- [ ] aumentar cobertura de `proposta_solicitada`;
+- [ ] aumentar cobertura de `negocio_reportado`;
+- [ ] registrar timestamps e origem de cada outcome;
+- [ ] criar fluxo simples para staff/participante registrar outcome sem fricção excessiva;
+- [ ] medir funil por match: impressão → interesse → mutual → apresentação → conversa → reunião → proposta → negócio;
+- [ ] separar “contato liberado/apresentados” de sucesso comercial real;
+- [ ] definir uma hierarquia explícita de labels para treinamento/avaliação futura, com outcomes fortes pesando mais que clique;
+- [ ] medir `P(mutual)`, `P(conversa)`, `P(reuniao)`, `P(proposta)` e `P(negocio)` por bucket de score e por tipo de match.
+
+## 13.1.6 P1 — Minerar falsos negativos reais em vez de todo interesse baixo
+
+O conjunto prioritário para aprender relações novas não é “todo score baixo com
+interesse”, e sim casos de alta evidência comportamental apesar do score baixo.
+
+- [ ] criar fila analítica de **low-score residuals**: score `<40` + interesse de participante seletivo;
+- [ ] priorizar ainda mais: low-score + mutual explícito;
+- [ ] priorizar acima disso: low-score + conversa/reunião/proposta/negócio;
+- [ ] reconstruir reasons, ofertas, necessidades, target profile e taxonomia para cada residual;
+- [ ] classificar causa provável: cobertura taxonômica ausente, relação complementar ausente, sinônimo ausente, target parcial, semântica não capturada, informação externa ao perfil ou ruído comportamental;
+- [ ] usar esses resíduos como fonte de propostas de novos sinônimos/relações para curadoria humana;
+- [ ] medir quantos falsos negativos seriam recuperados por cada nova relação antes de ativá-la;
+- [ ] manter amostra de controle de low-score rejeitados para evitar criar relações que aumentem recall às custas de muitos falsos positivos.
+
+## 13.1.7 P1 — Melhorar cobertura semântica guiada por dados
+
+A baixa cobertura de `taxonomy_item_id` e o grafo vazio são fontes concretas de
+falsos negativos potenciais.
+
+- [ ] elevar cobertura canônica de ofertas e necessidades com meta e acompanhamento por evento;
+- [ ] priorizar conceitos livres recorrentes que aparecem nos low-score residuals;
+- [ ] popular sinônimos usando vocabulário real confirmado pelos participantes;
+- [ ] criar primeiras relações NEED → OFFER de alta confiança a partir de evidência observada;
+- [ ] usar embeddings/LLM, se adotados, como **geradores de candidatos** para curadoria e/ou features auxiliares, não como decisão opaca automática;
+- [ ] guardar similaridade semântica e rationale como feature separada para avaliação offline;
+- [ ] comparar ganho de recall e perda de precisão antes/depois de cada lote de relações.
+
+## 13.1.8 P1 — Reavaliar pesos com replay offline, não por intuição
+
+Os dados atuais sugerem que `+55 outro oferece o que procuro` é informativo,
+enquanto `+25 outro procura o que ofereço` aparenta menor poder discriminativo
+para `interesse` na amostra seletiva. Isso é hipótese de reponderação, não
+mudança imediata.
+
+- [ ] construir replay offline reproduzível do v2.4 sobre snapshots históricos;
+- [ ] testar alternativas de peso sem modificar produção;
+- [ ] avaliar separadamente objetivo comercial e objetivo networking;
+- [ ] testar score contínuo e probabilidades calibradas em vez de thresholds arbitrários;
+- [ ] só promover novos pesos se melhorarem métricas de outcome e calibração em holdout temporal/evento;
+- [ ] qualquer alteração de pesos/thresholds deve gerar nova `algorithm_version`;
+- [ ] manter v2.4 reproduzível para auditoria histórica.
+
+## 13.1.9 P1 — Corrigir viés de ranking e permitir aprendizado contrafactual
+
+Se apenas os melhores scores aparecem primeiro, os dados futuros reforçam o
+próprio matcher e tornam difícil descobrir alternativas melhores.
+
+- [ ] medir taxa de impressão por posição antes de interpretar taxa de interesse;
+- [ ] normalizar análises por exposição/rank;
+- [ ] considerar pequena faixa de exploração controlada entre candidatos plausíveis, sem degradar experiência do participante;
+- [ ] randomizar apenas dentro de bandas seguras/semelhantes e registrar o experimento;
+- [ ] usar exploração para estimar interesse/outcome de candidatos que o ranking atual normalmente esconderia;
+- [ ] definir guardrails para impedir que exploração exiba pares claramente inadequados.
+
+## 13.1.10 P2 — Matcher v3 probabilístico e explicável
+
+Somente depois de mensuração confiável, outcomes suficientes e validação offline.
+
+Objetivo conceitual:
+
+```text
+features determinísticas v2.4
++ taxonomia/grafo
++ semântica
++ target profile parcial/estruturado
++ contexto da dupla
++ propensão comportamental histórica
++ exposição/rank
++ outcomes históricos
+        ↓
+modelo calibrado
+        ↓
+P(A demonstra interesse em B)
+P(B demonstra interesse em A)
+P(dupla gera conexão valiosa)
+```
+
+- [ ] manter score/reasons determinísticos como features e camada explicável;
+- [ ] prever A→B e B→A separadamente;
+- [ ] criar terceira previsão para valor da dupla, independente do clique unilateral;
+- [ ] evitar treinar diretamente em labels contaminados por ações administrativas;
+- [ ] usar split temporal e, quando possível, validação entre eventos;
+- [ ] comparar sempre contra baseline v2.4 e baseline de propensão individual;
+- [ ] exigir explicação auditável das principais features que levaram à priorização;
+- [ ] definir rollback simples para v2.4 em caso de regressão;
+- [ ] não introduzir ML em produção enquanto a base de outcomes fortes for insuficiente.
+
+---
+
 # 14. Ordem de execução recomendada
 
 ```text
@@ -415,13 +621,20 @@ P0. governança/rebuild de snapshots                IMPLEMENTADO; validar em ban
 P0. direção NEED → OFFER na UI                     IMPLEMENTADO + teste de UI
 P0. corrigir contexto multi-evento da taxonomia    IMPLEMENTADO + contrato estático
 P1. executar prova SQL + typecheck/testes
+P0. preservar snapshot histórico de cada decisão
+P0. instrumentar impressão real, rank e latência
+P0. neutralizar copy que superestime compatibilidade
 P1. medir cobertura canônica real do evento
-P1. curar sinônimos
+P1. calibrar score por exposição + propensão individual
+P1. aumentar cobertura de outcomes reais
+P1. minerar low-score residuals de alta evidência
+P1. curar sinônimos/relações guiados pelos resíduos reais
 P1. revisar ontologia/kind
-P1. cadastrar relações de alta confiança
 P1. melhorar reasons +55/+25
-P1. alinhar prompt da IA e bump de versão
 P1. separar natureza comercial/networking na UI
+P1. replay offline antes de qualquer reponderação v2.5
+P1. avaliar exploração controlada para reduzir viés de ranking
+P2. Matcher v3 probabilístico apenas com labels/outcomes suficientes
 P2. decidir assimetria do fornecedor
 P2. limpar legado/nomenclatura
 P2. benchmark e otimização baseada em dados
