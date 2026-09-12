@@ -901,6 +901,47 @@ export type Database = {
           },
         ]
       }
+      offline_connections: {
+        Row: {
+          created_at: string
+          event_id: string
+          id: string
+          note: string | null
+          party_a: string
+          party_b: string
+          recorded_by: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          id?: string
+          note?: string | null
+          party_a: string
+          party_b: string
+          recorded_by?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          id?: string
+          note?: string | null
+          party_a?: string
+          party_b?: string
+          recorded_by?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "offline_connections_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profile_needs: {
         Row: {
           active: boolean
