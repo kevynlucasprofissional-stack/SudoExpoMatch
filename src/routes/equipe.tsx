@@ -16,6 +16,7 @@ import {
   MapPinOff,
   X,
   MessageCircle,
+  Sparkles,
 } from "lucide-react";
 import { zodValidator } from "@tanstack/zod-adapter";
 
@@ -455,13 +456,24 @@ function StaffDashboard({
               <Badge variant={isAdmin ? "default" : "secondary"}>{role}</Badge>
             </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/matches">
+                <Sparkles className="mr-1 h-4 w-4" /> Auditoria & WhatsApp
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/participantes">Participantes</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/taxonomia">Taxonomia</Link>
+            </Button>
             <Button variant="outline" size="sm" onClick={() => setPinsOpen(true)}>
               <MapPin className="mr-1 h-4 w-4" /> Pins do mapa
             </Button>
             {isAdmin && (
               <Button asChild variant="outline" size="sm">
-                <Link to="/admin">Administração</Link>
+                <Link to="/admin">Equipe & Config</Link>
               </Button>
             )}
             <Button variant="ghost" size="sm" onClick={() => signOut()}>

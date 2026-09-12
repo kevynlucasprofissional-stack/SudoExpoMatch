@@ -1,7 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, CheckCircle2, Network, Search, ShieldAlert } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  MessageCircle,
+  Network,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  UserCheck,
+  Users,
+} from "lucide-react";
+import { WhatsAppOutreachModal } from "@/features/admin/WhatsAppOutreachModal";
 
 import { PageShell } from "@/components/brand/BrandShell";
 import { Card } from "@/components/ui/card";
@@ -99,7 +110,7 @@ function MatchesPage() {
     );
   }
 
-  if (roleQuery.data !== "admin") {
+  if (!roleQuery.data) {
     return (
       <PageShell>
         <section className="mx-auto max-w-md px-4 py-12">
@@ -107,7 +118,7 @@ function MatchesPage() {
             <ShieldAlert className="mx-auto h-10 w-10 text-destructive" />
             <h1 className="mt-3 font-display text-xl font-semibold">Acesso negado</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Apenas administradores do evento acessam esta página.
+              Apenas membros autorizados da equipe ou administração do evento acessam esta página.
             </p>
             <Button asChild variant="outline" className="mt-4">
               <Link to="/equipe">Voltar</Link>
@@ -134,11 +145,13 @@ function MatchCardRow({
   m,
   onOpen,
   onToggleReviewed,
+  onOutreach,
   pending,
 }: {
   m: MatchRow;
   onOpen: (id: string) => void;
   onToggleReviewed: (id: string, reviewed: boolean) => void;
+  onOutreach: (match: MatchRow, side: "a" | "b") => void;
   pending: boolean;
 }) {
   const gap = m.score_gap;
@@ -218,27 +231,58 @@ function MatchCardRow({
       </button>
 
       <div
-        className="mt-1 flex items-center gap-2 rounded-md px-3 pb-1 text-xs"
+        className="mt-1 flex flex-wrap items-center justify-between gap-2 rounded-md px-3 pb-2 text-xs"
         data-testid="match-review-control"
       >
-        <Checkbox
-          id={`review-${m.id}`}
-          checked={m.reviewed}
-          disabled={pending}
-          onCheckedChange={(v) => onToggleReviewed(m.id, v === true)}
-          aria-label={`Marcar match entre ${m.a_name} e ${m.b_name} como revisado`}
-        />
-        <label
-          htmlFor={`review-${m.id}`}
-          className="cursor-pointer select-none text-muted-foreground"
-        >
-          Match revisado
-        </label>
-        {m.reviewed ? (
-          <span className="inline-flex items-center gap-1 text-primary" data-testid="reviewed-flag">
-            <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Revisado
-          </span>
-        ) : null}
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id={`review-${m.id}`}
+            checked={m.reviewed}
+            disabled={pending}
+            onCheckedChange={(v) => onToggleReviewed(m.id, v === true)}
+            aria-label={`Marcar match entre ${m.a_name} e ${m.b_name} como revisado`}
+          />
+          <label
+            htmlFor={`review-${m.id}`}
+            className="cursor-pointer select-none text-muted-foreground"
+          >
+            Match revisado
+          </label>
+          {m.reviewed ? (
+            <span className="inline-flex items-center gap-1 text-primary" data-testid="reviewed-flag">
+              <CheckCircle2 className="h-3.5 w-3.5" aria-hidden /> Revisado
+            </span>
+          ) : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2.5 text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOutreach(m, "a");
+            }}
+          >
+            <MessageCircle className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+            WhatsApp {shortName(m.a_name)}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 px-2.5 text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            onClick={(e) => {
+              e.stopPropagation();
+              onOutreach(m, "b");
+            }}
+          >
+            <MessageCircle className="mr-1 h-3.5 w-3.5 text-emerald-600" />
+            WhatsApp {shortName(m.b_name)}
+          </Button>
+        </div>
       </div>
     </li>
   );
@@ -251,6 +295,9 @@ function MatchesBoard() {
 
   const [qInput, setQInput] = useState(search.q);
   const debouncedQ = useDebouncedValue(qInput, 350);
+
+  const [outreachMatch, setOutreachMatch] = useState<MatchRow | null>(null);
+  const [outreachSide, setOutreachSide] = useState<"a" | "b">("b");
 
   useEffect(() => {
     if (debouncedQ === search.q) return;
@@ -301,22 +348,78 @@ function MatchesBoard() {
       <section className="mx-auto max-w-5xl px-4 py-8">
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-wide text-primary">Administração</p>
-            <h1 className="font-display text-2xl font-bold md:text-3xl">Auditoria de matches</h1>
+            <p className="text-xs uppercase tracking-wide text-primary">Central Operacional & Auditoria</p>
+            <h1 className="font-display text-2xl font-bold md:text-3xl">Auditoria & Disparo de Matches</h1>
             <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-              Somente leitura: confira score e classificação de cada lado, motivos do matcher e
-              status da conexão. Nada aqui edita o algoritmo nem revela contatos.
+              Aborde participantes via WhatsApp com IA, audite scores e confirme conexões em 1 clique.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <EventSelector />
             <Button asChild variant="outline" size="sm">
+              <Link to="/equipe">
+                <Users className="mr-1 h-4 w-4" /> Fila operacional
+              </Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/participantes">Participantes</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
+              <Link to="/admin/taxonomia">Taxonomia</Link>
+            </Button>
+            <Button asChild variant="outline" size="sm">
               <Link to="/admin">
-                <ArrowLeft className="mr-1 h-4 w-4" /> Voltar ao admin
+                <ArrowLeft className="mr-1 h-4 w-4" /> Equipe & Admin
               </Link>
             </Button>
           </div>
         </header>
+
+        {/* Filtros rápidos de prioridade operacional */}
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant={!search.decisions.length && !search.mutual && search.connection === "any" ? "default" : "outline"}
+            onClick={() => setParam({ dec: "", mutual: "", conn: "any" })}
+          >
+            Todos os matches
+          </Button>
+          <Button
+            size="sm"
+            variant={search.decisions.includes("interesse") && !search.mutual ? "default" : "outline"}
+            className={
+              search.decisions.includes("interesse") && !search.mutual
+                ? "bg-primary font-medium"
+                : "border-primary/40 text-primary hover:bg-primary/10"
+            }
+            onClick={() => setParam({ dec: "interesse", mutual: "", conn: "any" })}
+          >
+            <Sparkles className="mr-1.5 h-3.5 w-3.5" />
+            Com interesse registrado
+          </Button>
+          <Button
+            size="sm"
+            variant={search.mutual ? "default" : "outline"}
+            onClick={() => setParam({ mutual: "1", dec: "", conn: "any" })}
+          >
+            <UserCheck className="mr-1.5 h-3.5 w-3.5" />
+            Interesse mútuo
+          </Button>
+          <Button
+            size="sm"
+            variant={search.connection === "with" ? "default" : "outline"}
+            onClick={() => setParam({ conn: "with", dec: "", mutual: "" })}
+          >
+            Com conexão ativa
+          </Button>
+          <Button
+            size="sm"
+            variant={search.briefing === "with" ? "default" : "outline"}
+            onClick={() => setParam({ brief: search.briefing === "with" ? "any" : "with" })}
+          >
+            Com briefing de IA
+          </Button>
+        </div>
 
         <Card className="mb-4 space-y-3 p-4">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -649,6 +752,10 @@ function MatchesBoard() {
                   onToggleReviewed={(id, reviewed) =>
                     reviewMutation.mutate({ matchId: id, reviewed })
                   }
+                  onOutreach={(match, side) => {
+                    setOutreachMatch(match);
+                    setOutreachSide(side);
+                  }}
                   pending={pendingReviewId === m.id}
                 />
               ))}
@@ -678,6 +785,13 @@ function MatchesBoard() {
       <MatchDetailSheet
         matchId={search.selected}
         onClose={() => navigate({ search: (prev) => ({ ...prev, m: "" }), replace: true })}
+      />
+
+      <WhatsAppOutreachModal
+        match={outreachMatch}
+        open={outreachMatch !== null}
+        onClose={() => setOutreachMatch(null)}
+        defaultSide={outreachSide}
       />
     </PageShell>
   );

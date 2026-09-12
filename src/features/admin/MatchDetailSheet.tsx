@@ -13,6 +13,8 @@ import { ArrowRight, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ReleaseWhatsAppDialog } from "@/features/connections/ReleaseWhatsAppDialog";
+import { WhatsAppOutreachModal } from "@/features/admin/WhatsAppOutreachModal";
+import { shortName } from "@/features/admin/matchExplanation";
 
 
 import { useAdminMatchDetail } from "@/features/admin/useAdminMatches";
@@ -87,6 +89,7 @@ function PerspectivePanel({
   label,
   decision,
   reasons,
+  onOutreach,
 }: {
   title: string;
   profile: { name: string; company: string; segment_label: string | null; summary: string };
@@ -94,16 +97,30 @@ function PerspectivePanel({
   label: string;
   decision: string;
   reasons: MatchReason[];
+  onOutreach?: () => void;
 }) {
   return (
     <div className="space-y-3">
-      <div>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
-        <p className="font-medium">
-          {profile.name}
-          {profile.company ? ` · ${profile.company}` : ""}
-        </p>
-        <p className="text-xs text-muted-foreground">{profile.segment_label ?? "—"}</p>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="text-xs uppercase tracking-wide text-muted-foreground">{title}</p>
+          <p className="font-medium">
+            {profile.name}
+            {profile.company ? ` · ${profile.company}` : ""}
+          </p>
+          <p className="text-xs text-muted-foreground">{profile.segment_label ?? "—"}</p>
+        </div>
+        {onOutreach && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10"
+            onClick={onOutreach}
+          >
+            <MessageCircle className="mr-1.5 h-3.5 w-3.5 text-emerald-600" />
+            Abordar {shortName(profile.name)}
+          </Button>
+        )}
       </div>
       <div className="flex flex-wrap gap-1">
         <Badge>Score {score}</Badge>
@@ -136,6 +153,8 @@ export function MatchDetailSheet({
   const d = query.data;
   const qc = useQueryClient();
   const [releaseOpen, setReleaseOpen] = useState(false);
+  const [outreachOpen, setOutreachOpen] = useState(false);
+  const [outreachSide, setOutreachSide] = useState<"a" | "b">("b");
   const released =
     d?.connection != null &&
     ["apresentados", "contato_trocado", "concluido"].includes(d.connection.status);
@@ -176,6 +195,43 @@ export function MatchDetailSheet({
 
             <TabsContent value="overview" className="mt-3 space-y-3 text-sm">
               <MatchBriefingPanel detail={d} eventId={EVENT_ID} />
+
+              {/* Banner de abordagem rápida via WhatsApp */}
+              <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 p-3 space-y-2">
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold text-xs text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                    <MessageCircle className="h-4 w-4 text-emerald-600" />
+                    Abordagem Rápida via WhatsApp
+                  </p>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Aborde qualquer um dos participantes com mensagens pré-formatadas com IA e leitura comercial.
+                </p>
+                <div className="grid grid-cols-2 gap-2 pt-1">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs"
+                    onClick={() => {
+                      setOutreachSide("a");
+                      setOutreachOpen(true);
+                    }}
+                  >
+                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" /> Falar com {shortName(d.profile_a.name)}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-emerald-500/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-500/10 text-xs"
+                    onClick={() => {
+                      setOutreachSide("b");
+                      setOutreachOpen(true);
+                    }}
+                  >
+                    <MessageCircle className="mr-1.5 h-3.5 w-3.5" /> Falar com {shortName(d.profile_b.name)}
+                  </Button>
+                </div>
+              </div>
 
               <div className="grid gap-2 sm:grid-cols-2">
                 <div className="rounded-md border p-3">
@@ -220,6 +276,10 @@ export function MatchDetailSheet({
                 label={d.match.label_a}
                 decision={d.match.decision_a}
                 reasons={d.reasons_a}
+                onOutreach={() => {
+                  setOutreachSide("a");
+                  setOutreachOpen(true);
+                }}
               />
             </TabsContent>
 
@@ -231,6 +291,10 @@ export function MatchDetailSheet({
                 label={d.match.label_b}
                 decision={d.match.decision_b}
                 reasons={d.reasons_b}
+                onOutreach={() => {
+                  setOutreachSide("b");
+                  setOutreachOpen(true);
+                }}
               />
             </TabsContent>
 
@@ -280,6 +344,14 @@ export function MatchDetailSheet({
           onReleased={() => {
             if (matchId) qc.invalidateQueries({ queryKey: ["admin", "match-detail", matchId] });
           }}
+        />
+
+        <WhatsAppOutreachModal
+          match={d ?? null}
+          open={outreachOpen}
+          onClose={() => setOutreachOpen(false)}
+          defaultSide={outreachSide}
+          briefing={d?.briefing as any}
         />
       </SheetContent>
     </Sheet>
