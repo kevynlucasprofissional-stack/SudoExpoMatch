@@ -2,7 +2,7 @@
 
 > **Método:** Quality-First. Uma etapa só é concluída quando código, evidência, não-regressão, mensuração e documentação estão sincronizados.
 >
-> **Atualizado em:** 12/09/2026, após auditoria de produto, UX, operação, matcher, taxonomia, analytics, multi-eventos e fluxo administrativo.
+> **Atualizado em:** 12/09/2026, após auditoria de produto, UX, operação, matcher, taxonomia, analytics, multi-eventos, fluxo administrativo e análise comportamental dos dados reais de 509 decisões / 2.471 matches da SudoExpo 2026.
 >
 > **Objetivo:** transformar o SudoExpo Match de um sistema que gera recomendações em um sistema que aprende continuamente quais conexões realmente valem o tempo dos participantes e da equipe ACIRV.
 
@@ -27,6 +27,9 @@ Princípios obrigatórios:
 - IA deve gerar candidatos, explicações e síntese; decisões críticas continuam auditáveis;
 - qualquer alteração de pesos/thresholds gera nova `algorithm_version`;
 - não treinar o matcher diretamente em sinais contaminados por ações administrativas;
+- não tratar `interesse` binário como sinônimo de “match correto”;
+- propensão individual serve primeiro para **interpretar o label**, não para premiar/punir participantes no ranking;
+- nenhuma conclusão sobre falso negativo deve ignorar exposição, rank, seletividade do participante e origem da decisão;
 - não aumentar complexidade antes de medir o gargalo atual.
 
 ---
@@ -63,7 +66,10 @@ Princípios obrigatórios:
 - [ ] elevar cobertura taxonômica e ativar sinônimos/relações complementares com evidência;
 - [ ] preservar snapshot exato visto pelo participante no instante da decisão;
 - [ ] substituir analytics de “carregado” por exposição real;
-- [ ] construir ground truth de outcomes comerciais.
+- [ ] construir ground truth de outcomes comerciais;
+- [ ] distinguir “abertura para conversar” de “forte compatibilidade percebida”;
+- [ ] medir explicitamente reversão/undo para estimar cliques acidentais em vez de inferi-los por velocidade;
+- [ ] capturar intenção/objetivo comercial do participante para contextualizar decisões.
 
 ---
 
@@ -296,7 +302,9 @@ Dimensões obrigatórias:
 - [ ] tipo/natureza do match;
 - [ ] faixa de score;
 - [ ] posição/rank;
-- [ ] seletividade histórica do participante.
+- [ ] seletividade histórica do participante;
+- [ ] objetivo/intenção principal declarado no evento, quando disponível;
+- [ ] origem da decisão (`participant`, `admin/staff`, automação, backfill).
 
 ## 5.5 D12 — Experimentos controlados
 
@@ -306,6 +314,20 @@ Dimensões obrigatórias:
 - [ ] registrar exposição à variante antes de medir comportamento;
 - [ ] suportar holdout temporal/evento para matcher;
 - [ ] criar guardrails de regressão de QCR, abandono e esforço administrativo.
+
+## 5.6 D13 — Semântica da decisão e detecção de clique acidental
+
+A análise histórica não demonstrou que decisões rápidas sejam necessariamente acidentais: usuários seletivos também rejeitam rapidamente. Portanto não usar `decision_latency` isoladamente para classificar ruído.
+
+- [ ] oferecer undo/reversão imediata e sem fricção após `interesse`/`agora_nao`;
+- [ ] registrar `decision_changed`, decisão anterior, nova decisão e intervalo entre ambas;
+- [ ] criar métrica de reversão imediata (ex.: até 10 s) como proxy muito mais defensável de clique acidental;
+- [ ] distinguir mudança rápida de mudança tardia após nova informação;
+- [ ] experimentar feedback opcional pós-interesse, de um toque, sem bloquear o fluxo: `quero comprar/contratar`, `quero vender/oferecer`, `parceria`, `indicação/canal`, `networking`, `outro`;
+- [ ] registrar `interest_intent` apenas quando explicitamente informado; nunca inferir silenciosamente;
+- [ ] avaliar experimento de intensidade opcional (`aberto a conversar` vs. `forte interesse`) somente se não aumentar fricção;
+- [ ] medir abandono/latência adicional antes de tornar qualquer pergunta obrigatória;
+- [ ] não usar ausência de feedback opcional como sinal negativo.
 
 ---
 
@@ -336,6 +358,11 @@ Implementar captura, cálculo e dashboard para todas as métricas abaixo.
 | **Follow-up Recovery** | respostas positivas pós-follow-up / follow-ups enviados | valor do follow-up |
 | **Qualified Connections/Admin Hour** | conexões úteis / hora operacional | produtividade |
 | **QCR** | conexões com outcome útil / participantes ativos | North Star |
+| **Immediate Decision Reversal** | reversões rápidas / decisões | provável clique acidental/confusão |
+| **Permissive Interest Share** | interesses vindos de perfis com alta propensão histórica / interesses totais | qualidade do label |
+| **Reason Lift** | `P(interesse/outcome | reason)` vs. baseline comparável | valor de cada componente do score |
+| **Low-score Selective Success** | low-score com interesse/outcome de usuário seletivo / low-score realmente expostos | falsos negativos prioritários |
+| **Calibration Error** | ECE/Brier/log loss por versão | score/probabilidade vs. realidade |
 
 ## 6.1 Métricas adicionais obrigatórias
 
@@ -345,9 +372,14 @@ Implementar captura, cálculo e dashboard para todas as métricas abaixo.
 - [ ] canonicalization rate por origem (`catalog`, texto livre, IA, Instagram);
 - [ ] decision latency;
 - [ ] undo/change rate de decisões;
+- [ ] reversão em até 10 s e em janelas maiores;
 - [ ] taxa de impressão por posição;
 - [ ] interest/reject por bucket de score;
 - [ ] mutual/outcome por bucket de score;
+- [ ] interest/outcome por `kind` de match;
+- [ ] interest/outcome por reason code;
+- [ ] interest/outcome por objetivo declarado do participante;
+- [ ] distribuição de `interest_propensity` por participante e evento;
 - [ ] distribuição de conexões por participante para detectar concentração;
 - [ ] saturação de exposição por participante;
 - [ ] taxa de briefing gerado → ação útil;
@@ -355,7 +387,8 @@ Implementar captura, cálculo e dashboard para todas as métricas abaixo.
 - [ ] erro/retry rate das RPCs críticas;
 - [ ] tempo p50/p90/p99 de recompute/rebuild;
 - [ ] dados incompletos por evento;
-- [ ] cobertura de outcomes por conexões concluídas.
+- [ ] cobertura de outcomes por conexões concluídas;
+- [ ] intervalos de confiança/amostra mínima para métricas usadas em decisões de peso.
 
 ## 6.2 Regras de qualidade dos dados
 
@@ -365,7 +398,10 @@ Implementar captura, cálculo e dashboard para todas as métricas abaixo.
 - [ ] não misturar ação espontânea do participante com ação administrativa;
 - [ ] preservar evento, algoritmo e UI vistos no momento da ação;
 - [ ] criar checks de duplicidade e cardinalidade inesperada;
-- [ ] manter documentação do significado de cada evento/métrica.
+- [ ] manter documentação do significado de cada evento/métrica;
+- [ ] nenhuma feature comportamental pode usar informação futura ao instante previsto;
+- [ ] evitar leakage entre treino e avaliação quando decisões do mesmo participante aparecem nos dois lados sem desenho explícito;
+- [ ] manter coortes pequenas visíveis como “insuficientes”, não transformar ruído em conclusão.
 
 ---
 
@@ -379,8 +415,11 @@ Recomputações futuras não podem apagar o contexto que gerou uma decisão.
 - [ ] persistir `score_me`, `score_other`, labels, kind, score gap;
 - [ ] persistir reasons e pesos relevantes ou referência imutável ao snapshot;
 - [ ] persistir posição/rank e variante de UI;
+- [ ] persistir `first_impression_at`, `decision_at` e `decision_latency_ms` quando mensuráveis;
+- [ ] persistir objetivo/intenção declarada e `interest_intent` quando existirem, sem inferir campos ausentes;
 - [ ] distinguir `participant`, `staff/admin`, automação, migração/backfill;
 - [ ] backfill histórico conservador, usando `unknown` quando não for possível reconstruir;
+- [ ] marcar explicitamente quando o score disponível é recomputado e não o score original visto;
 - [ ] testar que rebuild posterior não altera a interpretação histórica.
 
 ---
@@ -396,7 +435,12 @@ Recomputações futuras não podem apagar o contexto que gerou uma decisão.
 - [ ] separar contato liberado de sucesso comercial;
 - [ ] criar hierarquia de labels de avaliação do matcher;
 - [ ] outcomes fortes devem pesar mais que cliques em avaliações futuras;
-- [ ] medir `P(mutual)`, `P(conversa)`, `P(reuniao)`, `P(proposta)`, `P(negocio)` por bucket e natureza do match.
+- [ ] medir `P(mutual)`, `P(conversa)`, `P(reuniao)`, `P(proposta)`, `P(negocio)` por bucket e natureza do match;
+- [ ] registrar quem reportou o outcome (`participant`, contraparte, staff) e, quando necessário, nível de confiança/verificação;
+- [ ] criar follow-up pós-conexão com baixa fricção (ex.: D+1/D+7 ou após evento) para elevar cobertura de outcomes;
+- [ ] evitar survey excessivo: priorizar conexões apresentadas e amostragem útil;
+- [ ] distinguir “conversa aconteceu” de “conversa foi útil” quando houver forma simples de capturar;
+- [ ] medir cobertura de outcome e viés de não resposta antes de usar outcomes como ground truth absoluto.
 
 ---
 
@@ -490,7 +534,9 @@ Esta é uma das hipóteses com melhor relação impacto/esforço.
 ## Meta inicial
 
 - [ ] ≥90% de cobertura canônica em itens confirmados antes de depender fortemente do grafo;
-- [ ] alertar quando cobertura cair abaixo da meta.
+- [ ] alertar quando cobertura cair abaixo da meta;
+- [ ] acompanhar separadamente cobertura de necessidades e ofertas — o baseline auditado mostrou assimetria relevante;
+- [ ] priorizar gaps presentes em low-score residuals seletivos antes de expandir catálogo genericamente.
 
 ---
 
@@ -504,7 +550,10 @@ Esta é uma das hipóteses com melhor relação impacto/esforço.
 - [ ] exibir principais overlaps quando houver múltiplos;
 - [ ] manter score saturado para evitar inflação por quantidade de overlaps;
 - [ ] separar razão principal de detalhes adicionais;
-- [ ] reasons devem ser auditáveis e reprodutíveis.
+- [ ] reasons devem ser auditáveis e reprodutíveis;
+- [ ] produzir relatório offline de lift por reason code com denominador, intervalo de confiança e tamanho da amostra;
+- [ ] comparar lift de cada reason em `interesse`, `mutual` e outcomes fortes;
+- [ ] não reponderar reason isolado apenas por correlação bruta sem controlar seletividade/exposição.
 
 ---
 
@@ -519,6 +568,7 @@ Esta é uma das hipóteses com melhor relação impacto/esforço.
 - [ ] indicar quando texto foi gerado por modelo e qual evidência sustentou a síntese;
 - [ ] evitar fallback genérico que afirma “alta compatibilidade” sem reason suficiente;
 - [ ] usar copy “Tenho interesse em conversar” para medir abertura real a contato;
+- [ ] deixar explícito que score é evidência/ranking, não porcentagem/probabilidade enquanto não houver calibração;
 - [ ] versionar mudanças relevantes de copy/UX.
 
 ## C03/C06/C07/C08 — Backlog associado
@@ -548,7 +598,9 @@ Esta é uma das hipóteses com melhor relação impacto/esforço.
 - [ ] mostrar uma razão principal e detalhes sob demanda;
 - [ ] remover nomenclatura técnica do matcher da superfície principal;
 - [ ] explicar estado após “Tenho interesse”;
-- [ ] mostrar expectativa operacional (“aguardando resposta”, “ACIRV fará a aproximação”).
+- [ ] mostrar expectativa operacional (“aguardando resposta”, “ACIRV fará a aproximação”);
+- [ ] manter undo visível o suficiente para corrigir toque acidental sem exigir confirmação modal em todo clique;
+- [ ] evitar confirmação modal obrigatória como solução padrão antes de medir se há acidente real.
 
 ---
 
@@ -572,14 +624,25 @@ Esta é uma das hipóteses com melhor relação impacto/esforço.
 - [ ] medir latência, taxa de sucesso, campos aceitos e efeito no QCR;
 - [ ] fallback deve manter cadastro utilizável sem Instagram.
 
-## Backlog U06–U12
+## U11 — Objetivo principal na feira como contexto de matching
+
+A auditoria mostrou que o mesmo botão `interesse` pode significar “quero comprar”, “quero prospectar”, “quero parceria” ou apenas “não vejo problema em conversar”. Capturar intenção declarada pode explicar parte da variância hoje atribuída ao score.
+
+- [ ] promover “qual é seu principal objetivo na feira?” de backlog genérico para experimento P1/P2 mensurável;
+- [ ] opções iniciais: `comprar/contratar`, `vender/prospectar`, `buscar parceria`, `buscar fornecedores`, `indicação/canal`, `networking`, `explorar oportunidades`;
+- [ ] permitir múltiplos objetivos com um principal, se necessário, sem transformar onboarding em questionário longo;
+- [ ] persistir por evento, pois intenção pode mudar entre Café Entre Amigos e SudoExpo;
+- [ ] usar inicialmente como dimensão analítica e explicativa, não alterar score automaticamente;
+- [ ] medir se objetivo declarado explica decisão/outcome além do v2.4;
+- [ ] somente promover para feature do matcher se houver ganho validado fora da amostra de treino.
+
+## Backlog U06–U10/U12
 
 - [ ] explicar por que cada campo é útil;
 - [ ] remover campos sem efeito comprovado do caminho crítico;
 - [ ] autosave robusto de rascunho;
 - [ ] estimativa de tempo restante;
 - [ ] avaliar resumo empresarial como principal campo semântico;
-- [ ] perguntar “qual é seu principal objetivo na feira?”;
 - [ ] exemplos personalizados por segmento.
 
 ---
@@ -605,13 +668,69 @@ exploratória
 - [ ] medir interesse/outcome por natureza;
 - [ ] testar compreensão com equipe e participantes.
 
+## M18 — Dual score / dois eixos antes de um único número
+
+A auditoria mostrou comportamento distinto entre evidência comercial direta e `perfil_desejado`. Antes de tentar “consertar” tudo com novos pesos em um único score, testar offline dois eixos independentes:
+
+```text
+commercial_score
+  oferta ↔ necessidade
+  prioridade
+  relações NEED → OFFER
+
+networking_score
+  perfil desejado
+  segmento/tipo/porte-alvo
+  afinidade estratégica
+```
+
+- [ ] reconstruir v2.4 em dois eixos sem alterar produção;
+- [ ] medir qual eixo prevê `interesse`, mutual e outcomes por intenção declarada;
+- [ ] testar UI que apresente “oportunidade comercial” e “afinidade de networking” separadamente;
+- [ ] só criar score composto se houver justificativa empírica para a combinação;
+- [ ] preservar reasons determinísticos em ambos os eixos.
+
 ---
 
 # 17. P1/P2 — Calibração comportamental e matcher baseado em evidência
 
 ## Baseline observado em 12/09/2026
 
-A auditoria real mostrou que `interesse` é um sinal comportamental ruidoso. Muitos participantes marcam interesse em quase tudo; entre usuários seletivos o score v2.4 discrimina melhor. Portanto não reponderar o matcher apenas porque existem interesses com score baixo.
+A auditoria cruzou 2.471 matches / 4.942 perspectivas, 509 decisões, 15.621 reasons, 127 perfis, ofertas/necessidades, conexões e taxonomia. O objetivo foi investigar por que existem tantos `interesse` em scores baixos.
+
+Evidência principal:
+
+- 332 decisões foram `interesse`;
+- 223/332 interesses (67,2%) ocorreram com score `<40`;
+- 148/223 desses interesses baixos (66,4%) vieram de apenas 17 participantes que, com pelo menos 5 decisões observadas, marcaram `interesse` em 100% delas;
+- 14 participantes registraram tanto `interesse` quanto `agora_nao` e fornecem sinal mais útil de preferência relativa;
+- entre esses participantes seletivos, taxa de interesse por score observada: `0–19 = 37,7%`, `20–39 = 41,0%`, `40–59 = 37,5%` (amostra pequena), `60–74 = 83,3%`, `75+ = 100%`;
+- score médio entre seletivos: ~43,7 quando disseram `interesse` vs. ~23,2 em `agora_nao`; mediana 60 vs. 22;
+- AUC do score isolado: ~0,625 no conjunto total e ~0,733 entre seletivos;
+- o histórico anterior de propensão individual a aceitar/rejeitar passou de ~0,91 AUC para prever a próxima decisão; após cinco decisões anteriores ficou próximo de ~0,94, mostrando que estilo de decisão domina parte importante do clique;
+- tempo mediano aproximado entre decisões seletivas: ~5,4 s para `interesse` e ~3,7 s para rejeição — velocidade sozinha não demonstra acidente;
+- apenas 4 matches tinham interesse mútuo explícito suficiente no snapshot (`75↔35`, `5↔25`, `30↔70`, `35↔65`), e o lado baixo era altamente permissivo ou tinha amostra insuficiente; portanto não usar esses quatro casos como prova automática de falso negativo;
+- havia 67 conexões, 66 em `apresentados`, com outcomes fortes ainda escassos; contato/apresentação não é ground truth comercial;
+- `outro_oferece_o_que_procuro` (+55) mostrou forte associação entre seletivos: ~79,7% de interesse quando presente vs. ~39,5% quando ausente;
+- `outro_procura_o_que_ofereco` (+25) não mostrou lift comparável nessa amostra: ~54,5% quando presente vs. ~55,4% quando ausente;
+- presença de `perfil_desejado` teve ~35,0% de interesse entre seletivos vs. ~60,8% sem esse sinal; isso não prova causalidade, mas exige separar networking de evidência comercial;
+- por `kind`, taxas observadas entre seletivos foram aproximadamente: `hibrido 93,8%`, `inverso 56,2%`, `direto 42,9%`, `perfil_desejado 36,6%`; vários grupos são pequenos, logo servem como hipótese, não peso pronto;
+- 109/509 decisões (21,4%) hoje apontam para um `generated_at` do match posterior ao `decided_at`, evidenciando recomputação e perda do contexto histórico exato;
+- cobertura taxonômica observada: ~65,2% das necessidades e ~51,9% das ofertas com `taxonomy_item_id`; 44 itens ativos, sinônimos efetivamente vazios e zero relações complementares;
+- os `match_reasons` fecharam aritmeticamente com os scores nas perspectivas analisadas — não há evidência de bug sistêmico de soma no v2.4.
+
+### Conclusão operacional
+
+O dado atual sustenta quatro coisas diferentes:
+
+```text
+A — clique acidental aleatório: não demonstrado
+A' — participantes extremamente permissivos: fortemente demonstrado
+B — falsos negativos reais: plausíveis, mas ainda não quantificados com ground truth forte
+C/D — UI + semântica ampla de “interesse”: plausíveis e precisam ser instrumentadas
+```
+
+Portanto não reponderar o matcher apenas porque existem interesses com score baixo.
 
 A evolução deve separar:
 
@@ -620,6 +739,7 @@ compatibilidade objetiva
 + intenção/seletividade individual
 + natureza do match
 + exposição/rank
++ semântica do clique
 + resultado real produzido
 ```
 
@@ -631,20 +751,59 @@ compatibilidade objetiva
 - [ ] calcular `interest_propensity` usando apenas histórico anterior ao ponto previsto;
 - [ ] comparar v2.4 com baseline de propensão individual;
 - [ ] AUC, PR-AUC, Brier score/log loss e calibração por buckets;
+- [ ] incluir ECE/curva de calibração se o modelo produzir probabilidades;
 - [ ] controlar por rank/exposição;
 - [ ] usar outcomes fortes como labels prioritários;
 - [ ] split temporal e, quando possível, validação entre eventos;
+- [ ] adicionar group holdout/leave-participants-out quando apropriado para impedir que identidade comportamental memorize o teste;
 - [ ] qualquer novo peso/threshold = nova `algorithm_version`;
 - [ ] só promover mudança se melhorar holdout sem piorar guardrails.
 
-## Low-score residuals
+## M19 — Propensão individual com shrinkage e cold start
+
+Não usar `interesses / decisões` bruto como verdade quando `n` é pequeno.
+
+- [ ] definir estimador regularizado/Bayesiano ou shrinkage equivalente para `interest_propensity`;
+- [ ] manter prior global/do evento para cold start;
+- [ ] registrar tamanho da amostra e incerteza junto da propensão;
+- [ ] exigir número mínimo de decisões antes de chamar alguém de “permissivo” ou “seletivo”;
+- [ ] congelar/snapshotar a propensão conhecida no instante previsto para evitar leakage;
+- [ ] usar propensão inicialmente para calibração, ponderação de label e análise — não como penalidade direta no ranking;
+- [ ] testar se ganho preditivo permanece em novos participantes/eventos antes de colocá-la no modelo online.
+
+## M17 — Auditoria de valor marginal de cada componente do score
+
+- [ ] calcular lift bruto e ajustado de todos os reason codes;
+- [ ] reproduzir especificamente o achado do `+55` e `+25` em novos dados;
+- [ ] medir `perfil_desejado` com/sem evidência comercial simultânea;
+- [ ] medir cada `kind` controlando score, exposição e perfil do participante;
+- [ ] testar prioridade +10, proximidade +2, atualidade +3, conexão entre segmentos +5 e target profile separadamente;
+- [ ] analisar interações: `+55 + prioridade`, `+55 + +25`, direto + target, hibrido etc.;
+- [ ] reportar N e intervalo de confiança; não promover alteração com coorte pequena;
+- [ ] testar target parcial como feature offline — o all-or-nothing atual pode esconder sinal 2/3 ou 1/3 útil;
+- [ ] testar monotonicidade: evidência adicional não deveria reduzir probabilidade prevista sem justificativa clara;
+- [ ] comparar interesse com outcomes, pois um reason pode aumentar clique e não aumentar valor real.
+
+## Low-score residuals — mineração de falsos negativos reais
 
 - [ ] fila: score `<40` + interesse de participante seletivo;
 - [ ] prioridade maior se houver mutual;
 - [ ] prioridade máxima se houver conversa/reunião/proposta/negócio;
-- [ ] classificar causa provável: taxonomia, sinônimo, relação complementar, target parcial, semântica externa, ruído comportamental;
+- [ ] reconstruir reasons, oferta, necessidade, target profile, taxonomia, intenção declarada e exposição para cada caso;
+- [ ] classificar causa provável: taxonomia ausente, sinônimo ausente, relação complementar ausente, target parcial, semântica externa, informação não cadastrada, ruído comportamental ou UI;
 - [ ] usar residuals para propor melhorias de catálogo/relations;
-- [ ] manter controle de low-score rejeitados para medir falsos positivos.
+- [ ] manter controle de low-score rejeitados para medir falsos positivos;
+- [ ] medir quantos residuals cada nova relação/sinônimo recuperaria **antes** de ativar;
+- [ ] criar amostra de revisão humana para avaliar se a conexão “faz sentido” independentemente do clique;
+- [ ] registrar concordância/desacordo da curadoria para não converter opinião única em regra automática.
+
+## Regras para reponderação v2.5
+
+- [ ] não alterar +55 apenas com a amostra atual; ele mostrou sinal forte;
+- [ ] tratar o +25 como hipótese prioritária de auditoria, não como peso automaticamente errado;
+- [ ] não usar as taxas atuais de `perfil_desejado` como prova causal de peso negativo;
+- [ ] nenhuma mudança entra em produção sem replay, holdout e nova `algorithm_version`;
+- [ ] preservar v2.4 reproduzível para comparação e rollback.
 
 ---
 
@@ -657,13 +816,16 @@ compatibilidade objetiva
 - [ ] definir limite/penalidade de saturação apenas se dados mostrarem necessidade;
 - [ ] manter endpoints fortes e não sacrificar relevância apenas por diversidade;
 - [ ] considerar exploração controlada apenas dentro de bandas seguras;
-- [ ] registrar experimento e posição para aprendizado contrafactual.
+- [ ] registrar experimento e posição para aprendizado contrafactual;
+- [ ] quando exploração existir, registrar probabilidade de exposição/seleção para permitir correção de viés (IPS ou método equivalente) em análise offline;
+- [ ] nunca inferir “rejeição” para candidato que não foi efetivamente visto;
+- [ ] comparar ranking atual vs. ranking alternativo com métricas de cobertura, diversidade, QCR e falsos positivos.
 
 ---
 
-# 19. P1 técnico — CI e harness reproduzível
+# 19. P1 técnico — CI, harness e análise reproduzível
 
-## R06/R07
+## 19.1 R06/R07 — CI e harness
 
 - [ ] CI obrigatório: lint → typecheck → unit → integration;
 - [ ] remover dependência implícita de `psql` no PATH do desenvolvedor;
@@ -673,7 +835,24 @@ compatibilidade objetiva
 - [ ] rodar matriz comportamental do matcher em CI;
 - [ ] proteger migrations/RPCs com contratos estáticos e testes executáveis.
 
-## Backlog técnico associado
+## 19.2 R12 — Dataset analítico reproduzível do matcher
+
+A auditoria de 12/09 mostrou que análises úteis exigem cruzar várias tabelas e distinguir score histórico de score recomputado. Tornar isso repetível.
+
+- [ ] criar `scripts/export-matcher-analysis.*` ou equivalente;
+- [ ] exportar por perspectiva A→B/B→A, não apenas por par agregado;
+- [ ] incluir score/label/version, reasons, decisões/origem, perfil comercial anonimizado, ofertas/necessidades, taxonomia, conexão e outcomes;
+- [ ] incluir `generated_at`, `decided_at` e flags de reconstrução histórica;
+- [ ] criar allowlist explícita de campos exportáveis; não exportar telefone, e-mail, tokens ou PII desnecessária;
+- [ ] anonimizar IDs de forma estável dentro do snapshot quando o dataset sair do banco;
+- [ ] gerar data dictionary e versão do schema do export;
+- [ ] gerar resumo automático de cardinalidade, missingness, cobertura taxonômica, distribuição de score/decisão/origem e outcomes;
+- [ ] validar que soma dos `match_reasons` reconcilia com score quando aplicável;
+- [ ] adicionar check que sinalize decisões cujo match atual foi recomputado depois do clique;
+- [ ] não commitar snapshot de produção automaticamente; definir política segura de armazenamento/expiração;
+- [ ] manter fixtures sintéticas separadas do export real.
+
+## 19.3 Backlog técnico associado
 
 - [ ] decompor `equipe.tsx` em módulos/fluxos menores;
 - [ ] decompor `participar.tsx` em máquina de estados/steps mais explícitos;
@@ -683,7 +862,7 @@ compatibilidade objetiva
 
 ---
 
-# 20. Matriz permanente de provas do matcher
+# 20. Matriz permanente de provas do matcher e analytics
 
 Manter casos artificiais versionados cobrindo:
 
@@ -694,7 +873,7 @@ Manter casos artificiais versionados cobrindo:
 - [ ] segmentos diferentes `+5`;
 - [ ] cidade e recência;
 - [ ] 1/2/3 critérios de perfil desejado;
-- [ ] target parcial = zero;
+- [ ] target parcial = zero no v2.4 e feature experimental separada no replay;
 - [ ] target mútuo;
 - [ ] relação peso 39 = zero;
 - [ ] relação peso 40 = +12;
@@ -708,7 +887,15 @@ Manter casos artificiais versionados cobrindo:
 - [ ] eventos diferentes nunca cruzam;
 - [ ] conexão histórica é preservada em rebuild;
 - [ ] decisão histórica mantém snapshot após rebuild;
-- [ ] RPCs de outreach não cruzam eventos/perfis.
+- [ ] RPCs de outreach não cruzam eventos/perfis;
+- [ ] card carregado fora da viewport não gera `match_impressed`;
+- [ ] rerender não duplica impressão;
+- [ ] undo gera evento de mudança sem apagar decisão anterior;
+- [ ] decisão administrativa nunca é classificada como intenção orgânica;
+- [ ] propensão para uma decisão usa apenas decisões anteriores;
+- [ ] split temporal não consulta informação futura;
+- [ ] dataset analítico não contém campos proibidos/PII;
+- [ ] dual score preserva reasons comerciais/networking separadamente.
 
 ---
 
@@ -740,13 +927,14 @@ Faixa nominal: 0–100.
 - [ ] registrar dependências que impedem implementação imediata;
 - [ ] P0 de integridade supera o score;
 - [ ] hipóteses “Após dados” não podem furar o gate de mensuração;
-- [ ] revisar ranking após instrumentação e primeiros outcomes confiáveis.
+- [ ] revisar ranking após instrumentação e primeiros outcomes confiáveis;
+- [ ] recalcular explicitamente D13, U11, M17, M18, M19 e R12 após a auditoria comportamental — não inventar score sem estimativa de esforço/confiança revisada.
 
 ---
 
 # 22. Ranking inicial oficial — 20 prioridades
 
-> Este ranking é baseado no estado do código e na auditoria de 12/09/2026. Deve ser recalculado após a nova telemetria produzir evidência confiável.
+> Este ranking é baseado no estado do código e na auditoria de 12/09/2026. Deve ser recalculado após a nova telemetria produzir evidência confiável. Os itens D13/U11/M17/M18/M19/R12 entram como candidatos obrigatórios à próxima rodada de SudoScore.
 
 | # | Item | Score | Classe | Dependência principal |
 | ---: | --- | ---: | --- | --- |
@@ -784,8 +972,8 @@ Estas hipóteses não substituem o ranking acima. Devem ser promovidas apenas qu
 - [ ] U08 autosave silencioso e recuperação robusta;
 - [ ] U09 tempo restante estimado;
 - [ ] U10 resumo empresarial como possível campo semântico central;
-- [ ] U11 objetivo principal na feira;
-- [ ] U12 exemplos de oferta/procura por segmento.
+- [ ] U12 exemplos de oferta/procura por segmento;
+- [ ] U13 refinamento opcional de intenção após primeira sessão de matches, em vez de sobrecarregar cadastro inicial.
 
 ## Taxonomia
 
@@ -805,7 +993,10 @@ Estas hipóteses não substituem o ranking acima. Devem ser promovidas apenas qu
 - [ ] M10 testar penalização de assimetria apenas offline;
 - [ ] M11 disponibilidade temporal como feature futura;
 - [ ] M15 aprender sinais associados a negócio real;
-- [ ] M16 manter benchmark artificial permanente.
+- [ ] M16 manter benchmark artificial permanente;
+- [ ] M20 testar target profile parcial como feature contínua/ordinal no replay;
+- [ ] M21 avaliar interação entre objetivo declarado e natureza do match;
+- [ ] M22 avaliar modelo hierárquico por participante/evento antes de ML mais complexo.
 
 ## Participante pós-match
 
@@ -814,7 +1005,9 @@ Estas hipóteses não substituem o ranking acima. Devem ser promovidas apenas qu
 - [ ] P09 razão principal + detalhes sob demanda;
 - [ ] P10 remover jargão técnico;
 - [ ] P11 explicar próximo estado;
-- [ ] P12 expectativa operacional explícita.
+- [ ] P12 expectativa operacional explícita;
+- [ ] P13 feedback opcional de motivo do interesse;
+- [ ] P14 undo imediato mensurável.
 
 ## Confiança
 
@@ -833,7 +1026,8 @@ Estas hipóteses não substituem o ranking acima. Devem ser promovidas apenas qu
 - [ ] A12 atalhos de teclado;
 - [ ] A13 IA apenas quando incremental;
 - [ ] A14 pré-geração segura de mensagem;
-- [ ] A15 visão somente acionável.
+- [ ] A15 visão somente acionável;
+- [ ] A17 fila de low-score residuals para revisão/curadoria comercial.
 
 ## WhatsApp
 
@@ -857,12 +1051,14 @@ R10/R11 .env/segredos
 W01–W05 semântica real do outreach
 R05 atomicidade perfil+contato
 
-ONDA 2 — MENSURAÇÃO
+ONDA 2 — MENSURAÇÃO E QUALIDADE DO LABEL
 D01 impressão real
 D02/D03 onboarding
 D04–D09 funil + esforço admin
+D13 undo + semântica do interesse
 snapshot append-only de decisões
-outcomes comerciais
+R12 dataset analítico reproduzível
+outcomes comerciais + follow-up de outcome
 D10/D11 cohorts e algorithm comparison
 D12 experiment framework
 
@@ -872,18 +1068,22 @@ A01–A04 Next Best Action
 P03/P04/P05 “Querem falar com você”
 A16 cockpit único quando fluxo estiver validado
 
-ONDA 4 — QUALIDADE
+ONDA 4 — QUALIDADE SEMÂNTICA
 T01/T02 canonicalização
 M03/M04/C04 reasons verificáveis
 C01/C02/C05 linguagem e IA honestas
+U11 objetivo principal na feira como dimensão analítica
 T03/T04/T05 taxonomia semântica
+M17 auditoria de reasons/kinds/target parcial
+M18 dual score comercial/networking offline
 P01/P02 Top 3
 progressive profiling + Instagram assíncrono
 
 ONDA 5 — INTELIGÊNCIA ADAPTATIVA
+M19 propensão regularizada
 M06/M07 replay e calibração
 low-score residual mining
-exploração controlada
+exploração controlada + correção de viés de exposição
 Matcher v3 probabilístico apenas com outcomes suficientes
 ```
 
@@ -897,9 +1097,11 @@ Somente após mensuração confiável e quantidade suficiente de outcomes.
 features determinísticas v2.4
 + taxonomia/grafo
 + semântica
++ commercial_score / networking_score
 + target profile
++ objetivo/intenção declarada
 + contexto da dupla
-+ propensão comportamental
++ propensão comportamental regularizada
 + exposição/rank
 + outcomes históricos
         ↓
@@ -914,8 +1116,11 @@ P(dupla produz conexão valiosa)
 - [ ] prever valor da dupla independentemente do clique unilateral;
 - [ ] manter reasons determinísticos como camada explicável;
 - [ ] não treinar em ações administrativas como se fossem intenção orgânica;
+- [ ] não usar propensão individual como atalho para esconder baixa compatibilidade objetiva;
 - [ ] validação temporal e entre eventos;
-- [ ] comparar sempre contra v2.4;
+- [ ] group holdout por participante quando necessário;
+- [ ] comparar sempre contra v2.4, baseline de propensão e regras simples;
+- [ ] calibrar probabilidades e medir incerteza, não apenas ranking/AUC;
 - [ ] rollback simples para v2.4;
 - [ ] não promover ML enquanto ground truth forte for insuficiente.
 
@@ -936,7 +1141,11 @@ Uma tarefa só recebe `[x]` quando:
 9. mudança de score/semântica possui `algorithm_version` apropriada;
 10. mudança de UX relevante possui versão/experimento quando comportamento histórico será comparado;
 11. não existe sucesso silencioso que corrompa métricas;
-12. para features de priorização, impacto deve ser avaliado em QCR, conversão do funil e/ou esforço operacional.
+12. para features de priorização, impacto deve ser avaliado em QCR, conversão do funil e/ou esforço operacional;
+13. análise que altera pesos/modelo declara N, período, coorte, exposição, origem da decisão e incerteza;
+14. feature comportamental usada em previsão é calculada somente com informação disponível antes da previsão;
+15. nenhuma mudança de matcher é promovida apenas porque melhorou clique se piorou ou não demonstrou ganho em outcomes/guardrails;
+16. resultados de coortes pequenas são tratados como hipótese, não verdade de produção.
 
 ---
 
@@ -959,7 +1168,8 @@ Uma tarefa só recebe `[x]` quando:
 - [x] rebuild administrativo;
 - [x] direção NEED → OFFER corrigida na UI;
 - [x] canonicalização conservadora no onboarding;
-- [x] incidente de item duplicado resolvido e coberto por regressão.
+- [x] incidente de item duplicado resolvido e coberto por regressão;
+- [x] auditoria comportamental real de 12/09/2026 transformada em backlog de calibração/telemetria.
 
 ## Participante
 
@@ -993,15 +1203,19 @@ grafo comercial curado NEED → OFFER
         ↓
 matcher determinístico, versionado e auditável
         ↓
-exposição mensurada
+eixos comercial / networking mensuráveis
         ↓
-decisão do participante preservada como snapshot
+exposição real mensurada
+        ↓
+decisão do participante preservada como snapshot + semântica/origem
         ↓
 operação orientada à próxima ação
         ↓
 outcome real
         ↓
-aprendizado e recalibração offline
+análise reproduzível e calibração offline
+        ↓
+modelo adaptativo somente quando superar baselines com segurança
 ```
 
 A prioridade é fechar o circuito:
@@ -1009,11 +1223,14 @@ A prioridade é fechar o circuito:
 ```text
 SudoExpo sugere
 → pessoa vê
+→ pessoa entende por quê
 → pessoa decide
+→ sabemos o que essa decisão significa
 → outra responde
 → ACIRV conecta
 → algo acontece
-→ SudoExpo aprende
+→ outcome é registrado
+→ SudoExpo aprende sem confundir clique com verdade
 ```
 
 O produto deve evoluir quando o ciclo produz evidência, não quando apenas produz mais features.
