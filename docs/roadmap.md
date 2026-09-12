@@ -1,387 +1,691 @@
 # ROADMAP — SudoExpo Match
 
-> **Método:** Quality-First. Uma etapa só é concluída quando código, evidência, não-regressão e documentação estão sincronizados.
+> **Método:** Quality-First. Uma etapa só é concluída quando código, evidência, não-regressão, mensuração e documentação estão sincronizados.
 >
-> **Atualizado em:** 12/09/2026, após auditoria dos dados reais de matches/decisões/outcomes da SudoExpo 2026 e revisão da estratégia de evolução do matcher.
+> **Atualizado em:** 12/09/2026, após auditoria de produto, UX, operação, matcher, taxonomia, analytics, multi-eventos e fluxo administrativo.
+>
+> **Objetivo:** transformar o SudoExpo Match de um sistema que gera recomendações em um sistema que aprende continuamente quais conexões realmente valem o tempo dos participantes e da equipe ACIRV.
 
 ---
 
-## 1. Estado atual — multi-eventos e check-in
+# 0. Princípios de evolução
 
-A fundação multi-eventos já está implementada no `main` e foi sincronizada nesta branch sem reescrever histórico do Lovable.
+O próximo salto do produto não deve vir de adicionar funcionalidades indiscriminadamente. Deve vir de reduzir três tipos de incerteza:
 
-- [x] preservar o histórico do Café Entre Amigos em evento próprio;
-- [x] manter `sudoexpo-2026` como evento ativo separado;
-- [x] isolamento de perfis/matches por `event_id`;
-- [x] lookup e check-in por telefone;
-- [x] check-in manual por staff/admin;
-- [x] `AdminEventContext` + seletor de evento nas áreas administrativas principais;
-- [x] fluxo do participante veterano sem recadastro completo;
-- [x] testes de regressão do fluxo multi-eventos no `main`;
-- [x] corrigir `/admin/taxonomia`: `TaxonomyItemSheet` agora recebe `selectedEventId`, não `EVENT_ID` fixo;
-- [ ] criar `/admin/eventos` para governança completa de eventos futuros;
-- [ ] auditar todas as referências restantes a `EVENT_ID` em telas administrativas e distinguir uso legítimo (evento público padrão) de hardcode indevido.
+1. **Participante:** “qual é a melhor conexão para mim agora?”
+2. **Operador:** “qual é a próxima ação que devo executar?”
+3. **Produto:** “onde está o gargalo que impede uma conexão de virar valor real?”
 
----
+Princípios obrigatórios:
 
-# 2. Matcher v2.4 — fonte canônica e documentação
-
-## Implementado nesta branch
-
-- [x] criar `docs/specs/matcher-v2.4.md` como especificação documental canônica derivada do SQL real;
-- [x] atualizar `README.md` para matcher v2.4;
-- [x] corrigir a seção de matcher do `AGENTS.md`, que estava com thresholds/rótulos incompatíveis com o código;
-- [x] documentar a diferença entre complementaridade taxonômica e o bônus genérico `+5`;
-- [x] documentar que score não é porcentagem e pode chegar teoricamente a 180;
-- [x] documentar que `matches.label` é legado e UI deve usar label por perspectiva.
-
-## Ainda pendente
-
-- [ ] alinhar `/como-funciona` e textos de ajuda do produto com a especificação canônica;
-- [ ] localizar/remover outras referências antigas a “matcher v2.3” quando estiverem descrevendo o algoritmo atual;
-- [ ] gerar material operacional curto para staff/admin baseado na mesma especificação.
-
-## Regras atuais — contrato v2.4
-
-| Sinal por perspectiva | Pontos | Cria a dupla? |
-| --- | ---: | :---: |
-| O outro oferece algo que eu procuro | +55 | sim |
-| O outro procura algo que eu ofereço | +25 | sim |
-| Relação taxonômica complementar | +12 a +30 | sim |
-| “Quem eu procuro” — 1 critério completo | +20 | sim |
-| “Quem eu procuro” — 2 critérios completos | +30 | sim |
-| “Quem eu procuro” — 3 critérios completos | +40 | sim |
-| Perfil desejado mútuo | +10 | não |
-| Necessidade prioritária atendida diretamente | +10 | não |
-| Match direto entre segmentos diferentes | +5 | não |
-| Perfil atualizado recentemente | +3 | não |
-| Mesma cidade | +2 | não |
-
-Rótulos: `75+ alta_compatibilidade`, `40–74 boa_oportunidade`, `<40 conexao_possivel`.
+- estado real > narrativa;
+- integridade e isolamento entre eventos > conveniência;
+- outcomes reais > quantidade de matches;
+- exposição real > card apenas carregado;
+- evidência comercial verificável > copy persuasiva;
+- automação deve reduzir trabalho sem esconder causalidade;
+- IA deve gerar candidatos, explicações e síntese; decisões críticas continuam auditáveis;
+- qualquer alteração de pesos/thresholds gera nova `algorithm_version`;
+- não treinar o matcher diretamente em sinais contaminados por ações administrativas;
+- não aumentar complexidade antes de medir o gargalo atual.
 
 ---
 
-# 3.0 P0 RESOLVIDO — Item duplicado no onboarding (incidente de 09/09/2026)
+# 1. Estado atual consolidado
 
-**Status: resolvido.**
+## Fundação já implementada
 
-Sintoma: o save final do cadastro retornava `duplicate_need_label` sem duplicata
-visível na tela. Causa: o front comparava itens por `toLowerCase()` enquanto o
-banco compara por `public.norm_label` (minúsculas, sem acentos, espaços
-colapsados), e nenhuma defesa de fronteira checava duplicidade antes da RPC.
+- [x] eventos separados por `event_id`;
+- [x] Café Entre Amigos preservado como evento histórico;
+- [x] SudoExpo 2026 como evento ativo separado;
+- [x] sandbox isolado;
+- [x] lookup/check-in multi-evento;
+- [x] `AdminEventContext` e seletor de evento em áreas administrativas principais;
+- [x] fluxo de participante veterano;
+- [x] governança de taxonomia com revisão global e revisão aplicada por evento;
+- [x] evento taxonomicamente `dirty/clean`;
+- [x] rebuild administrativo de matches;
+- [x] semântica NEED → OFFER documentada e exposta no admin;
+- [x] canonicalização conservadora de texto livre idêntico/único ao catálogo;
+- [x] matcher v2.4 documentado como contrato canônico;
+- [x] área de staff com fila operacional;
+- [x] auditoria de matches e briefing comercial;
+- [x] outreach via WhatsApp com geração de mensagem e confirmação rápida;
+- [x] ranking por sinergia mútua na experiência do participante;
+- [x] resumo comercial estruturado nos cards;
+- [x] baseline comportamental real da SudoExpo 2026 analisado.
 
-- [x] identidade canônica única de item (`src/features/onboarding/itemIdentity.ts`);
-- [x] aplicada a todos os caminhos de entrada de ofertas e necessidades (feed de IA/heurística, catálogo, texto livre, "Aceitar todas");
-- [x] "Comuns no seu segmento" não exibe item já adicionado;
-- [x] `validateWizardForSubmit` bloqueia antes de qualquer RPC, cita os dois labels e a etapa; a rota volta para a etapa certa;
-- [x] `mapWizardToSaveProfileInput` como última defesa de fronteira;
-- [x] rascunho antigo inválido preservado, sem dedupe silencioso;
-- [x] check do banco, pesos, matcher e taxonomia inalterados;
-- [x] regressão em `src/__tests__/incidente-2026-09-09-item-duplicado.test.ts`.
+## Dívidas conhecidas que permanecem relevantes
 
-Risco residual e melhoria separada (canonicalização de texto livre) em
-`docs/incidents/2026-09-09-onboarding-duplicate-item.md`.
-
-## Hardening pós-incidente (09/09/2026) — concluído
-
-- [x] `/participar` passa `targetEventId` (não `EVENT_ID`) para "O que eu ofereço" e "Quem eu procuro" — IA/sugestões deixam de consultar o evento errado no sandbox;
-- [x] analytics `onboarding_started` / `onboarding_completed` passam a usar `targetEventId`, com dedupe por evento;
-- [x] retry de contato após falha parcial conclui o fluxo também em modo criação (`shouldRecomputeAfterContactRetry`) — fim do travamento em "Buscando conexões…";
-- [x] roadmap consolidado (marcador de conflito `<<<<<<< HEAD` removido, sem perda de conteúdo);
-- [x] scripts temporários `forensic-h*.ts` removidos da raiz;
-- [x] revisão de drift front x RPC registrada no documento do incidente;
-- [x] regressões em `src/__tests__/hardening-onboarding-2026-09-09.test.ts`.
+- [ ] remover hardcodes indevidos de `EVENT_ID` em operações multi-evento;
+- [ ] tornar gravação de perfil + contato realmente atômica;
+- [ ] melhorar harness de testes que ainda depende de `psql` local em partes da suíte;
+- [ ] elevar cobertura taxonômica e ativar sinônimos/relações complementares com evidência;
+- [ ] preservar snapshot exato visto pelo participante no instante da decisão;
+- [ ] substituir analytics de “carregado” por exposição real;
+- [ ] construir ground truth de outcomes comerciais.
 
 ---
 
-# 3. P0 — Governança de taxonomia e snapshots do matcher
+# 2. North Star e funil canônico
 
-## Problema descoberto
+## 2.1 North Star — QCR
 
-`matches` são snapshots persistidos. Antes desta auditoria, criar/editar/desativar item, sinônimo ou relação taxonômica **não invalidava nem reconstruía os matches já calculados**. O novo significado só surgia quando algum perfil era salvo/recomputado novamente.
-
-Isso era o maior risco operacional antes de popular o grafo complementar.
-
-## Implementação desta branch
-
-- [x] criar `matcher_config_state` com revisão global da taxonomia;
-- [x] criar `matcher_event_state` com revisão aplicada por evento;
-- [x] incrementar revisão em `INSERT/UPDATE/DELETE` de `taxonomy_items` e `taxonomy_relations`;
-- [x] criar RPC admin-only `admin_get_matcher_taxonomy_status(event_id)`;
-- [x] criar RPC admin-only `admin_recompute_event_matches(event_id)`;
-- [x] serializar rebuilds concorrentes do mesmo evento com advisory lock;
-- [x] auditar rebuild em `audit_logs`;
-- [x] restringir acesso direto às tabelas internas de estado;
-- [x] adicionar card em `/admin/taxonomia` com revisão, `dirty/clean`, cobertura taxonômica e botão de rebuild;
-- [x] invalidar a query de saúde após mutações taxonômicas;
-- [x] adicionar `scripts/matcher-taxonomy-governance-proof.sql` cobrindo dirty → rebuild → clean → mudança → dirty → rebuild → clean;
-- [x] adicionar contrato Vitest estático `matcher-taxonomy-governance.test.ts` para RLS, RPCs, evento selecionado e semântica da UI;
-- [ ] executar a migration/prova contra um PostgreSQL/Supabase real antes do merge final;
-- [ ] se rebuild síncrono ficar lento em escala, mover execução completa para job assíncrono com progresso/idempotência.
-
-### Regra operacional
+### Qualified Connection Rate
 
 ```text
-alterou taxonomia
-      ↓
-revisão global avança
-      ↓
-evento aparece DIRTY
-      ↓
-admin executa rebuild
-      ↓
-snapshots refletem a revisão atual
+QCR = conexões que produziram outcome útil / participantes ativos
 ```
 
-Conexões já formalizadas continuam preservadas como histórico pelo comportamento existente do matcher.
-
----
-
-# 4. P0 — Semântica correta das relações taxonômicas
-
-## Verdade do banco
+Outcome útil deve ser registrado em níveis progressivos:
 
 ```text
-from_taxonomy_item_id = NECESSIDADE
-              ↓
-to_taxonomy_item_id   = OFERTA
+conversa relevante
+→ reunião agendada
+→ proposta solicitada
+→ negócio/parceria reportado
 ```
 
-A frase correta é:
+“Match criado”, “interesse” e “contato liberado” são sinais intermediários, não sucesso final.
 
-> Quem **PRECISA DE A** pode combinar com quem **OFERECE B**.
-
-`A → B` não implica `B → A`.
-
-## Implementado nesta branch
-
-- [x] trocar “este item complementa o outro” por linguagem explícita necessidade → oferta;
-- [x] mostrar preview textual antes de salvar;
-- [x] explicar que a direção inversa precisa ser cadastrada separadamente;
-- [x] atualizar a visualização das relações para badges `PRECISA DE → OFERECE`;
-- [x] mostrar no formulário que peso `<40` não pontua;
-- [x] mostrar fórmula `round(weight × 0,30)` e teto de 30 pontos;
-- [x] adicionar teste de UI garantindo que a direção apresentada é inequívoca.
-
-## Pendente
-
-- [ ] adicionar ajuda contextual com exemplos corretos/incorretos;
-- [ ] impedir/alertar curadoria quando uma relação parecer semanticamente invertida com base em `kind`/uso real.
-
----
-
-# 5. P1 — Ativar de verdade a taxonomia
-
-## Estado auditado no snapshot de 04/09/2026
-
-- 44 itens ativos;
-- 44/44 com `kind = both`;
-- sinônimos vazios;
-- zero relações complementares.
-
-A infraestrutura existia, mas a camada de sinônimos e o grafo complementar estavam praticamente ociosos.
-
-## 5.1 Cobertura canônica
-
-- [x] expor no admin percentual de ofertas com `taxonomy_item_id`;
-- [x] expor no admin percentual de necessidades com `taxonomy_item_id`;
-- [x] expor quantidade de itens com sinônimos;
-- [x] expor relações ativas e relações efetivas (`weight >= 40`);
-- [ ] definir meta mínima de cobertura antes de confiar no grafo (sugestão inicial: >=90% dos itens confirmados canonicalizados);
-- [ ] listar textos livres mais frequentes (`taxonomy_item_id = NULL`) para evolução do catálogo;
-- [ ] criar alerta quando cobertura cair abaixo da meta.
-
-## 5.2 Sinônimos
-
-- [ ] popular sinônimos de alta confiança para conceitos mais usados;
-- [ ] usar vocabulário real dos participantes (“social media”, “gestão de Instagram”, “redes sociais” etc.);
-- [ ] evitar sinônimos excessivamente amplos;
-- [ ] criar relatório de conflito/ambiguidade de sinônimos;
-- [ ] manter testes de fronteira de palavra (`bala` ≠ `embalagens`, `porta` ≠ `transportadora`);
-- [ ] medir quanto os sinônimos aumentam recall sem derrubar precisão.
-
-## 5.3 Relações complementares
-
-- [ ] começar com **20–40 relações de alta confiança**, não centenas de relações especulativas;
-- [ ] exigir rationale humana útil nas relações efetivas;
-- [ ] revisar por curadoria comercial antes de ativar;
-- [ ] medir quantos matches cada relação cria e quantos viram interesse/conexão;
-- [ ] desativar relações com baixa precisão e aplicar rebuild;
-- [ ] criar export/versionamento da curadoria para auditoria/rollback lógico.
-
-## 5.4 Ontologia
-
-O catálogo atual mistura serviços, produtos, modelos de negócio, capacidades e canais.
-
-- [ ] revisar os 44 conceitos e definir níveis semânticos coerentes;
-- [ ] usar `kind = offer | need | both` de forma real; parar de deixar tudo `both` por padrão;
-- [ ] preencher descrições úteis para orientar admin e IA;
-- [ ] definir convenção de granularidade;
-- [ ] decidir política de item desativado:
-  - A: deixa de ser selecionável, mas referências antigas continuam válidas em futuros cálculos;
-  - B: deixa também de participar de futuros matches após rebuild;
-- [ ] implementar a política escolhida e cobrir com teste.
-
----
-
-# 6. P1 — Canonicalização e matching semântico
-
-## Concluído — canonicalização conservadora no onboarding (09/09/2026)
-
-Risco residual do incidente de 09/09/2026 resolvido no front, sem tocar em
-matcher, pesos, relações taxonômicas, schema ou dados de produção.
-
-`src/features/onboarding/canonicalizeItems.ts` vincula um item sem
-`taxonomyItemId` ao item ativo do catálogo quando — e somente quando — há
-correspondência **exata e única** após `normalizeLabel` com o label canônico
-(ou com um sinônimo exato), o `kind` é compatível (oferta ↔ `offer`/`both`,
-necessidade ↔ `need`/`both`) e o item tem `segment_id` autoritativo, exigido
-por `save_own_profile_v2`. Ao vincular, o `segment_id` do item taxonômico é
-usado. Ambiguidade, item já canônico ou id já usado por outro item da lista →
-permanece texto livre. Sem substring, sem Levenshtein, sem IA: falso negativo é
-preferível a vínculo errado.
-
-Aplicado no texto manual, nas sugestões de IA/heurística sem id e antes do
-submit (recupera rascunhos antigos). A regra de duplicidade continua intacta e
-o erro continua sendo mostrado à pessoa — nada é deduplicado em silêncio.
-
-Cobertura: `src/__tests__/canonicalizacao-taxonomia-onboarding.test.ts`.
-
-## O que existe hoje
-
-`taxonomy_match()` é determinístico e usa:
-
-- mesmo `taxonomy_item_id`;
-- igualdade de label normalizada;
-- sinônimo explícito;
-- contenção com fronteira de palavra.
-
-**Não** usa embeddings, LLM pairwise, cosine similarity ou fuzzy score semântico genérico.
-
-A arquitetura atual é:
+## 2.2 Funil canônico de produto
 
 ```text
-texto humano
-  ↓
-IA / wizard
-  ↓
-taxonomyItemId canônico quando possível
-  ↓
-matcher SQL determinístico
+cadastro iniciado
+→ cadastro concluído
+→ primeiro valor percebido
+→ match carregado
+→ match realmente visto
+→ detalhes abertos
+→ interesse / agora não
+→ interesse mútuo
+→ abordagem
+→ resposta
+→ apresentação
+→ contato
+→ conversa
+→ reunião
+→ proposta
+→ negócio/parceria
 ```
 
-## Melhorias
+## 2.3 Funil paralelo de eficiência operacional
 
-- [ ] manter essa arquitetura até evidência de que o core determinístico é insuficiente;
-- [ ] medir taxa de `taxonomyItemId = null` da IA;
-- [ ] criar fila “conceitos não cobertos” para curadoria;
-- [ ] registrar motivo/confiança quando sugestão fica em texto livre;
-- [ ] avaliar trigram/fuzzy como ferramenta de **sugestão** para admin/IA, não como match automático sem validação.
+```text
+match acionável
+→ entrou na fila
+→ operador abriu
+→ primeira ação
+→ follow-up
+→ resposta
+→ conexão útil
+```
 
----
-
-# 7. P1 — Prompt de onboarding com IA
-
-## Problema descoberto
-
-O prompt contém tensão entre:
-
-- “Nunca invente informação que o participante não declarou”; e
-- “descubra necessidades plausíveis que ele talvez ainda não tenha formulado”.
-
-## Melhorias
-
-- [ ] reescrever a regra para separar **fato declarado** de **inferência comercial plausível**;
-- [ ] permitir inferência apenas a partir da atividade/perfil/contexto fornecido;
-- [ ] exigir rationale indicando quando algo é inferido;
-- [ ] ajustar `confidence`: 1 = explícito/fortemente evidenciado; menor = inferência plausível;
-- [ ] incrementar `PROMPT_VERSION` ao alterar comportamento para invalidar cache antigo;
-- [ ] testar resumo curto, ambíguo, contraditório e empresa sem catálogo adequado;
-- [ ] manter confirmação explícita do participante antes de persistir sugestões.
+O produto só melhora de verdade quando aumenta valor **sem aumentar desproporcionalmente o trabalho humano**.
 
 ---
 
-# 8. P1 — Explicabilidade e rastreabilidade
+# 3. Gate P0 — Integridade, privacidade e segurança
 
-## Estado atual
+Problemas desta seção **não dependem do SudoScore**. Qualquer risco de isolamento entre eventos, privacidade ou integridade de dados entra em P0.
 
-Relações taxonômicas já registram `profile_need_id`, `profile_offer_id`, `taxonomy_relation_id`, peso e rationale. Os sinais principais `+55/+25` ainda usam reasons mais genéricos.
+## 3.1 R01/R02/R03 — Isolamento multi-evento no outreach
 
-## Melhorias
+- [ ] remover `EVENT_ID` hardcoded de toda operação administrativa multi-evento;
+- [ ] fazer `WhatsAppOutreachModal` operar com o evento selecionado/derivado do match;
+- [ ] `record_outreach_attempt` deve derivar ou validar `event_id` a partir de `match_id`;
+- [ ] validar que `_profile_id` pertence ao `_match_id` recebido;
+- [ ] rejeitar combinações inconsistentes mesmo quando o operador possua papel em ambos os eventos;
+- [ ] criar testes A/B de isolamento: match do Evento A nunca pode gerar log no Evento B;
+- [ ] criar invariantes automáticas que cubram outreach, fila, reveal, quick confirm e analytics.
+
+**Aceite:** nenhuma RPC crítica confia apenas em `event_id` fornecido pelo frontend quando pode derivá-lo de uma entidade autoritativa.
+
+## 3.2 R04 — Contato como leitura explícita, nunca fallback com efeito colateral
+
+- [ ] remover fallback de leitura de contatos para RPC que libera/revela contato;
+- [ ] uma falha de `admin_get_match_contacts` deve ser erro observável, não gatilho de mutação;
+- [ ] separar semanticamente `read contact`, `reveal contact` e `release contact`;
+- [ ] testar ausência de side effects em consultas administrativas.
+
+## 3.3 R10/R11 — `.env` e auditoria de segredos
+
+- [ ] adicionar `.env` ao `.gitignore`;
+- [ ] auditar o `.env` já rastreado e o histórico Git;
+- [ ] classificar valores como públicos, sensíveis ou secretos;
+- [ ] rotacionar qualquer segredo real que tenha sido exposto;
+- [ ] mover segredos para mecanismo apropriado de ambiente/deploy;
+- [ ] documentar quais variáveis são deliberadamente públicas.
+
+## 3.4 R05 — Cadastro e contato atômicos
+
+- [ ] substituir persistência parcial de perfil + contato por operação transacional única quando possível;
+- [ ] manter idempotência por evento e participante;
+- [ ] preservar retry seguro sem duplicação;
+- [ ] criar teste de falha exatamente entre save de perfil e contato;
+- [ ] garantir rollback ou estado explicitamente recuperável.
+
+---
+
+# 4. P0/P1 — Semântica correta do outreach e WhatsApp
+
+## 4.1 W01–W05 — Consertar histórico de abordagem
+
+Hoje “copiar” ou “abrir WhatsApp” não prova envio real. O modelo de dados deve refletir isso.
+
+Criar eventos distintos:
+
+```text
+message_generated
+message_edited
+message_copied
+whatsapp_opened
+send_confirmed
+response_positive
+response_negative
+response_no_answer
+followup_created
+followup_sent
+```
+
+- [ ] não incrementar “contato realizado” ao apenas copiar mensagem;
+- [ ] não considerar `whatsapp_opened` como envio confirmado;
+- [ ] não retornar sucesso fictício quando RPC de log falhar;
+- [ ] detectar “primeiro contato” apenas com base em `send_confirmed` ou equivalente confiável;
+- [ ] registrar canal, template/version, operador, match, perfil-alvo e timestamp;
+- [ ] tornar logs append-only para auditoria;
+- [ ] manter um estado derivado de outreach, sem destruir o histórico bruto.
+
+## 4.2 W02/A06/A07 — Resposta e follow-up como estados reais
+
+- [ ] criar estados operacionais claros: `sem_abordagem`, `abordado`, `aguardando_resposta`, `respondeu_sim`, `respondeu_nao`, `sem_resposta`, `followup_pendente`, `encerrado`;
+- [ ] registrar prazo de follow-up;
+- [ ] mostrar idade do interesse e da última abordagem;
+- [ ] resposta positiva deve permitir confirmar/avançar conexão sem passos redundantes;
+- [ ] resposta negativa deve retirar item da fila ativa preservando histórico;
+- [ ] “sem resposta” deve permitir follow-up manual contextual;
+- [ ] medir conversão por tentativa e por template.
+
+---
+
+# 5. P0/P1 — Plataforma de mensuração confiável
+
+Esta seção é pré-requisito para reponderar matcher, comparar UX e automatizar priorização.
+
+## 5.1 D01 — Exposição real de cards
+
+- [ ] separar `match_loaded` de `match_impressed`;
+- [ ] gerar impressão apenas quando o card entrar de fato na viewport (`IntersectionObserver` ou equivalente);
+- [ ] registrar `rank_position` no instante da impressão;
+- [ ] registrar primeira impressão e número de impressões;
+- [ ] impedir múltiplos eventos acidentais por rerender;
+- [ ] testar que cards fora da viewport não contam como vistos;
+- [ ] medir abertura de detalhes e resumo comercial separadamente.
+
+## 5.2 D02/D03 — Onboarding por etapa/campo e tempo
+
+Eventos mínimos:
+
+```text
+onboarding_started
+onboarding_step_viewed
+onboarding_field_focused
+onboarding_field_completed
+onboarding_step_completed
+instagram_enrichment_started
+instagram_enrichment_completed
+instagram_enrichment_failed
+onboarding_abandoned
+onboarding_completed
+first_match_available
+```
+
+Registrar:
+
+- [ ] `event_id`;
+- [ ] `profile_id` quando disponível;
+- [ ] etapa/campo;
+- [ ] versão do onboarding;
+- [ ] origem da entrada;
+- [ ] duração entre eventos;
+- [ ] uso de autofill/sugestão;
+- [ ] erro/retry quando houver.
+
+## 5.3 D04–D09 — Funil de match + esforço administrativo
+
+Eventos mínimos:
+
+```text
+match_impressed
+match_details_opened
+match_decision_created
+match_decision_changed
+mutual_interest_created
+admin_queue_item_opened
+admin_action_started
+admin_action_completed
+outreach_event
+connection_presented
+connection_contact_released
+connection_completed
+connection_outcome_recorded
+```
+
+Registrar para cada ação administrativa:
+
+- [ ] operador;
+- [ ] tela/origem;
+- [ ] match/conexão;
+- [ ] ação;
+- [ ] timestamp início/fim;
+- [ ] quantidade de clicks/touches quando aplicável;
+- [ ] estado anterior e posterior;
+- [ ] erro/retry;
+- [ ] versão da UI.
+
+## 5.4 D10/D11 — Cohorts e comparação entre algoritmos
+
+Dimensões obrigatórias:
+
+- [ ] evento;
+- [ ] segmento;
+- [ ] origem do participante;
+- [ ] novo vs. veterano;
+- [ ] `algorithm_version`;
+- [ ] UI/experiment version;
+- [ ] tipo/natureza do match;
+- [ ] faixa de score;
+- [ ] posição/rank;
+- [ ] seletividade histórica do participante.
+
+## 5.5 D12 — Experimentos controlados
+
+- [ ] criar `experiment_id`, `variant` e versão da experiência em analytics;
+- [ ] permitir rollout percentual por evento/feature;
+- [ ] evitar randomização em caminhos de segurança/privacidade;
+- [ ] registrar exposição à variante antes de medir comportamento;
+- [ ] suportar holdout temporal/evento para matcher;
+- [ ] criar guardrails de regressão de QCR, abandono e esforço administrativo.
+
+---
+
+# 6. Métricas oficiais do produto
+
+Implementar captura, cálculo e dashboard para todas as métricas abaixo.
+
+| Métrica | Fórmula | Diagnóstico |
+| --- | --- | --- |
+| **Onboarding Completion** | concluídos / iniciados | fricção |
+| **TTFV** | cadastro → primeiro match relevante | velocidade de valor |
+| **Interest@3** | interesses nos Top-3 / Top-3 vistos | qualidade do ranking |
+| **Reject@3** | `agora_nao` nos Top-3 / Top-3 vistos | falsos positivos |
+| **Reciprocity Rate** | mútuos / pares com ≥1 interesse | qualidade bidirecional |
+| **Inbound Conversion** | mútuos após interesse recebido visto / interesses recebidos vistos | efeito da reciprocidade explícita |
+| **Interest→Connection** | conexões / pares com interesse | matcher + operação |
+| **Connection→Outcome** | outcomes / conexões concluídas | valor real |
+| **Median Time to Mutual** | primeiro interesse → mútuo | velocidade |
+| **Median Time to Contact** | interesse → primeira abordagem confirmada | operação |
+| **Admin Touches/Connection** | ações admin / conexão concluída | fricção interna |
+| **Admin Minutes/Connection** | tempo ativo admin / conexão | custo operacional |
+| **Backlog Age P90** | idade dos 10% mais antigos | gargalo operacional |
+| **Taxonomy Coverage** | entradas canonicalizadas / total | qualidade semântica |
+| **Direct Match Precision** | interesse em matches oferta↔necessidade / exposições | qualidade da regra principal |
+| **Outcome@Algorithm** | outcomes / matches por versão | evolução do matcher |
+| **AI Suggestion Acceptance** | sugestões aceitas / sugestões exibidas | utilidade real da IA |
+| **Message Positive Response** | respostas positivas / envios confirmados | qualidade do outreach |
+| **Follow-up Recovery** | respostas positivas pós-follow-up / follow-ups enviados | valor do follow-up |
+| **Qualified Connections/Admin Hour** | conexões úteis / hora operacional | produtividade |
+| **QCR** | conexões com outcome útil / participantes ativos | North Star |
+
+## 6.1 Métricas adicionais obrigatórias
+
+- [ ] step conversion do onboarding;
+- [ ] abandono por campo;
+- [ ] tempo por campo e etapa;
+- [ ] canonicalization rate por origem (`catalog`, texto livre, IA, Instagram);
+- [ ] decision latency;
+- [ ] undo/change rate de decisões;
+- [ ] taxa de impressão por posição;
+- [ ] interest/reject por bucket de score;
+- [ ] mutual/outcome por bucket de score;
+- [ ] distribuição de conexões por participante para detectar concentração;
+- [ ] saturação de exposição por participante;
+- [ ] taxa de briefing gerado → ação útil;
+- [ ] custo de IA por conexão útil;
+- [ ] erro/retry rate das RPCs críticas;
+- [ ] tempo p50/p90/p99 de recompute/rebuild;
+- [ ] dados incompletos por evento;
+- [ ] cobertura de outcomes por conexões concluídas.
+
+## 6.2 Regras de qualidade dos dados
+
+- [ ] eventos analíticos devem ser versionados;
+- [ ] timestamps devem ser server-authoritative quando a ordem causal importar;
+- [ ] nenhuma métrica crítica deve depender de sucesso silencioso no frontend;
+- [ ] não misturar ação espontânea do participante com ação administrativa;
+- [ ] preservar evento, algoritmo e UI vistos no momento da ação;
+- [ ] criar checks de duplicidade e cardinalidade inesperada;
+- [ ] manter documentação do significado de cada evento/métrica.
+
+---
+
+# 7. P1 — Preservar o contexto histórico da decisão
+
+Recomputações futuras não podem apagar o contexto que gerou uma decisão.
+
+- [ ] criar trilha append-only `match_decision_events` ou equivalente;
+- [ ] persistir `match_id`, `profile_id`, decisão e origem;
+- [ ] persistir `algorithm_version`;
+- [ ] persistir `score_me`, `score_other`, labels, kind, score gap;
+- [ ] persistir reasons e pesos relevantes ou referência imutável ao snapshot;
+- [ ] persistir posição/rank e variante de UI;
+- [ ] distinguir `participant`, `staff/admin`, automação, migração/backfill;
+- [ ] backfill histórico conservador, usando `unknown` quando não for possível reconstruir;
+- [ ] testar que rebuild posterior não altera a interpretação histórica.
+
+---
+
+# 8. P1 — Ground truth de valor real
+
+- [ ] aumentar cobertura de `conversa_realizada`;
+- [ ] registrar `reuniao_agendada`;
+- [ ] registrar `proposta_solicitada`;
+- [ ] registrar `negocio_reportado` / parceria;
+- [ ] registrar timestamps e origem do outcome;
+- [ ] criar input simples para staff e, quando fizer sentido, participante;
+- [ ] separar contato liberado de sucesso comercial;
+- [ ] criar hierarquia de labels de avaliação do matcher;
+- [ ] outcomes fortes devem pesar mais que cliques em avaliações futuras;
+- [ ] medir `P(mutual)`, `P(conversa)`, `P(reuniao)`, `P(proposta)`, `P(negocio)` por bucket e natureza do match.
+
+---
+
+# 9. P1 — Next Best Action para a operação
+
+## 9.1 A01/A02/A03/A04 — Fila orientada à próxima ação
+
+Transformar `/admin/matches` de uma tela de investigação em uma central que diga o que deve ser feito agora.
+
+Ordem inicial sugerida:
+
+```text
+1. interesse mútuo ainda não apresentado
+2. resposta positiva aguardando avanço
+3. interesse unilateral com alto potencial de reciprocidade
+4. follow-up vencido
+5. abordagem inicial pendente
+6. auditoria/manual review
+```
+
+- [ ] mostrar diretamente “A quer B → abordar B”;
+- [ ] uma única ação primária contextual por item;
+- [ ] filtros técnicos ficam em “Avançado”;
+- [ ] mostrar motivo de prioridade da fila;
+- [ ] auto-marcar revisão quando existir ação operacional suficiente;
+- [ ] após concluir ação, oferecer/abrir próximo item prioritário;
+- [ ] medir cliques, minutos e conexões por hora.
+
+## 9.2 A08/A09/A10/A11/A12/A13/A14/A15
+
+- [ ] idade do interesse;
+- [ ] idade da última abordagem;
+- [ ] próxima ação sugerida;
+- [ ] atalhos de teclado para operação intensiva;
+- [ ] briefing IA sob demanda quando tiver valor incremental;
+- [ ] mensagem pode ser pré-calculada sem gerar side effect;
+- [ ] visão “Só preciso agir nestes N”;
+- [ ] indicador de backlog vencido;
+- [ ] indicar contato recorrente apenas com base em envio confiável.
+
+## 9.3 A16 — Cockpit único equipe + admin
+
+- [ ] desenhar arquitetura de informação única para `/equipe` e `/admin/matches`;
+- [ ] preservar papéis e permissões diferentes;
+- [ ] compartilhar a mesma fila/estado operacional;
+- [ ] manter investigação avançada como modo secundário;
+- [ ] evitar navegação duplicada para executar a mesma conexão;
+- [ ] medir navegações, toques e tempo antes/depois.
+
+---
+
+# 10. P1 — Reciprocidade explícita para o participante
+
+## P03/P04/P05 — “Querem falar com você”
+
+Esta é uma das hipóteses com melhor relação impacto/esforço.
+
+- [ ] criar seção “Querem falar com você”;
+- [ ] quando o outro já demonstrou interesse, tornar isso visualmente prioritário;
+- [ ] copy direta: “X quer se conectar com você. Faz sentido conversar?”;
+- [ ] CTA deve permitir resposta rápida;
+- [ ] separar “Meus interesses” de “Interesse em mim”;
+- [ ] mostrar próximo estado: “se você aceitar, a ACIRV faz a aproximação”;
+- [ ] medir Inbound Conversion e Median Time to Mutual;
+- [ ] comparar reciprocidade antes/depois.
+
+---
+
+# 11. P1 — Canonicalização e taxonomia semântica
+
+## T01/T02 — Canonicalização de texto livre
+
+- [ ] canonicalizar automaticamente correspondência idêntica/única já suportada em todas as fronteiras;
+- [ ] evoluir para sugestão de similaridade sem assumir vínculo automaticamente;
+- [ ] “Você quis dizer X?” antes de persistir novo texto livre quando confiança for alta;
+- [ ] registrar candidato, confiança, escolha do usuário e origem;
+- [ ] criar fila de conceitos livres recorrentes;
+- [ ] medir Taxonomy Coverage por evento.
+
+## T03/T04/T05 — Ativar de verdade a taxonomia
+
+- [ ] popular sinônimos de alta confiança usando linguagem real dos participantes;
+- [ ] criar 20–40 relações complementares NEED → OFFER de alta confiança como primeiro lote;
+- [ ] revisar os itens hoje `kind = both`;
+- [ ] separar produto, serviço, parceria, canal e capacidade quando isso melhorar matching;
+- [ ] evitar relações amplas que aumentem recall destruindo precisão;
+- [ ] medir matches gerados, interesse, mutual e outcomes por relação;
+- [ ] permitir desativar relação e rebuild com rastreabilidade;
+- [ ] versionar/exportar curadoria para auditoria.
+
+## Meta inicial
+
+- [ ] ≥90% de cobertura canônica em itens confirmados antes de depender fortemente do grafo;
+- [ ] alertar quando cobertura cair abaixo da meta.
+
+---
+
+# 12. P1 — Razões comerciais exatas e verificáveis
+
+## M03/M04/C04
 
 - [ ] no `+55`, persistir exatamente qual necessidade encontrou qual oferta;
 - [ ] no `+25`, persistir exatamente qual oferta encontrou qual necessidade do outro;
-- [ ] mostrar ao participante “Você procura X; esta empresa oferece Y”;
-- [ ] se houver múltiplos overlaps, listar os principais mesmo mantendo score saturado;
-- [ ] preservar o teto principal (+55/+25 uma vez) para evitar explosão do score;
-- [ ] só avaliar bônus pequeno por riqueza de overlap após dados reais.
+- [ ] exibir “Você procura X · esta empresa oferece Y”;
+- [ ] exibir principais overlaps quando houver múltiplos;
+- [ ] manter score saturado para evitar inflação por quantidade de overlaps;
+- [ ] separar razão principal de detalhes adicionais;
+- [ ] reasons devem ser auditáveis e reprodutíveis.
 
 ---
 
-# 9. P1 — Separar natureza do match da intensidade do score
+# 13. P1 — Confiança, IA e linguagem do produto
 
-O sistema sobrepõe:
+## C01/C02/C05
+
+- [ ] renomear camada determinística para algo como **“Leitura do Match”**, sem fingir geração por IA;
+- [ ] `is_ai_enhanced` só deve ser verdadeiro quando houve enriquecimento generativo real;
+- [ ] remover claims não garantidos pelos dados, como “tomador de decisão”, “entrega imediata” ou equivalentes sem evidência;
+- [ ] separar visualmente **fato**, **inferência** e **sugestão**;
+- [ ] indicar quando texto foi gerado por modelo e qual evidência sustentou a síntese;
+- [ ] evitar fallback genérico que afirma “alta compatibilidade” sem reason suficiente;
+- [ ] usar copy “Tenho interesse em conversar” para medir abertura real a contato;
+- [ ] versionar mudanças relevantes de copy/UX.
+
+## C03/C06/C07/C08 — Backlog associado
+
+- [ ] cada razão apresentada deve apontar para evidência visível;
+- [ ] feedback opcional “Esse motivo faz sentido?”;
+- [ ] registrar razões rejeitadas;
+- [ ] usar feedback como sinal de auditoria da regra, não como ground truth isolado.
+
+---
+
+# 14. P2 — Experiência do participante: menos decisão, mais valor
+
+## P01/P02 — Top 3 primeiro
+
+- [ ] abrir painel com “Suas 3 melhores oportunidades agora”;
+- [ ] restante atrás de “Ver mais oportunidades”;
+- [ ] medir Interest@3 e Reject@3;
+- [ ] medir se redução de escolha aumenta decisão sem ocultar oportunidades úteis;
+- [ ] não aplicar antes da instrumentação real de impressão/rank.
+
+## P06–P12 — Hipóteses complementares
+
+- [ ] separar “Meus interesses” e “Interesse em mim”;
+- [ ] testar modo de triagem um match por vez;
+- [ ] avaliar comparação de duas oportunidades próximas;
+- [ ] mostrar uma razão principal e detalhes sob demanda;
+- [ ] remover nomenclatura técnica do matcher da superfície principal;
+- [ ] explicar estado após “Tenho interesse”;
+- [ ] mostrar expectativa operacional (“aguardando resposta”, “ACIRV fará a aproximação”).
+
+---
+
+# 15. P2 — Progressive profiling e onboarding
+
+## U03/U04/U05 — Perguntar menos no caminho crítico
+
+- [ ] testar porte como opcional no cadastro inicial;
+- [ ] testar tipo empresarial como opcional no cadastro inicial;
+- [ ] mover detalhes secundários para refinamento progressivo;
+- [ ] só pedir informação quando houver hipótese clara de ganho no match;
+- [ ] usar experimento controlado e medir conclusão, TTFV e qualidade dos matches;
+- [ ] nunca remover campo que prove ter ganho líquido de outcome sem alternativa equivalente.
+
+## U01/U02 — Instagram assíncrono + autofill
+
+- [ ] enrichment do Instagram não deve bloquear avanço quando não for necessário;
+- [ ] executar enrichment assíncrono com estado explícito;
+- [ ] preencher segmento/resumo/tipo somente quando confiança for alta;
+- [ ] mostrar sugestões como editáveis/confirmáveis;
+- [ ] medir latência, taxa de sucesso, campos aceitos e efeito no QCR;
+- [ ] fallback deve manter cadastro utilizável sem Instagram.
+
+## Backlog U06–U12
+
+- [ ] explicar por que cada campo é útil;
+- [ ] remover campos sem efeito comprovado do caminho crítico;
+- [ ] autosave robusto de rascunho;
+- [ ] estimativa de tempo restante;
+- [ ] avaliar resumo empresarial como principal campo semântico;
+- [ ] perguntar “qual é seu principal objetivo na feira?”;
+- [ ] exemplos personalizados por segmento.
+
+---
+
+# 16. P1/P2 — Natureza do match separada da força
+
+## M01/M02
+
+Classificar natureza sem confundir com intensidade:
 
 ```text
-MATCHMAKER COMERCIAL
-oferta ↔ necessidade + grafo complementar
-
-MATCHMAKER DE NETWORKING
-“quem eu procuro” ↔ perfil da empresa
+venda / prospecção
+compra / fornecedor
+parceria
+indicação/canal
+networking estratégico
+exploratória
 ```
 
-Hoje ambos alimentam os mesmos rótulos.
-
-- [ ] decidir se UI deve diferenciar “oportunidade comercial” de “perfil estratégico compatível”;
-- [ ] mostrar **natureza do sinal** separada da **força do score**;
-- [ ] evitar chamar match puramente de perfil de “boa oportunidade comercial” sem evidência comercial;
-- [ ] testar compreensão com equipe ACIRV e participantes;
-- [ ] não alterar pesos antes dessa decisão sem versionar algoritmo.
+- [ ] definir taxonomia de natureza;
+- [ ] mostrar natureza separada do score;
+- [ ] não chamar match de perfil de “oportunidade comercial” sem evidência comercial;
+- [ ] medir interesse/outcome por natureza;
+- [ ] testar compreensão com equipe e participantes.
 
 ---
 
-# 10. P2 — Assimetria da taxonomia
+# 17. P1/P2 — Calibração comportamental e matcher baseado em evidência
 
-Hoje uma relação `necessidade A → oferta B` dá bônus ao lado que precisa. O fornecedor recebe a dupla por simetria de descoberta, mas não recebe automaticamente um bônus equivalente ao `+25` do match direto inverso.
+## Baseline observado em 12/09/2026
 
-- [ ] decidir se o lado fornecedor deve receber:
-  - nenhum ponto extra (manter v2.4);
-  - uma fração do peso taxonômico;
-  - apenas um reason “esta empresa possui uma necessidade relacionada ao que você oferece”;
-- [ ] experimentar em dados reais antes de alterar score;
-- [ ] se mudar, versionar matcher como **v2.5** e manter v2.4 como contrato histórico.
+A auditoria real mostrou que `interesse` é um sinal comportamental ruidoso. Muitos participantes marcam interesse em quase tudo; entre usuários seletivos o score v2.4 discrimina melhor. Portanto não reponderar o matcher apenas porque existem interesses com score baixo.
+
+A evolução deve separar:
+
+```text
+compatibilidade objetiva
++ intenção/seletividade individual
++ natureza do match
++ exposição/rank
++ resultado real produzido
+```
+
+## M06/M07 — Calibrar pesos por comportamento/outcome
+
+**Somente após a plataforma de mensuração e cobertura de outcomes.**
+
+- [ ] replay offline reproduzível do v2.4;
+- [ ] calcular `interest_propensity` usando apenas histórico anterior ao ponto previsto;
+- [ ] comparar v2.4 com baseline de propensão individual;
+- [ ] AUC, PR-AUC, Brier score/log loss e calibração por buckets;
+- [ ] controlar por rank/exposição;
+- [ ] usar outcomes fortes como labels prioritários;
+- [ ] split temporal e, quando possível, validação entre eventos;
+- [ ] qualquer novo peso/threshold = nova `algorithm_version`;
+- [ ] só promover mudança se melhorar holdout sem piorar guardrails.
+
+## Low-score residuals
+
+- [ ] fila: score `<40` + interesse de participante seletivo;
+- [ ] prioridade maior se houver mutual;
+- [ ] prioridade máxima se houver conversa/reunião/proposta/negócio;
+- [ ] classificar causa provável: taxonomia, sinônimo, relação complementar, target parcial, semântica externa, ruído comportamental;
+- [ ] usar residuals para propor melhorias de catálogo/relations;
+- [ ] manter controle de low-score rejeitados para medir falsos positivos.
 
 ---
 
-# 11. P2 — Nomenclatura e dívida técnica
+# 18. P2 — Viés de ranking, diversidade e saturação
 
-- [ ] renomear o reason `+5` “segmentos complementares” para **“conexão entre segmentos”**;
-- [x] corrigir README/AGENTS para dizer **mesma cidade**, não “cidade/região”;
-- [ ] localizar outros textos que ainda dizem “cidade/região” quando o código só usa cidade;
-- [ ] depreciar/remover `matches.label` depois de confirmar que nenhum consumidor legítimo depende dele;
-- [ ] criar guarda/teste que impeça UI de participante de usar `matches.label`;
-- [ ] regenerar os tipos Supabase depois de aplicar a nova migration; não editar arquivo gerado manualmente.
+## M12/M13/M14
 
----
-
-# 12. P2 — Performance e escala
-
-Recompute de um perfil percorre candidatos do evento; rebuild completo tende a custo quadrático no número de participantes.
-
-- [ ] benchmark com 100 perfis;
-- [ ] benchmark com 250 perfis;
-- [ ] benchmark com 500 perfis;
-- [ ] benchmark com 1.000 perfis;
-- [ ] medir tempo, queries, locks e impacto do rebuild durante o evento;
-- [ ] definir SLO operacional;
-- [ ] só otimizar candidate generation/índices após medir gargalo real;
-- [ ] se necessário, tornar rebuild assíncrono com progresso e idempotência.
+- [ ] evitar Top-N dominado por empresas quase idênticas;
+- [ ] medir concentração de exposição;
+- [ ] definir limite/penalidade de saturação apenas se dados mostrarem necessidade;
+- [ ] manter endpoints fortes e não sacrificar relevância apenas por diversidade;
+- [ ] considerar exploração controlada apenas dentro de bandas seguras;
+- [ ] registrar experimento e posição para aprendizado contrafactual.
 
 ---
 
-# 13. P1 — Matriz de provas comportamentais
+# 19. P1 técnico — CI e harness reproduzível
 
-Criar 20–30 duplas artificiais com resultado esperado cobrindo:
+## R06/R07
+
+- [ ] CI obrigatório: lint → typecheck → unit → integration;
+- [ ] remover dependência implícita de `psql` no PATH do desenvolvedor;
+- [ ] criar harness reproduzível com Supabase/Postgres controlado;
+- [ ] separar claramente harness failure de product failure;
+- [ ] rodar provas de isolamento multi-evento em CI;
+- [ ] rodar matriz comportamental do matcher em CI;
+- [ ] proteger migrations/RPCs com contratos estáticos e testes executáveis.
+
+## Backlog técnico associado
+
+- [ ] decompor `equipe.tsx` em módulos/fluxos menores;
+- [ ] decompor `participar.tsx` em máquina de estados/steps mais explícitos;
+- [ ] regenerar tipos Supabase após migrations aplicadas;
+- [ ] benchmark de recompute/rebuild em 100/250/500/1.000 perfis;
+- [ ] definir SLO operacional antes de otimizar prematuramente.
+
+---
+
+# 20. Matriz permanente de provas do matcher
+
+Manter casos artificiais versionados cobrindo:
 
 - [ ] direto puro `+55`;
 - [ ] inverso puro `+25`;
@@ -396,430 +700,320 @@ Criar 20–30 duplas artificiais com resultado esperado cobrindo:
 - [ ] relação peso 40 = +12;
 - [ ] relação peso 100 = +30;
 - [ ] duas relações aplicáveis → só a maior conta;
-- [ ] relação em uma direção sem inferir a inversa;
+- [ ] relação unidirecional não cria inversa;
 - [ ] sinônimo explícito;
-- [ ] igualdade canônica por `taxonomy_item_id`;
+- [ ] igualdade por `taxonomy_item_id`;
 - [ ] texto livre;
 - [ ] falso positivo de substring;
-- [ ] evento diferente nunca cruza;
-- [x] alteração de taxonomia marca evento dirty (prova SQL adicionada; execução real pendente);
-- [x] rebuild aplica a revisão nova e volta a clean (prova SQL adicionada; execução real pendente);
-- [ ] conexão histórica é preservada durante rebuild completo.
+- [ ] eventos diferentes nunca cruzam;
+- [ ] conexão histórica é preservada em rebuild;
+- [ ] decisão histórica mantém snapshot após rebuild;
+- [ ] RPCs de outreach não cruzam eventos/perfis.
 
 ---
 
-# 13.1 P0/P1 — Calibração comportamental e aprendizado com dados reais (auditoria de 12/09/2026)
+# 21. SudoScore — mecanismo de priorização do roadmap
 
-## Evidência observada no snapshot real
+Cada hipótese recebe nota 0–5 em:
 
-A análise cruzou `matches`, `match_decisions`, `match_reasons`, perfis, ofertas,
-necessidades, conexões, eventos e taxonomia. O objetivo foi investigar por que
-existem tantos `interesse` em perspectivas com score baixo e se isso representa
-ruído de comportamento ou falso negativo do matcher.
+- **I — Impacto em conexões qualificadas**
+- **A — Alavancagem administrativa**
+- **R — Reach/alcance**
+- **S — Redução de risco**
+- **L — Learning value**
+- **C — Confiança da evidência**
+- **E — Esforço**, 1 fácil → 5 difícil
 
-Baseline do snapshot analisado:
-
-- 2.471 matches / 4.942 perspectivas;
-- 509 decisões registradas;
-- 332 decisões `interesse`;
-- 223/332 interesses (67,2%) ocorreram com score da perspectiva `<40`;
-- 148/223 desses interesses baixos (66,4%) vieram de 17 participantes que, com pelo menos 5 decisões observadas, marcaram `interesse` em 100% delas;
-- entre participantes que efetivamente alternaram entre `interesse` e `agora_nao`, o score voltou a discriminar melhor: média aproximada 43,7 nos `interesse` vs. 23,2 nos `agora_nao`;
-- AUC do score isolado no conjunto completo ficou em ~0,625 e subiu para ~0,733 entre participantes seletivos;
-- a propensão histórica individual de aceitar/rejeitar mostrou poder preditivo muito alto para a decisão seguinte, evidenciando que `interesse` não pode ser tratado como ground truth homogêneo;
-- o sinal `outro_oferece_o_que_procuro` (+55) mostrou associação forte com interesse entre usuários seletivos; o sinal `outro_procura_o_que_ofereco` (+25) não mostrou poder discriminativo comparável nesta amostra;
-- `perfil_desejado` sozinho apresentou conversão inferior à evidência comercial direta, reforçando a necessidade de separar networking de oportunidade comercial;
-- há apenas 4 matches com interesse mútuo explícito suficiente para análise e os outcomes fortes ainda são escassos, portanto **não há evidência para reotimizar pesos com segurança agora**;
-- 109/509 decisões (21,4%) estão associadas hoje a um `generated_at` do match posterior ao `decided_at`, indicando recomputações posteriores e perda do snapshot exato que o participante viu ao decidir;
-- cobertura taxonômica observada: ~65,2% das necessidades e ~51,9% das ofertas com `taxonomy_item_id`; 44 itens ativos, sinônimos efetivamente vazios e zero relações complementares no snapshot;
-- os pesos registrados em `match_reasons` fecharam com os scores analisados, sem evidência de erro aritmético sistêmico no cálculo v2.4.
-
-### Conclusão operacional
-
-`interesse` é um **sinal comportamental ruidoso**, não um rótulo direto de
-“match correto”. A evolução do motor deve separar pelo menos quatro dimensões:
+Fórmula:
 
 ```text
-compatibilidade objetiva da dupla
-+ intenção / seletividade do participante
-+ natureza do match (comercial x networking)
-+ resultado real produzido pela conexão
+SudoScore = 5I + 3A + 2R + 3S + 2L + 2C + 3(6−E)
 ```
 
-Não alterar pesos do v2.4 apenas porque há muitos `interesse` em scores baixos.
-Primeiro corrigir mensuração, construir labels mais fortes e medir falsos
-negativos de forma controlada.
+Faixa nominal: 0–100.
 
-## 13.1.1 P0 — Preservar o contexto histórico exato da decisão
+## Regras
 
-Hoje uma recomputação pode alterar score/reasons depois do clique e dificultar a
-reconstrução do que a pessoa realmente viu.
+- [ ] manter score por hipótese em estrutura versionável;
+- [ ] recalcular após cada evento relevante ou novo bloco de evidência;
+- [ ] anexar métricas/queries que justificam I/C quando disponíveis;
+- [ ] registrar dependências que impedem implementação imediata;
+- [ ] P0 de integridade supera o score;
+- [ ] hipóteses “Após dados” não podem furar o gate de mensuração;
+- [ ] revisar ranking após instrumentação e primeiros outcomes confiáveis.
 
-- [ ] criar trilha append-only de decisões (`match_decision_events` ou equivalente) sem depender apenas do estado atual em `match_decisions`;
-- [ ] persistir no instante da decisão: `match_id`, `profile_id`, `decision`, `decision_origin`, `algorithm_version`, `score_me`, `score_other`, `kind`, labels, `score_gap` e timestamp;
-- [ ] persistir snapshot dos `reason codes`/pesos relevantes no instante do clique, ou uma referência imutável ao snapshot do matcher;
-- [ ] persistir versão da UI/experimento que apresentou o card;
-- [ ] distinguir explicitamente `participant`, `admin/staff`, automação e migração/backfill como origem da decisão;
-- [ ] garantir que ações administrativas não sejam confundidas com intenção espontânea do participante em análises futuras;
-- [ ] criar migration/backfill conservador para os dados históricos possíveis, marcando campos desconhecidos como `unknown` em vez de inferir;
-- [ ] adicionar prova/teste de que um rebuild futuro não altera o contexto histórico de uma decisão já tomada.
+---
 
-## 13.1.2 P0 — Instrumentar exposição real e comportamento no card
+# 22. Ranking inicial oficial — 20 prioridades
 
-`match_viewed` não deve significar apenas “veio na resposta/carregou na lista”.
-Sem exposição real, não existe denominador confiável para taxa de interesse.
+> Este ranking é baseado no estado do código e na auditoria de 12/09/2026. Deve ser recalculado após a nova telemetria produzir evidência confiável.
 
-- [ ] criar evento de impressão real quando o card entrar efetivamente na viewport (ex.: `IntersectionObserver`);
-- [ ] registrar `rank_position`/posição do card no momento da impressão;
-- [ ] registrar `first_impression_at` e quantidade de impressões;
-- [ ] registrar abertura/expansão de detalhes e resumo comercial;
-- [ ] registrar `decision_latency_ms` a partir da primeira impressão real;
-- [ ] medir dwell time de forma conservadora, sem transformar tempo de tela em falsa certeza de leitura;
-- [ ] registrar mudança/undo de decisão e intervalo entre primeira decisão e correção;
-- [ ] separar `loaded`, `impressed`, `details_opened` e `decided` como eventos diferentes;
-- [ ] versionar o schema de analytics para permitir comparação histórica;
-- [ ] adicionar testes garantindo que cards fora da viewport não geram impressão.
+| # | Item | Score | Classe | Dependência principal |
+| ---: | --- | ---: | --- | --- |
+| 1 | **R01/R02/R03 — corrigir isolamento multi-evento no outreach** | gate | **P0** | nenhuma |
+| 2 | **R04 — remover/auditar fallback de contato para RPC de release** | gate | **P0** | nenhuma |
+| 3 | **W01–W05 — consertar semântica do histórico de WhatsApp** | 87 | P0/P1 | #1/#2 |
+| 4 | **W02/A06/A07 — resposta + aguardando + follow-up como estados reais** | 81 | P1 | #3 |
+| 5 | **D01–D09 — instrumentação confiável do funil e esforço admin** | 80 | P1 | nenhuma |
+| 6 | **A01/A02/A03/A04 — Next Best Action administrativa** | 76 | P1 | #4/#5 |
+| 7 | **P03/P04/P05 — destacar quem já quer falar comigo** | 76 | P1 | #5 |
+| 8 | **T01/T02 — canonicalizar texto livre** | 74 | P1 | métricas de cobertura |
+| 9 | **R05 — tornar cadastro + contato atômico** | 74 | P1 | nenhuma |
+| 10 | **D08/D10/D11 — medir outcome e fechar feedback loop do matcher** | 74 | P1 | #5 |
+| 11 | **M03/M04/C04 — razões comerciais exatas e verificáveis** | 73 | P1 | matcher/reasons |
+| 12 | **C01/C02/C05 — corrigir narrativa “IA” e claims não fundamentados** | 71 | P1 | nenhuma |
+| 13 | **P01/P02 — Top 3 primeiro; resto sob demanda** | 69 | P2 | #5 |
+| 14 | **T03/T04/T05 — ativar de verdade a taxonomia semântica** | 69 | P2 | #8 + governança |
+| 15 | **R06/R07 — CI + harness reproduzível** | 69 | P1 técnico | nenhuma |
+| 16 | **A16 — fundir equipe + admin em um cockpit** | 67 | P2 | #4/#6 |
+| 17 | **U03/U04/U05 — progressive profiling** | 61 | experimento | #5 |
+| 18 | **M06/M07 — calibrar pesos por comportamento/outcome real** | 61 | após dados | #5/#10 |
+| 19 | **R10/R11 — `.env` + auditoria de segredos** | gate | **P0 auditoria** | nenhuma |
+| 20 | **U01/U02 — enrichment assíncrono + autofill** | 59 | P2 | #5 |
 
-## 13.1.3 P0 — Remover viés persuasivo indevido da apresentação
+---
 
-O produto não deve comunicar “alta compatibilidade” quando não há evidência
-suficiente apenas para tornar o card mais atraente.
+# 23. Backlog expandido de hipóteses
 
-- [ ] remover fallback de `matchAiSummary` que afirma compatibilidade alta/genérica quando não há reasons suficientes;
-- [ ] fazer o texto refletir a força e a natureza da evidência realmente existente;
-- [ ] distinguir visualmente “oportunidade comercial”, “perfil estratégico/networking” e “conexão exploratória”;
-- [ ] evitar CTA/copy que faça `interesse` parecer confirmação de que o algoritmo está correto;
-- [ ] avaliar copy mais semântica, por exemplo “Tenho interesse em conversar”, deixando claro que o clique mede abertura para contato;
-- [ ] testar compreensão antes/depois com participantes e equipe;
-- [ ] versionar mudanças relevantes da UI para não misturar comportamento de experiências diferentes.
+Estas hipóteses não substituem o ranking acima. Devem ser promovidas apenas quando houver evidência, dependência resolvida ou custo baixo suficiente.
 
-## 13.1.4 P1 — Calibrar o score com propensão individual
+## Participante / onboarding
 
-A auditoria mostrou que alguns participantes usam `interesse` para quase todas
-as opções, enquanto outros são seletivos. A mesma ação tem força informacional
-diferente nesses dois casos.
+- [ ] U06 explicar por que cada informação é solicitada;
+- [ ] U07 remover do caminho crítico campos sem efeito comprovado;
+- [ ] U08 autosave silencioso e recuperação robusta;
+- [ ] U09 tempo restante estimado;
+- [ ] U10 resumo empresarial como possível campo semântico central;
+- [ ] U11 objetivo principal na feira;
+- [ ] U12 exemplos de oferta/procura por segmento.
 
-- [ ] calcular `interest_propensity` por participante usando apenas decisões anteriores ao ponto previsto;
-- [ ] exigir amostra mínima antes de considerar a propensão estável;
-- [ ] nunca reduzir visibilidade de alguém apenas por ser receptivo — usar propensão para **interpretar o label**, não para punir o usuário;
-- [ ] calcular curvas `P(interesse | score)` por faixa de score e por `algorithm_version`;
-- [ ] recalcular essas curvas controlando por propensão individual e exposição real;
-- [ ] medir AUC, PR-AUC, Brier score/log loss e calibração por buckets, não apenas acurácia;
-- [ ] comparar score v2.4 contra baseline “propensão do participante” e contra modelo combinado;
-- [ ] criar painel/relatório admin de calibração por evento e versão do matcher;
-- [ ] tratar usuários que sempre dizem “sim” ou sempre dizem “não” como segmentos de comportamento, não como erro de dados.
+## Taxonomia
 
-## 13.1.5 P1 — Construir ground truth de valor real
+- [ ] T06 promover termos livres recorrentes ao catálogo;
+- [ ] T07 busca/sugestão semântica durante digitação;
+- [ ] T08 aprender candidatos a sinônimos a partir de correções humanas;
+- [ ] T09 separar produto/serviço/parceria/distribuição quando útil;
+- [ ] T10 auditar default semântico de necessidades manuais;
+- [ ] T11 prioridade principal mais explícita;
+- [ ] T12 copy da prioridade = “o que mais quero resolver”.
 
-`interesse` deve ser um sinal intermediário. O objetivo do produto é criar
-conexões úteis.
+## Matcher
 
-- [ ] aumentar cobertura operacional de `conversa_realizada`;
-- [ ] aumentar cobertura de `reuniao_agendada`;
-- [ ] aumentar cobertura de `proposta_solicitada`;
-- [ ] aumentar cobertura de `negocio_reportado`;
-- [ ] registrar timestamps e origem de cada outcome;
-- [ ] criar fluxo simples para staff/participante registrar outcome sem fricção excessiva;
-- [ ] medir funil por match: impressão → interesse → mutual → apresentação → conversa → reunião → proposta → negócio;
-- [ ] separar “contato liberado/apresentados” de sucesso comercial real;
-- [ ] definir uma hierarquia explícita de labels para treinamento/avaliação futura, com outcomes fortes pesando mais que clique;
-- [ ] medir `P(mutual)`, `P(conversa)`, `P(reuniao)`, `P(proposta)` e `P(negocio)` por bucket de score e por tipo de match.
+- [ ] M05 reduzir confiança de sinais genéricos sem evidência oferta↔necessidade;
+- [ ] M08 testar peso de necessidade prioritária por outcome;
+- [ ] M09 investigar assimetria comprador/fornecedor;
+- [ ] M10 testar penalização de assimetria apenas offline;
+- [ ] M11 disponibilidade temporal como feature futura;
+- [ ] M15 aprender sinais associados a negócio real;
+- [ ] M16 manter benchmark artificial permanente.
 
-## 13.1.6 P1 — Minerar falsos negativos reais em vez de todo interesse baixo
+## Participante pós-match
 
-O conjunto prioritário para aprender relações novas não é “todo score baixo com
-interesse”, e sim casos de alta evidência comportamental apesar do score baixo.
+- [ ] P07 triagem rápida um match por vez;
+- [ ] P08 comparação de oportunidades;
+- [ ] P09 razão principal + detalhes sob demanda;
+- [ ] P10 remover jargão técnico;
+- [ ] P11 explicar próximo estado;
+- [ ] P12 expectativa operacional explícita.
 
-- [ ] criar fila analítica de **low-score residuals**: score `<40` + interesse de participante seletivo;
-- [ ] priorizar ainda mais: low-score + mutual explícito;
-- [ ] priorizar acima disso: low-score + conversa/reunião/proposta/negócio;
-- [ ] reconstruir reasons, ofertas, necessidades, target profile e taxonomia para cada residual;
-- [ ] classificar causa provável: cobertura taxonômica ausente, relação complementar ausente, sinônimo ausente, target parcial, semântica não capturada, informação externa ao perfil ou ruído comportamental;
-- [ ] usar esses resíduos como fonte de propostas de novos sinônimos/relações para curadoria humana;
-- [ ] medir quantos falsos negativos seriam recuperados por cada nova relação antes de ativá-la;
-- [ ] manter amostra de controle de low-score rejeitados para evitar criar relações que aumentem recall às custas de muitos falsos positivos.
+## Confiança
 
-## 13.1.7 P1 — Melhorar cobertura semântica guiada por dados
+- [ ] C03 razões ancoradas em evidência;
+- [ ] C06 identificar claramente geração por modelo;
+- [ ] C07 feedback sobre razão;
+- [ ] C08 detectar regras ruins a partir desse feedback.
 
-A baixa cobertura de `taxonomy_item_id` e o grafo vazio são fontes concretas de
-falsos negativos potenciais.
+## Administração
 
-- [ ] elevar cobertura canônica de ofertas e necessidades com meta e acompanhamento por evento;
-- [ ] priorizar conceitos livres recorrentes que aparecem nos low-score residuals;
-- [ ] popular sinônimos usando vocabulário real confirmado pelos participantes;
-- [ ] criar primeiras relações NEED → OFFER de alta confiança a partir de evidência observada;
-- [ ] usar embeddings/LLM, se adotados, como **geradores de candidatos** para curadoria e/ou features auxiliares, não como decisão opaca automática;
-- [ ] guardar similaridade semântica e rationale como feature separada para avaliação offline;
-- [ ] comparar ganho de recall e perda de precisão antes/depois de cada lote de relações.
+- [ ] A05 filtros técnicos em modo avançado;
+- [ ] A08 idade do interesse;
+- [ ] A09 idade da abordagem;
+- [ ] A10 próximo item automático;
+- [ ] A11 revisão automática após ação suficiente;
+- [ ] A12 atalhos de teclado;
+- [ ] A13 IA apenas quando incremental;
+- [ ] A14 pré-geração segura de mensagem;
+- [ ] A15 visão somente acionável.
 
-## 13.1.8 P1 — Reavaliar pesos com replay offline, não por intuição
+## WhatsApp
 
-Os dados atuais sugerem que `+55 outro oferece o que procuro` é informativo,
-enquanto `+25 outro procura o que ofereço` aparenta menor poder discriminativo
-para `interesse` na amostra seletiva. Isso é hipótese de reponderação, não
-mudança imediata.
+- [ ] W06 atribuição de conversa ao match;
+- [ ] W07 histórico compacto da pessoa;
+- [ ] W08 “sim” avança sem redundância;
+- [ ] W09 “não” encerra fila ativa;
+- [ ] W10 follow-up manual contextual;
+- [ ] W11 perspectiva correta na mensagem;
+- [ ] W12 performance por template/version.
 
-- [ ] construir replay offline reproduzível do v2.4 sobre snapshots históricos;
-- [ ] testar alternativas de peso sem modificar produção;
-- [ ] avaliar separadamente objetivo comercial e objetivo networking;
-- [ ] testar score contínuo e probabilidades calibradas em vez de thresholds arbitrários;
-- [ ] só promover novos pesos se melhorarem métricas de outcome e calibração em holdout temporal/evento;
-- [ ] qualquer alteração de pesos/thresholds deve gerar nova `algorithm_version`;
-- [ ] manter v2.4 reproduzível para auditoria histórica.
+---
 
-## 13.1.9 P1 — Corrigir viés de ranking e permitir aprendizado contrafactual
+# 24. Ordem recomendada de execução
 
-Se apenas os melhores scores aparecem primeiro, os dados futuros reforçam o
-próprio matcher e tornam difícil descobrir alternativas melhores.
+```text
+ONDA 1 — CONFIANÇA / P0
+R01/R02/R03 isolamento outreach
+R04 leitura de contato sem side effect
+R10/R11 .env/segredos
+W01–W05 semântica real do outreach
+R05 atomicidade perfil+contato
 
-- [ ] medir taxa de impressão por posição antes de interpretar taxa de interesse;
-- [ ] normalizar análises por exposição/rank;
-- [ ] considerar pequena faixa de exploração controlada entre candidatos plausíveis, sem degradar experiência do participante;
-- [ ] randomizar apenas dentro de bandas seguras/semelhantes e registrar o experimento;
-- [ ] usar exploração para estimar interesse/outcome de candidatos que o ranking atual normalmente esconderia;
-- [ ] definir guardrails para impedir que exploração exiba pares claramente inadequados.
+ONDA 2 — MENSURAÇÃO
+D01 impressão real
+D02/D03 onboarding
+D04–D09 funil + esforço admin
+snapshot append-only de decisões
+outcomes comerciais
+D10/D11 cohorts e algorithm comparison
+D12 experiment framework
 
-## 13.1.10 P2 — Matcher v3 probabilístico e explicável
+ONDA 3 — THROUGHPUT
+W02/A06/A07 estados de resposta/follow-up
+A01–A04 Next Best Action
+P03/P04/P05 “Querem falar com você”
+A16 cockpit único quando fluxo estiver validado
 
-Somente depois de mensuração confiável, outcomes suficientes e validação offline.
+ONDA 4 — QUALIDADE
+T01/T02 canonicalização
+M03/M04/C04 reasons verificáveis
+C01/C02/C05 linguagem e IA honestas
+T03/T04/T05 taxonomia semântica
+P01/P02 Top 3
+progressive profiling + Instagram assíncrono
 
-Objetivo conceitual:
+ONDA 5 — INTELIGÊNCIA ADAPTATIVA
+M06/M07 replay e calibração
+low-score residual mining
+exploração controlada
+Matcher v3 probabilístico apenas com outcomes suficientes
+```
+
+---
+
+# 25. Matcher v3 — visão de longo prazo, não tarefa imediata
+
+Somente após mensuração confiável e quantidade suficiente de outcomes.
 
 ```text
 features determinísticas v2.4
 + taxonomia/grafo
 + semântica
-+ target profile parcial/estruturado
++ target profile
 + contexto da dupla
-+ propensão comportamental histórica
++ propensão comportamental
 + exposição/rank
 + outcomes históricos
         ↓
-modelo calibrado
+modelo calibrado e auditável
         ↓
-P(A demonstra interesse em B)
-P(B demonstra interesse em A)
-P(dupla gera conexão valiosa)
+P(A quer conversar com B)
+P(B quer conversar com A)
+P(dupla produz conexão valiosa)
 ```
 
-- [ ] manter score/reasons determinísticos como features e camada explicável;
 - [ ] prever A→B e B→A separadamente;
-- [ ] criar terceira previsão para valor da dupla, independente do clique unilateral;
-- [ ] evitar treinar diretamente em labels contaminados por ações administrativas;
-- [ ] usar split temporal e, quando possível, validação entre eventos;
-- [ ] comparar sempre contra baseline v2.4 e baseline de propensão individual;
-- [ ] exigir explicação auditável das principais features que levaram à priorização;
-- [ ] definir rollback simples para v2.4 em caso de regressão;
-- [ ] não introduzir ML em produção enquanto a base de outcomes fortes for insuficiente.
+- [ ] prever valor da dupla independentemente do clique unilateral;
+- [ ] manter reasons determinísticos como camada explicável;
+- [ ] não treinar em ações administrativas como se fossem intenção orgânica;
+- [ ] validação temporal e entre eventos;
+- [ ] comparar sempre contra v2.4;
+- [ ] rollback simples para v2.4;
+- [ ] não promover ML enquanto ground truth forte for insuficiente.
 
 ---
 
-# 14. Ordem de execução recomendada
-
-```text
-P0. governança/rebuild de snapshots                IMPLEMENTADO; validar em banco
-P0. direção NEED → OFFER na UI                     IMPLEMENTADO + teste de UI
-P0. corrigir contexto multi-evento da taxonomia    IMPLEMENTADO + contrato estático
-P1. executar prova SQL + typecheck/testes
-P0. preservar snapshot histórico de cada decisão
-P0. instrumentar impressão real, rank e latência
-P0. neutralizar copy que superestime compatibilidade
-P1. medir cobertura canônica real do evento
-P1. calibrar score por exposição + propensão individual
-P1. aumentar cobertura de outcomes reais
-P1. minerar low-score residuals de alta evidência
-P1. curar sinônimos/relações guiados pelos resíduos reais
-P1. revisar ontologia/kind
-P1. melhorar reasons +55/+25
-P1. separar natureza comercial/networking na UI
-P1. replay offline antes de qualquer reponderação v2.5
-P1. avaliar exploração controlada para reduzir viés de ranking
-P2. Matcher v3 probabilístico apenas com labels/outcomes suficientes
-P2. decidir assimetria do fornecedor
-P2. limpar legado/nomenclatura
-P2. benchmark e otimização baseada em dados
-```
-
----
-
-# 15. Definition of Done
+# 26. Definition of Done
 
 Uma tarefa só recebe `[x]` quando:
 
-1. implementação está em branch/PR revisável;
-2. migration é idempotente e possui grants/RLS corretos quando aplicável;
-3. testes/provas relevantes existem;
-4. validação executável foi rodada quando o ambiente permite — caso contrário a limitação fica explícita;
-5. não há regressão conhecida em login, onboarding, participante, staff/admin ou matching;
-6. documentação canônica reflete o comportamento real;
-7. mudanças de score/semântica têm versão de algoritmo e decisão de produto explícita.
+1. implementação está revisável e `main` permanece funcional;
+2. critérios de aceitação estão explícitos;
+3. migrations são idempotentes e possuem RLS/grants corretos quando aplicável;
+4. testes/provas relevantes existem;
+5. validação executável foi rodada quando o ambiente permite;
+6. ausência de regressão em login, onboarding, participante, staff/admin e matching foi verificada;
+7. documentação canônica reflete comportamento real;
+8. analytics necessário existe **antes** de declarar sucesso de experimento;
+9. mudança de score/semântica possui `algorithm_version` apropriada;
+10. mudança de UX relevante possui versão/experimento quando comportamento histórico será comparado;
+11. não existe sucesso silencioso que corrompa métricas;
+12. para features de priorização, impacto deve ser avaliado em QCR, conversão do funil e/ou esforço operacional.
 
 ---
 
-# 16. Entregas por fase — histórico consolidado
+# 27. Histórico consolidado de entregas
 
-### Fase 1 — Fundação multi-eventos
+## Multi-eventos
 
-- [x] **Etapa 1.1: Registro do evento principal `sudoexpo-2026`**
-  - **Descrição**: Base ativa do matchmaking, isolada por `event_id`.
+- [x] evento Café Entre Amigos separado;
+- [x] SudoExpo 2026 ativa e limpa;
+- [x] lookup inteligente;
+- [x] check-in idempotente;
+- [x] isolamento do matcher;
+- [x] seletor/contexto no admin;
+- [x] sandbox e reset administrativo.
 
-- [x] **Etapa 1.2: Criação do Registro Oficial do "Café Entre Amigos"**
-  - **Descrição**: Criar migration SQL adicionando o evento `'cafe-entre-amigos-ago-2026'` na tabela `public.events` com nome `"Café Entre Amigos — ACIRV (Agosto 2026)"`, cidade `"Rio Verde"`, status `is_active = false`.
-  - **Critério de Sucesso**: Evento cadastrado sem conflitos de chave primária.
+## Matcher/taxonomia
 
-- [x] **Etapa 1.3: Migração dos Dados Históricos do Piloto**
-  - **Descrição**: Reatribuir com segurança todas as linhas existentes em `public.profiles`, `private.profile_contacts`, `public.profile_offers`, `public.profile_needs`, `public.consents`, `public.matches`, `public.connections`, `public.connection_notes` e `public.connection_events` que atualmente possuem `event_id = 'sudoexpo-2026'` para `event_id = 'cafe-entre-amigos-ago-2026'`.
-  - **Critério de Sucesso**: Nenhum dado do piloto é apagado; todos passam a pertencer formalmente ao evento "Café Entre Amigos".
+- [x] contrato matcher v2.4 documentado;
+- [x] governança de revisão taxonômica;
+- [x] rebuild administrativo;
+- [x] direção NEED → OFFER corrigida na UI;
+- [x] canonicalização conservadora no onboarding;
+- [x] incidente de item duplicado resolvido e coberto por regressão.
 
-- [x] **Etapa 1.4: Preparação da SudoExpo 2026 como Base Ativa Limpa**
-  - **Descrição**: Garantir que o evento `'sudoexpo-2026'` exista em `public.events` com `is_active = true`, pronto para receber exclusivamente as novas inscrições e os check-ins realizados durante o evento.
+## Participante
 
----
+- [x] check-in de veterano;
+- [x] ranking por sinergia mútua;
+- [x] resumo comercial nos cards;
+- [x] suporte via WhatsApp;
+- [x] fluxo de onboarding reduzido para duas etapas no estado atual do produto.
 
-### Fase 2 — Motor de Backend para Multi-Eventos e Check-in
+## Operação/admin
 
-- [x] **Etapa 2.1: RPC de Lookup Inteligente Multi-Evento (`lookup_participant_multi_event`)**
-  - **Descrição**: Criar função SQL `SECURITY DEFINER` que recebe o telefone normalizado E.164 e verifica histórico de eventos anteriores.
-  - **Critério de Sucesso**: Resposta em milissegundos preservando privacidade.
-
-- [x] **Etapa 2.2: RPC Transacional de Check-in (`participant_checkin_to_event`)**
-  - **Descrição**: Criar função SQL `SECURITY DEFINER` para clonar perfil, ofertas e demandas para a SudoExpo 2026 e recomputar matches.
-  - **Critério de Sucesso**: Operação totalmente atômica e idempotente.
-
-- [x] **Etapa 2.3: Garantia de Isolamento no Algoritmo de Matchmaking**
-  - **Descrição**: Auditar a função `public._recompute_matches_for_profile` para assegurar que a query filtre estritamente por `p.event_id = p_event_id`.
-  - **Critério de Sucesso**: Isolamento estrito entre participantes de eventos distintos.
-
----
-
-### Fase 3 — Experiência do Participante (UX de Boas-Vindas e Check-in)
-
-- [x] **Etapa 3.1: Integração no Card de Acesso WhatsApp (`WhatsappAccessCard.tsx` / `PhoneLoginCard.tsx`)**
-  - **Descrição**: Detecção automática de cadastro anterior no login/onboarding com modal de boas-vindas do Café Entre Amigos.
-
-- [x] **Etapa 3.2: Fluxo de Confirmação Rápida de Interesses**
-  - **Descrição**: Check-in em 1 clique confirmando presença na SudoExpo 2026.
-
-- [x] **Etapa 3.3: Feedback Visual e Notificações**
-  - **Descrição**: Feedback com toast de sucesso e redirecionamento para o painel de matches.
+- [x] fila operacional;
+- [x] auditoria de matches;
+- [x] briefing IA sob demanda;
+- [x] geração de mensagem de WhatsApp;
+- [x] confirmação rápida de conexão;
+- [x] histórico inicial de outreach — **a ser corrigido semanticamente conforme seção 4**.
 
 ---
 
-### Fase 4 — Governança no Painel Administrativo (/admin)
-
-- [x] **Etapa 4.1: Provedor de Contexto de Evento no Admin (`AdminEventContext`)**
-  - **Descrição**: Contexto global sincronizando o evento ativo no painel administrativo.
-
-- [x] **Etapa 4.2: Seletor de Evento no Topo do Painel**
-  - **Descrição**: Dropdown no cabeçalho do admin para alternar livremente entre SudoExpo 2026, Café Entre Amigos e Sandbox.
-
-- [x] **Etapa 4.3: Tela / Gestor de Eventos (`/admin/eventos`)**
-  - **Descrição**: Gerenciamento de eventos cadastrados, status e métricas.
-
-- [x] **Etapa 4.4: Filtros Avançados na Lista de Participantes (`/admin/participantes`)**
-  - **Descrição**: Filtro de evento, badges de presença e botão de check-in manual pela equipe de credenciamento.
-
-- [x] **Etapa 4.5: Atualização de `/admin/matches` e Métricas Operacionais**
-  - **Descrição**: Métricas e matches delimitados pelo evento selecionado.
-
----
-
-### Fase 5 — Testes, Validação Integrada, Auditoria e Finalização
-
-- [x] **Etapa 5.1: Testes Unitários e de Contrato**
-  - **Descrição**: Criar testes automatizados para normalização de telefone, detecção multi-evento, idempotência do check-in e regras de negócio.
-  - **Evidência**: Suíte `src/__tests__/multi-eventos-checkin.test.ts` (6/6 aprovados) e testes de regressão (65/65 aprovados).
-
-- [x] **Etapa 5.2: Teste Prático de Isolamento (Prova de Fogo)**
-  - **Descrição**: Prova de isolamento rigoroso de matches entre `cafe-entre-amigos-ago-2026` e `sudoexpo-2026`.
-
-- [x] **Etapa 5.3: Auditoria de Segurança, RLS e Não-Regressão**
-  - **Descrição**: Conferir integridade de RLS, grants, proteção de telefones e ausência de deadlocks ou dados órfãos.
-
-- [x] **Etapa 5.4: Memory Closure e Relatório Final**
-  - **Descrição**: Sincronizar `CURRENT_STATE.md`, `DECISIONS.md`, `engineering-journal/CURRENT.md` e emitir relatório de conclusão.
-
----
-
-### Fase 6 — Canal de Suporte do Administrador no Painel do Participante
-
-- [x] **Etapa 6.1: Botão de Suporte Direto ao Administrador**
-  - **Descrição**: Disponibilizar no painel do participante (`/participante`) um botão com ícone de atendimento e identificação clara de "Suporte", redirecionando diretamente para o WhatsApp do Administrador do evento.
-  - **Contato do Administrador**: `(64) 99247-0988` (Kevyn Lucas).
-  - **URL de Destino**: `https://wa.me/5564992470988`.
-  - **Localização na Interface**:
-    - Cabeçalho de Ações (`ParticipantHeader.tsx`): presente de forma persistente em todas as abas (Matches, Conexões, Interesses, Perfil).
-    - Cartão de Perfil (`ProfileCard.tsx`): botão secundário "Suporte do Administrador".
-  - **Critério de Sucesso**: Participante clica e abre o WhatsApp diretamente com o administrador para suporte e esclarecimento de dúvidas durante o evento.
-
----
-
-### Fase 7 — Ambiente de Testes (Sandbox) e Exclusão / Reset de Cadastro no Admin
-
-- [x] **Etapa 7.1: Evento Isolado de Sandbox (`sandbox-sudoexpo`)**
-  - **Descrição**: Criar o evento `'sandbox-sudoexpo'` no PostgreSQL (`public.events`) com isolamento estrito de matching e permissão aos membros da equipe staff.
-  - **Critério de Sucesso**: Qualquer cadastro efetuado nesse ambiente opera 100% isolado da feira real (`sudoexpo-2026`) e do histórico (`cafe-entre-amigos-ago-2026`).
-
-- [x] **Etapa 7.2: Botão "🧪 Testar Cadastro (Sandbox)" no Painel Admin**
-  - **Descrição**: Adicionado botão proeminente no Dashboard (`/admin`) e na Lista de Participantes (`/admin/participantes`) que redireciona diretamente para o fluxo de onboarding com parâmetro `?event=sandbox-sudoexpo`.
-  - **Critério de Sucesso**: O administrador pode testar o formulário completo de 5 etapas, ver o cálculo de matches em tempo real no sandbox e navegar no painel do participante com faixa indicativa ("Modo Sandbox").
-
-- [x] **Etapa 7.3: Botão "Zerar Dados do Sandbox"**
-  - **Descrição**: Disponibilizar no topo do Admin quando o evento selecionado for `sandbox-sudoexpo` uma ação de 1 clique para limpar todos os cadastros e matches de teste via RPC `public.admin_clear_sandbox()`.
-
-- [x] **Etapa 7.4: Exclusão e Reset Imediato de Participante com 1 Clique**
-  - **Descrição**: Criar a RPC `public.admin_delete_participant(p_profile_id)` com autorização de staff e adicionar botões de exclusão na tabela de participantes (`/admin/participantes`) e na gaveta de detalhes (`ParticipantDetailSheet.tsx`).
-  - **Recursos Excluídos em Cascata**:
-    1. Registro em `public.profiles`.
-    2. Ofertas (`profile_offers`) e necessidades (`profile_needs`).
-    3. Conexões (`connections`) e matches calculados (`matches`).
-    4. Contato privado (`private.profile_contacts`).
-    5. Tentativas de verificação e rate-limits (`private.phone_claim_attempts`), liberando o número de telefone imediatamente para novo teste ou uso real.
-  - **Critério de Sucesso**: Confirmação modal com aviso claro de irreversibilidade; exclusão atômica sem deixar dados órfãos.
-
----
-
-### Fase 8 — Priorização por Sinergia Mútua & Resumo de Oportunidade por IA nos Cartões
-
-- [x] **Etapa 8.1: Algoritmo de Ranking de Matches por Sinergia Mútua**
-  - **Descrição**: Priorizar no topo da lista os matches em que ambos os lados possuem score $\ge 60$ e assimetria $< 30$ ($|score_{me} - score_{other}| < 30$), ordenados pela menor assimetria primeiro e maior score combinado.
-  - **Critério de Sucesso**: Matches mais equilibrados e fortes aparecem logo no topo da visão do participante.
-  - **Evidência**: Implementado em `src/features/participant/presentation.ts` (`sortMatchesByMutualInterest`) e na migration `supabase/migrations/20260909205000_ordenacao_matches_e_insights.sql` (`list_own_matches_v2`).
-
-- [x] **Etapa 8.2: Badge de Destaque "✨ Alta Sinergia Mútua"**
-  - **Descrição**: Identificar visualmente nos cartões de match da tela `/participante` os pares de alta compatibilidade mútua através do helper `isHighSynergyMatch(match)`.
-
-- [x] **Etapa 8.3: Resumo Comercial Estruturado por IA em Todos os Cartões**
-  - **Descrição**: Adicionado bloco de resumo de oportunidade em cada cartão respondendo diretamente:
-    1. *Por qual motivo você deveria se conectar com essa pessoa?*
-    2. *O que você ganha se conectando com essa pessoa?*
-  - **Critério de Sucesso**: Linguagem comercial em segunda pessoa ("você"), clara e contextualizada com os dados reais de ofertas, necessidades, segmentos e sinergias das empresas.
-  - **Evidência**: Módulo `src/features/participant/matchAiSummary.ts` e suíte `src/__tests__/match-ordering-and-ai-summary.test.ts`.
-
----
-
-## Critérios de Pronto (Definition of Done)
-
-Uma etapa deste roadmap só é considerada pronta quando:
-1. O código estiver implementado de forma limpa, tipada e com menor modificação suficiente.
-2. A evidência correspondente for coletada (testes verdes, logs de execução ou validação comportamental).
-3. Não houver regressão em funcionalidades existentes (login por WhatsApp, geração de briefings de IA, painel do staff).
-4. A documentação em `docs/` for sincronizada com o estado real do código.
-
----
-
-## Princípio arquitetural a preservar
+# 28. Princípio arquitetural a preservar
 
 ```text
-IA entende linguagem ambígua
-  ↓
+linguagem humana ambígua
+        ↓
+IA / heurística produz candidatos e síntese
+        ↓
 canonicalização para IDs + sinônimos
-  ↓
-grafo comercial curado (NECESSIDADE → OFERTA)
-  ↓
-matcher SQL determinístico, auditável e explicável
-  ↓
-reasons humanos + operação presencial da equipe
+        ↓
+grafo comercial curado NEED → OFFER
+        ↓
+matcher determinístico, versionado e auditável
+        ↓
+exposição mensurada
+        ↓
+decisão do participante preservada como snapshot
+        ↓
+operação orientada à próxima ação
+        ↓
+outcome real
+        ↓
+aprendizado e recalibração offline
 ```
 
-A prioridade é **ativar e governar bem a inteligência já existente**, não aumentar complexidade sem evidência.
+A prioridade é fechar o circuito:
+
+```text
+SudoExpo sugere
+→ pessoa vê
+→ pessoa decide
+→ outra responde
+→ ACIRV conecta
+→ algo acontece
+→ SudoExpo aprende
+```
+
+O produto deve evoluir quando o ciclo produz evidência, não quando apenas produz mais features.
