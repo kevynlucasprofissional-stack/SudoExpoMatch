@@ -1153,6 +1153,7 @@ M18 dual score offline
 P01/P02 Top 3
 P06–P14 simplificação do participante
 U01–U13 onboarding progressivo
+Intelligence V1.1 — segment intelligence (heatmap segmento × segmento) + cross-filter/drilldown entre gráficos
 
 ONDA 5 — INTELIGÊNCIA ADAPTATIVA
 M19 propensão regularizada
