@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Sparkles, Trash2 } from "lucide-react";
+import { MessageCircle, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EVENT_ID } from "@/config/event";
 import { useStaffCheckinMutation } from "@/features/admin/useAdminEvents";
