@@ -1132,6 +1132,7 @@ outcomes reais
 D10/D11 cohorts e comparação
 D12 experiment framework
 dataset analítico reproduzível
+SudoExpo Intelligence V1 (`/admin/inteligencia`) — superfície oficial para observar a nova telemetria
 
 ONDA 3 — THROUGHPUT OPERACIONAL
 W02/A06/A07 estados de resposta/follow-up
