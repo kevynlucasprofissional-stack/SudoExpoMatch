@@ -333,10 +333,12 @@ function GraphPage() {
                   nodes={view.nodes}
                   edges={view.edges}
                   onNodeClick={(profileId) =>
-                    void navigate({ search: (prev) => ({ ...prev, p: profileId, m: "" }) })
+                    void navigate({
+                      search: (prev) => ({ ...prev, p: profileId, pd: "1", m: "" }),
+                    })
                   }
                   onEdgeClick={(matchId) =>
-                    void navigate({ search: (prev) => ({ ...prev, m: matchId, p: "" }) })
+                    void navigate({ search: (prev) => ({ ...prev, m: matchId }) })
                   }
                 />
               </Suspense>
