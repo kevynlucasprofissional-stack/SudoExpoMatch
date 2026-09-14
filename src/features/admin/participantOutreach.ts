@@ -163,16 +163,18 @@ export function generateParticipantReactivationMessage(
   const blocks: string[] = [`Olá, ${firstName}, tudo bem? Aqui é o ${sender}.`];
 
   if (incoming.length > 0) {
-    const list = formatPersonList(incoming);
-    const plural = incoming.length > 1;
-    blocks.push(
-      `Estou entrando em contato porque ${list} ${
-        plural ? "demonstraram" : "demonstrou"
-      } interesse em conversar com você e ${
-        plural ? "gostariam" : "gostaria"
-      } de marcar um café. ` +
-        "Se fizer sentido para você, é só me responder por aqui que a equipe da ACIRV coloca vocês em contato.",
-    );
+    if (incoming.length === 1) {
+      blocks.push(
+        `Estou entrando em contato porque ${describePerson(
+          incoming[0],
+        )} demonstrou interesse em conversar com você e gostaria de marcar um café. ${REPLY_CTA}`,
+      );
+    } else {
+      blocks.push(
+        "Estou entrando em contato porque as seguintes pessoas demonstraram interesse em conversar com você e gostariam de marcar um café:\n\n" +
+          `${formatNumberedPersonList(incoming)}\n\n${REPLY_CTA}`,
+      );
+    }
   }
 
   if (released.length > 0) {
@@ -182,18 +184,27 @@ export function generateParticipantReactivationMessage(
     );
     const neutral = released.filter((r) => r.my_decision !== "interesse" && !r.other_has_interest);
 
-    if (chosen.length > 0) {
+    if (chosen.length === 1) {
       blocks.push(
-        `Vi também que você demonstrou interesse em ${formatPersonList(chosen)}. ${
-          chosen.length > 1 ? "Os contatos já estão" : "O contato já está"
-        } liberado${chosen.length > 1 ? "s" : ""} para você.`,
+        `Vi também que você demonstrou interesse em ${describePerson(
+          chosen[0],
+        )}. O contato já está liberado para você.`,
+      );
+    } else if (chosen.length > 1) {
+      blocks.push(
+        `Vi também que você demonstrou interesse em marcar um café com ${chosen.length} usuários. Os contatos já estão liberados para você.`,
       );
     }
-    if (interestedInMe.length > 0) {
+    if (interestedInMe.length === 1) {
       blocks.push(
-        `${formatPersonList(interestedInMe)} ${
-          interestedInMe.length > 1 ? "demonstraram" : "demonstrou"
-        } interesse em conversar com você e a conexão já está liberada de parte a parte.`,
+        `${describePerson(
+          interestedInMe[0],
+        )} demonstrou interesse em conversar com você. ${REPLY_CTA}`,
+      );
+    } else if (interestedInMe.length > 1) {
+      blocks.push(
+        "Os seguintes usuários demonstraram interesse em conversar com você:\n\n" +
+          `${formatNumberedPersonList(interestedInMe)}\n\n${REPLY_CTA}`,
       );
     }
     if (neutral.length > 0) {
@@ -219,9 +230,12 @@ export function generateParticipantReactivationMessage(
       `Já encontramos ${others} sugest${
         others > 1 ? "ões" : "ão"
       } de conexão para o seu perfil na SudoExpo Match e vale a pena dar uma olhada. ` +
-        `Para ver, ${ACCESS_PATH_MAIN} e analise cada sugestão com calma.`,
+        `Para ver, ${ACCESS_PATH_MAIN} e analise ${
+          others > 1 ? "cada sugestão" : "a sugestão"
+        } com calma.`,
     );
   }
+
 
   return blocks.join("\n\n");
 }
