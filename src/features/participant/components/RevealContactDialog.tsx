@@ -48,12 +48,24 @@ interface Props {
  *    contact_unavailable). Estados de negócio (not_mutual, not_yet_introduced,
  *    contact_sharing_disabled, ...) exibem instrução e nenhum botão.
  */
-export function RevealContactDialog({ open, matchId, otherFirstName, onClose }: Props) {
+export function RevealContactDialog({
+  open,
+  matchId,
+  otherFirstName,
+  suggestedMessage,
+  onClose,
+}: Props) {
   const mutation = useRevealContactMutation();
   const [contact, setContact] = useState<RevealedContactDTO | null>(null);
   const [errorCode, setErrorCode] = useState<ErrorCode | null>(null);
   const [copied, setCopied] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [message, setMessage] = useState(suggestedMessage ?? "");
+
+  // Reidrata a sugestão a cada abertura, sem sobrescrever a edição em curso.
+  useEffect(() => {
+    if (open) setMessage(suggestedMessage ?? "");
+  }, [open, suggestedMessage]);
 
   const mountedRef = useRef(true);
   const requestVersionRef = useRef(0);
