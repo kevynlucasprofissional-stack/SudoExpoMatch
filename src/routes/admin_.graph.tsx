@@ -140,16 +140,24 @@ function GraphPage() {
       search: () => ({
         st: "",
         min: "",
+        max: "",
         seg: "",
         q: "",
         conn: "",
         rev: "",
         iso: "",
         p: "",
+        pd: "",
         m: "",
       }),
     });
   };
+
+  const selectedNode = view?.nodes.find((n) => n.profile_id === filters.selectedProfileId) ?? null;
+  const selectedSummary =
+    view && filters.selectedProfileId
+      ? nodeInterestSummary(view.edges, filters.selectedProfileId)
+      : null;
 
   return (
     <PageShell>
