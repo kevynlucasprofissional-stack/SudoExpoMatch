@@ -112,6 +112,8 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
       ctx({ active_matches_count: 1, incoming_interests: [person(1, "Ana", "Ana Doces")] }),
     );
     expect(um).toContain("Ana, da Ana Doces demonstrou interesse em conversar com você");
+    expect(um).toContain("é só me responder por aqui que coloco vocês em contato.");
+    expect(um).not.toContain("a equipe da ACIRV coloca");
 
     const dois = generateParticipantReactivationMessage(
       ctx({
@@ -119,9 +121,50 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
         incoming_interests: [person(1, "Ana"), person(2, "Bia")],
       }),
     );
-    expect(dois).toContain("Ana e Bia demonstraram interesse");
-    expect(dois).toContain("gostariam");
+    expect(dois).toContain(
+      "as seguintes pessoas demonstraram interesse em conversar com você e gostariam de marcar um café:",
+    );
+    expect(dois).toContain("1- Ana e\n2- Bia.");
+
+    const tres = generateParticipantReactivationMessage(
+      ctx({
+        active_matches_count: 3,
+        incoming_interests: [person(1, "Ana"), person(2, "Bia"), person(3, "Caio", "Caio Ltda")],
+      }),
+    );
+    expect(tres).toContain("1- Ana,\n2- Bia e\n3- Caio, da Caio Ltda.");
   });
+
+  it("resume no plural as conexões liberadas escolhidas pelo participante", () => {
+    const msg = generateParticipantReactivationMessage(
+      ctx({
+        active_matches_count: 2,
+        released_connections: [
+          { ...person(1, "Ana"), status: "apresentados", my_decision: "interesse", other_decision: "sem_decisao", other_has_interest: false },
+          { ...person(2, "Bia"), status: "apresentados", my_decision: "interesse", other_decision: "sem_decisao", other_has_interest: false },
+        ],
+      }),
+    );
+    expect(msg).toContain(
+      "você demonstrou interesse em marcar um café com 2 usuários. Os contatos já estão liberados para você.",
+    );
+  });
+
+  it("lista numerada quando vários interessados já têm conexão liberada", () => {
+    const msg = generateParticipantReactivationMessage(
+      ctx({
+        active_matches_count: 2,
+        released_connections: [
+          { ...person(1, "Ana"), status: "apresentados", my_decision: "sem_decisao", other_decision: "interesse", other_has_interest: true },
+          { ...person(2, "Bia"), status: "apresentados", my_decision: "sem_decisao", other_decision: "interesse", other_has_interest: true },
+        ],
+      }),
+    );
+    expect(msg).toContain("Os seguintes usuários demonstraram interesse em conversar com você:");
+    expect(msg).toContain("1- Ana e\n2- Bia.");
+    expect(msg).not.toContain("parte a parte");
+  });
+
 
   it("convida a analisar as demais sugestões só quando sobram matches", () => {
     const sobra = generateParticipantReactivationMessage(
@@ -168,6 +211,20 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
     );
     expect(msg).toContain('clique em "Acessar Minhas Conexões"');
     expect(msg).toContain('aba "Conexões"');
+    expect(msg).toContain('clique em "Ver contato" e chame pelo WhatsApp para marcar um café.');
+    expect(msg).toContain("Para falar com essa pessoa");
+  });
+
+  it("usa o texto de sugestões no singular e no plural", () => {
+    const uma = generateParticipantReactivationMessage(ctx({ active_matches_count: 1 }));
+    expect(uma).toContain("Já encontramos 1 sugestão de conexão");
+    expect(uma).toContain("analise a sugestão com calma.");
+    expect(uma).toContain("faça o login usando seu número do whatsapp");
+
+    const varias = generateParticipantReactivationMessage(ctx({ active_matches_count: 5 }));
+    expect(varias).toContain("Já encontramos 5 sugestões de conexão");
+    expect(varias).toContain("analise cada sugestão com calma.");
+
   });
 
   it("nunca inclui telefone na mensagem, mesmo tendo o número no contexto", () => {
