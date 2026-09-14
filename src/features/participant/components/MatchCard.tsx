@@ -398,6 +398,7 @@ export function MatchCard({ match, eventId, isTopThree = false }: Props) {
           open={revealOpen}
           matchId={match.match_id}
           otherFirstName={other.name.split(" ")[0]}
+          suggestedMessage={icebreaker.text}
           onClose={() => setRevealOpen(false)}
         />
       </div>
