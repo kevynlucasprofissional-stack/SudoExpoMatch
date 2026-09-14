@@ -12,7 +12,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LOW_SCORE_MAX, type IntelligenceMatcher } from "@/features/admin/intelligenceSchemas";
+import {
+  LOW_SCORE_MAX,
+  type IntelligenceMatcher,
+  type ScoreBucket,
+} from "@/features/admin/intelligenceSchemas";
 import {
   BUCKET_LABEL,
   MATRIX_METRIC_LABEL,
@@ -24,7 +28,6 @@ import {
   scoreMatrix,
   type MatrixMetric,
   type ReasonCohort,
-  type ScoreBucketKey,
 } from "@/features/admin/intelligencePresentation";
 import { EmptyBlock, KpiCard, SectionTitle } from "./KpiCard";
 
@@ -81,7 +84,7 @@ export function MatcherTab({
                   </th>
                   {grid.buckets.map((b) => (
                     <th key={b} className="font-medium text-muted-foreground">
-                      {BUCKET_LABEL[b as ScoreBucketKey]}
+                      {BUCKET_LABEL[b as ScoreBucket]}
                     </th>
                   ))}
                 </tr>
@@ -90,7 +93,7 @@ export function MatcherTab({
                 {grid.buckets.map((rowBucket) => (
                   <tr key={rowBucket}>
                     <th className="text-left font-medium text-muted-foreground">
-                      {BUCKET_LABEL[rowBucket as ScoreBucketKey]}
+                      {BUCKET_LABEL[rowBucket as ScoreBucket]}
                     </th>
                     {grid.buckets.map((colBucket) => {
                       const cell = grid.cells.find(
@@ -242,7 +245,7 @@ export function MatcherTab({
           subtitle="Interesses de participantes seletivos em duplas de score baixo. Cada linha é uma pista de sinal que o matcher ainda não captura."
           right={
             <Button asChild variant="outline" size="sm">
-              <Link to="/admin/matches" search={{ max: LOW_SCORE_MAX - 1 }}>
+              <Link to="/admin/matches" search={{ max: String(LOW_SCORE_MAX - 1) }}>
                 Investigar em Matches <ArrowUpRight className="ml-1 h-3.5 w-3.5" />
               </Link>
             </Button>
