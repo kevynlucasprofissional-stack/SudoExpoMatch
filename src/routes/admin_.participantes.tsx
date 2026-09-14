@@ -1,7 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Search, ShieldAlert, Sparkles, TestTube2, Trash2, Users, X } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageCircle,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  TestTube2,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -50,6 +60,7 @@ import {
 } from "@/features/admin/participantsUrlState";
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
 import { ParticipantDetailSheet } from "@/features/admin/ParticipantDetailSheet";
+import { ParticipantOutreachModal } from "@/features/admin/ParticipantOutreachModal";
 
 export const Route = createFileRoute("/admin_/participantes")({
   validateSearch: zodValidator(participantesSearchSchema),
