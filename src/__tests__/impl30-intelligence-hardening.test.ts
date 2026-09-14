@@ -151,7 +151,7 @@ describe("cobertura taxonômica", () => {
       taxonomy_items_active: 0,
       taxonomy_relations_active: 0,
     });
-    expect(taxonomySideRows(t)).toHaveLength(2);
+    expect(taxonomySideRows(t)).toEqual([]);
     expect(taxonomySourceRows(t)).toEqual([]);
     expect(taxonomySegmentRows(t)).toEqual([]);
   });
