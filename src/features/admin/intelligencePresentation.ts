@@ -1,3 +1,4 @@
+import type { InterestState, MatchGraph } from "@/features/admin/graphSchemas";
 import {
   HIGH_SCORE_MIN,
   LOW_SCORE_MAX,
@@ -402,7 +403,6 @@ export const NO_DATA_LABEL = "Dados insuficientes";
 
 // ------------------------------------------------------------ Rede (agregado)
 
-import type { InterestState, MatchGraph } from "@/features/admin/graphSchemas";
 
 export interface NetworkSummary {
   nodes: number;
