@@ -35,10 +35,12 @@ const node = (id: string, over: Partial<MatchGraph["nodes"][number]> = {}) => ({
   ...over,
 });
 
-const uuid = (n: number) => `0000000${n}-0000-4000-8000-000000000000`.slice(-36);
+/** UUID determinístico (nunca aleatório) para fixtures estáveis. */
+const uuid = (n: number) => `${String(n).padStart(8, "0")}-0000-4000-8000-000000000000`;
 
+let edgeSeq = 0;
 const edge = (a: string, b: string, over: Partial<GraphEdge> = {}): GraphEdge => ({
-  match_id: uuid(900 + Math.random() * 90),
+  match_id: uuid(++edgeSeq),
   a_profile_id: a,
   b_profile_id: b,
   score_for_a: 60,
@@ -236,6 +238,7 @@ describe("estado de URL", () => {
   const raw = {
     st: "",
     min: "",
+    max: "",
     seg: "",
     q: "",
     conn: "",
