@@ -1554,3 +1554,221 @@ Após a primeira versão estável, avaliar:
 - [ ] usar o mapa como superfície de curadoria de taxonomia/relações sem misturar visualização com alteração automática do matcher.
 
 **Princípio:** o Graph View deve transformar o banco relacional do SudoExpo Match em uma representação visual investigável da rede comercial, sem confundir visualização com verdade causal e sem alterar o matcher apenas por intuição visual.
+
+---
+
+# 30. P1 — SudoExpo Intelligence / Match Intelligence
+
+## 30.1 Objetivo e princípios
+
+- [x] o dashboard não é vanity metrics: existe para responder se estamos encontrando as pessoas certas, por quais sinais, para quais perfis e se as conexões geram valor real;
+- [x] distinguir sempre dado disponível, dado inferido e dado insuficiente;
+- [x] denominador/N sempre visível em qualquer taxa;
+- [x] `sem_decisao` nunca é rejeição nem entra em denominador de interest rate;
+- [x] Data Trust visível junto do insight, não em página separada;
+- [ ] todo gráfico com pergunta decisória explícita e ação possível registrada na própria UI (parcial: descrições/tooltips existem, ações sugeridas ainda não).
+
+## 30.2 SudoViz Score + Data Readiness
+
+Fórmula de priorização visual:
+
+```text
+SudoViz = 5D + 4A + 4E + 3L + 2V + 2C - 2R
+```
+
+- D = valor para decisão;
+- A = acionabilidade;
+- E = qualidade da evidência;
+- L = learning value sobre o matcher;
+- V = impacto visual;
+- C = cobertura;
+- R = risco de interpretação.
+
+**Data Readiness é medido separadamente** — um gráfico com SudoViz alto e readiness baixa é bloqueado por telemetria, não priorizado.
+
+Prioridade inicial registrada (SudoViz / readiness / fase):
+
+- [x] decomposição dos interesses de score baixo por comportamento — 98 / 100% / P0;
+- [x] distribuição de propensity — 98 / 100% / P0;
+- [x] taxonomy coverage e blind spots — 96 / 100% / P0;
+- [x] snapshot drift — 93 / 100% / P0;
+- [x] taxonomy por segmento e por fonte — 93 / 100% / P0;
+- [x] conceitos livres sem item canônico — 89 / 100% / P0–P1;
+- [x] score geral × seletivos — 90 / ~85% / P1;
+- [x] Score A × B matrix — 90 / ~85% / P1;
+- [x] Reason Lift — 88 / ~80% / P1;
+- [x] live graph (reuso do `/admin/graph`) — 86 / 100% / P1;
+- [ ] segment × segment heatmap — 86 / 100% / P1;
+- [ ] pair states — 84 / 100% / P1;
+- [ ] score × decision — 84 / 100% / P1;
+- [x] kind effectiveness — 78 / ~90% / P1;
+- [ ] timeline do evento — 69 / 100% / P2;
+- [ ] true funnel impressão→deal — potencial ~100, **bloqueado por telemetria de impressão**;
+- [ ] outcome calibration — potencial ~100, **bloqueado por outcomes reais**.
+
+## 30.3 Arquitetura do produto
+
+- [x] rota `/admin/inteligencia`;
+- [x] tabs Visão Geral, Matcher Lab, Behavior Lab, Rede, Taxonomy Intelligence, Outcomes & Data Trust;
+- [ ] tab futura Experiments;
+- [ ] filtros globais: evento, período, segmento, score bucket, kind, `algorithm_version`, origin, coorte comportamental;
+- [ ] cross-filter entre gráficos;
+- [x] drilldown para matches (residuais de score baixo) e grafo;
+- [ ] drilldown completo para participantes e curadoria de taxonomia;
+- [x] preservar `EventSelector` e autorização admin existentes.
+
+## 30.4 Command Center — KPIs
+
+- [x] participantes;
+- [x] matches ativos;
+- [x] decisões + participantes decisores;
+- [x] interest rate com denominador;
+- [x] Selective Signal Gap;
+- [x] Low-score Noise Share;
+- [x] taxonomy coverage de needs e offers;
+- [x] snapshot drift;
+- [x] outcome coverage / estado do ground truth;
+- [x] `algorithm_version` presente no payload;
+- [ ] impression coverage;
+- [ ] QCR (Qualified Connection Rate).
+
+## 30.5 Matcher Pulse / Overview charts
+
+- [x] interesse por faixa de score: todos × seletivos;
+- [x] decomposição dos interesses de score baixo (permissivos fortes / seletivos / outros);
+- [x] taxonomy coverage canônico × texto livre;
+- [x] snapshot integrity (íntegro / drift / desconhecido);
+- [ ] pair state composition;
+- [ ] timeline opcional do evento.
+
+## 30.6 Matcher Lab
+
+- [x] heatmap Score A × Score B com alternância volume / mutual / connections;
+- [ ] alternância adicional por outcomes;
+- [x] Reason Lift com N, coortes geral e seletivos e aviso de associação ≠ causalidade;
+- [x] kind effectiveness;
+- [ ] score gap / diagnóstico de assimetria entre lados;
+- [ ] high-score rejects;
+- [x] low-score selective residuals;
+- [ ] efeito de prioridade e de perfil desejado isolado;
+- [ ] calibration curve (probabilidade prevista × outcome real);
+- [ ] comparação entre `algorithm_version`;
+- [x] amostra/incerteza sinalizadas.
+
+## 30.7 Behavior Lab
+
+- [x] histograma de propensity nas faixas 0–10, 10–25, 25–50, 50–75, 75–90, 90–100;
+- [x] coortes seletivos / permissivos fortes / always-yes com pouca amostra;
+- [x] scatter propensity × score médio aceito × volume de decisões;
+- [ ] interesses enviados × recebidos por participante;
+- [x] score médio aceito por participante;
+- [ ] score médio rejeitado por participante;
+- [ ] concentração/Pareto dos interesses de score baixo;
+- [ ] undo/reversal e `interest_intent`;
+- [ ] tendência das coortes ao longo do evento.
+
+## 30.8 Connection Graph / Network Intelligence
+
+- [x] reutilizar `/admin/graph`, sem duplicar canvas;
+- [x] resumo agregado (nós, arestas, isolados, grau médio, maior grau, estados);
+- [ ] modos possible / interests / mutual / connections dentro do dashboard;
+- [ ] Match Degree, Interest In-Degree, Interest Out-Degree, Mutual Degree, Connection Degree como métricas nomeadas;
+- [ ] Bridge Score, Cross-Segment Ratio, Isolation Risk;
+- [ ] detecção de hubs, bridges, clusters e isolados;
+- [ ] interação bidirecional grafo ↔ dashboard;
+- [ ] prevenção de hairball por modo, filtro, threshold e ego-network.
+
+## 30.9 Taxonomy Intelligence
+
+- [x] cobertura needs × offers;
+- [x] cobertura por fonte (`ai`, `user`, `heuristic`, …);
+- [x] cobertura por segmento;
+- [x] top conceitos de texto livre sem `taxonomy_item_id`;
+- [x] participantes distintos por conceito;
+- [x] Observed Opportunity = frequência × participantes distintos (rotulado como observado, não potencial);
+- [ ] Semantic Opportunity Score = frequência × participantes distintos × presença residual × potencial de match;
+- [ ] cobertura de sinônimos;
+- [ ] ROI das relações complementares;
+- [ ] blind spots ligados aos low-score residuals;
+- [ ] ação de backlog para promover/canonicalizar conceito direto da tela.
+
+## 30.10 Segment Opportunity Map
+
+- [ ] heatmap/matriz segmento × segmento;
+- [ ] alternância matches, interesse, mutual, score médio, conexões e futuro QCR/outcome;
+- [ ] cross-segment rate;
+- [ ] identificar corredores de alto volume e baixa conversão e de baixo volume e alta qualidade;
+- [ ] Segment Opportunity Score = volume × interesse ajustado × reciprocidade × outcome;
+- [ ] exigir amostra suficiente e denominador de exposição.
+
+## 30.11 Outcomes & Operations
+
+- [x] conexões por status;
+- [x] contagem de resultados fortes (`connection_events.action = 'outcome:<kind>'`);
+- [x] outcome coverage;
+- [x] estado explícito "ground truth ainda insuficiente";
+- [ ] funil completo impressão → detalhes → interesse → mutual → apresentação → conversa → reunião → proposta → negócio;
+- [ ] time-to-mutual, time-to-contact e time-to-outcome;
+- [ ] QCR;
+- [ ] toques/minutos admin por conexão qualificada;
+- [ ] outcome por score, reason, kind, segmento e `algorithm_version`;
+- [ ] calibration chart (prioridade máxima quando outcomes amadurecerem).
+
+## 30.12 Data Trust
+
+- [x] snapshot drift exibido como sinal de integridade, não como erro causal;
+- [ ] reconciliação reason × score;
+- [x] taxonomy coverage como sinal de confiança;
+- [ ] cobertura de origem da decisão;
+- [x] versões de algoritmo presentes;
+- [ ] cobertura de versão de UI/experimento;
+- [x] outcome coverage;
+- [ ] cobertura de impressão/rank;
+- [ ] checagens de missingness, duplicidade e cardinalidade;
+- [ ] aviso automático nos gráficos afetados por dado fraco.
+
+## 30.13 Backend / read-model
+
+- [x] RPCs admin-only escopadas por evento, com `event_id` validado no backend;
+- [x] nenhum contato privado, credencial ou service role no cliente;
+- [x] agregação feita no servidor (poucas chamadas por aba);
+- [x] schemas estáveis validados com Zod;
+- [x] query keys por domínio + evento com cache curto;
+- [ ] índices e benchmark quando as consultas ficarem pesadas;
+- [ ] versionamento explícito das definições analíticas;
+- [ ] export/dataset reproduzível para análise offline.
+
+## 30.14 Interação e UX
+
+- [ ] gráficos clicáveis atuando como filtros;
+- [ ] clique em bucket → matches; coorte → participantes; célula de segmento → corredor; reason → pares; conceito → curadoria de taxonomia;
+- [x] drilldown de residuais de score baixo para `/admin/matches` filtrado;
+- [x] tooltips com N, numerador e denominador;
+- [x] estados de vazio e de amostra pequena;
+- [x] desktop-first administrativo com responsividade mobile;
+- [ ] codificação acessível dos gráficos sem depender apenas de cor;
+- [ ] views de filtro salvas e export CSV.
+
+## 30.15 Rollout
+
+- [x] **V1 (agora)** — rota, KPIs, overview charts, Matcher Lab, Behavior Lab, Taxonomy Intelligence, Outcomes & Data Trust e card de Rede sobre dados reais;
+- [ ] **V1.1** — cross-filter/drilldown completo, segment heatmap e métricas de rede mais ricas;
+- [ ] **V2** — telemetria real de impressão/rank, reversões e intenção de interesse, experimentos;
+- [ ] **V3** — outcomes maduros, funil completo e gráficos de calibração;
+- [ ] **V4** — dashboard preditivo, comparação de algoritmos, monitoramento de anomalias e recomendações.
+
+## 30.16 Definition of Done específico do dashboard
+
+- [x] dados reais, sem mocks;
+- [x] escopado no evento selecionado;
+- [x] admin-only;
+- [x] N/denominadores visíveis;
+- [x] `sem_decisao` excluído;
+- [x] estados de amostra pequena;
+- [x] avisos de Data Trust;
+- [x] nenhuma afirmação causal não suportada;
+- [x] testes e typecheck verdes;
+- [ ] performance de query medida com benchmark formal;
+- [ ] documentação de definições métricas sincronizada em `docs/specs/`.
+
+**Princípio:** o SudoExpo Intelligence é instrumento de investigação. Ele descreve o que aconteceu e onde o dado é fraco; qualquer mudança de peso, threshold ou semântica do matcher continua exigindo replay, exposição correta e outcomes conforme as regras deste roadmap.
