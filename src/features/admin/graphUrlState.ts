@@ -55,6 +55,7 @@ export function normalizeGraphSearch(search: GraphSearch): NormalizedGraphSearch
     onlyReviewed: search.rev === "1",
     showIsolated: search.iso === "1",
     selectedProfileId: search.p ? search.p : null,
+    profileSheetOpen: search.p !== "" && search.pd === "1",
     selectedMatchId: search.m ? search.m : null,
   };
 }

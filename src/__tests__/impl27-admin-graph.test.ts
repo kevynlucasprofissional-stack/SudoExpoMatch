@@ -246,6 +246,7 @@ describe("estado de URL", () => {
     rev: "",
     iso: "",
     p: "",
+    pd: "",
     m: "",
   };
 
@@ -293,7 +294,7 @@ describe("faixa de score (mínimo e máximo)", () => {
   });
 
   it("score máximo entra e sai da URL", () => {
-    const raw = { st: "", min: "", max: "", seg: "", q: "", conn: "", rev: "", iso: "", p: "", m: "" };
+    const raw = { st: "", min: "", max: "", seg: "", q: "", conn: "", rev: "", iso: "", p: "", pd: "", m: "" };
     expect(normalizeGraphSearch({ ...raw, max: "40" }).maxScore).toBe(40);
     expect(normalizeGraphSearch({ ...raw, max: "-1" }).maxScore).toBe(0);
     expect(normalizeGraphSearch({ ...raw, max: "abc" }).maxScore).toBeNull();
