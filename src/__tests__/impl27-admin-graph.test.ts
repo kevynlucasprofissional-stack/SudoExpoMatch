@@ -262,7 +262,7 @@ describe("estado de URL", () => {
   });
 
   it("score mínimo negativo é normalizado", () => {
-    expect(normalizeGraphSearch({ ...raw, min: "-30" }).minScore).toBe(30);
+    expect(normalizeGraphSearch({ ...raw, min: "-30" }).minScore).toBe(0);
     expect(normalizeGraphSearch({ ...raw, min: "abc" }).minScore).toBeNull();
   });
 });
