@@ -25,6 +25,15 @@ export type OutreachPerson = z.infer<typeof outreachPersonSchema>;
 export const outreachReleasedSchema = outreachPersonSchema.extend({
   status: z.string(),
   my_decision: z.string(),
+  /** Decisão da CONTRAPARTE — preserva o fato do interesse dela. */
+  other_decision: z
+    .string()
+    .nullish()
+    .transform((v) => v ?? "sem_decisao"),
+  other_has_interest: z
+    .boolean()
+    .nullish()
+    .transform((v) => v ?? false),
 });
 export type OutreachReleasedConnection = z.infer<typeof outreachReleasedSchema>;
 
@@ -41,6 +50,11 @@ export const participantOutreachContextSchema = z.object({
     .nullish()
     .transform((v) => v ?? null),
   active_matches_count: z.coerce.number().int().nonnegative().default(0),
+  /**
+   * Sugestões ativas que NÃO estão cobertas por interesse recebido nem por
+   * conexão liberada ativa. Vem exata do backend; nunca subtraia às cegas.
+   */
+  other_suggestions_count: z.coerce.number().int().nonnegative().nullish(),
   incoming_interests: z.array(outreachPersonSchema).default([]),
   released_connections: z.array(outreachReleasedSchema).default([]),
 });
@@ -85,8 +99,33 @@ export interface GenerateParticipantOutreachOptions {
 }
 
 /**
- * Monta a mensagem de reativação/abordagem do participante.
- * Sempre retorna texto válido, mesmo sem nenhum sinal (mensagem mínima).
+ * `true` quando existe QUALQUER contexto real de matchmaking para compor a
+ * mensagem. `false` significa: não há nada honesto a dizer além da saudação.
+ */
+export function hasOutreachContext(context: ParticipantOutreachContext): boolean {
+  return (
+    (context.incoming_interests?.length ?? 0) > 0 ||
+    (context.released_connections?.length ?? 0) > 0 ||
+    (context.active_matches_count ?? 0) > 0
+  );
+}
+
+/** Sugestões restantes: valor exato do backend quando disponível. */
+export function resolveOtherSuggestionsCount(
+  context: ParticipantOutreachContext,
+  incomingCount: number,
+  releasedCount: number,
+): number {
+  if (typeof context.other_suggestions_count === "number") {
+    return Math.max(0, context.other_suggestions_count);
+  }
+  return Math.max(0, (context.active_matches_count ?? 0) - incomingCount - releasedCount);
+}
+
+/**
+ * Monta a mensagem de reativação/abordagem do participante em PARÁGRAFOS.
+ * Sem contexto real de matchmaking, devolve apenas a saudação — nunca promete
+ * aviso futuro nem inventa intenção.
  */
 export function generateParticipantReactivationMessage(
   context: ParticipantOutreachContext,
@@ -95,8 +134,13 @@ export function generateParticipantReactivationMessage(
   const firstName = (context.name.trim().split(/\s+/)[0] || "tudo bem").trim();
   const sender = options?.senderName?.trim() || PARTICIPANT_SENDER_NAME;
 
-  const incoming = dedupeByProfile(context.incoming_interests ?? []);
   const released = dedupeByProfile(context.released_connections ?? []);
+  const releasedProfileIds = new Set(released.map((r) => r.profile_id));
+  // Interesse recebido de quem JÁ tem conexão liberada é tratado no bloco de
+  // conexões liberadas, para não duplicar a mesma pessoa na mensagem.
+  const incoming = dedupeByProfile(context.incoming_interests ?? []).filter(
+    (p) => !releasedProfileIds.has(p.profile_id),
+  );
 
   const blocks: string[] = [`Olá, ${firstName}, tudo bem? Aqui é o ${sender}.`];
 
@@ -108,26 +152,17 @@ export function generateParticipantReactivationMessage(
         plural ? "demonstraram" : "demonstrou"
       } interesse em conversar com você e ${
         plural ? "gostariam" : "gostaria"
-      } de marcar um café.`,
+      } de marcar um café. ` +
+        "Se fizer sentido para você, é só me responder por aqui que a equipe da ACIRV coloca vocês em contato.",
     );
-    blocks.push(
-      "Se fizer sentido para você, é só me responder por aqui que a equipe da ACIRV coloca vocês em contato.",
-    );
-
-    const remaining = Math.max(
-      0,
-      (context.active_matches_count ?? 0) - incoming.length - released.length,
-    );
-    if (remaining > 0) {
-      blocks.push(
-        `Você também tem outras sugestões de conexão esperando: ${ACCESS_PATH_MAIN} para analisar uma a uma.`,
-      );
-    }
   }
 
   if (released.length > 0) {
     const chosen = released.filter((r) => r.my_decision === "interesse");
-    const neutral = released.filter((r) => r.my_decision !== "interesse");
+    const interestedInMe = released.filter(
+      (r) => r.my_decision !== "interesse" && r.other_has_interest,
+    );
+    const neutral = released.filter((r) => r.my_decision !== "interesse" && !r.other_has_interest);
 
     if (chosen.length > 0) {
       blocks.push(
@@ -136,10 +171,15 @@ export function generateParticipantReactivationMessage(
         } liberado${chosen.length > 1 ? "s" : ""} para você.`,
       );
     }
-    if (neutral.length > 0) {
+    if (interestedInMe.length > 0) {
       blocks.push(
-        `Você também já possui conexão liberada com ${formatPersonList(neutral)}.`,
+        `${formatPersonList(interestedInMe)} ${
+          interestedInMe.length > 1 ? "demonstraram" : "demonstrou"
+        } interesse em conversar com você e a conexão já está liberada de parte a parte.`,
       );
+    }
+    if (neutral.length > 0) {
+      blocks.push(`Você também já possui conexão liberada com ${formatPersonList(neutral)}.`);
     }
     blocks.push(
       `Para falar com ${
@@ -148,21 +188,22 @@ export function generateParticipantReactivationMessage(
     );
   }
 
-  if (incoming.length === 0 && released.length === 0) {
-    const suggestions = context.active_matches_count ?? 0;
-    if (suggestions > 0) {
+  const others = resolveOtherSuggestionsCount(context, incoming.length, released.length);
+
+  if (incoming.length > 0 || released.length > 0) {
+    if (others > 0) {
       blocks.push(
-        `Já encontramos ${suggestions} sugest${
-          suggestions > 1 ? "ões" : "ão"
-        } de conexão para o seu perfil na SudoExpo Match e vale a pena dar uma olhada.`,
-      );
-      blocks.push(`Para ver, ${ACCESS_PATH_MAIN} e analise cada sugestão com calma.`);
-    } else {
-      blocks.push(
-        "Ainda não temos sugestões de conexão para o seu perfil, mas assim que surgirem eu aviso você por aqui.",
+        `Você também tem outras sugestões de conexão esperando: ${ACCESS_PATH_MAIN} para analisar uma a uma.`,
       );
     }
+  } else if (others > 0) {
+    blocks.push(
+      `Já encontramos ${others} sugest${
+        others > 1 ? "ões" : "ão"
+      } de conexão para o seu perfil na SudoExpo Match e vale a pena dar uma olhada. ` +
+        `Para ver, ${ACCESS_PATH_MAIN} e analise cada sugestão com calma.`,
+    );
   }
 
-  return blocks.join(" ");
+  return blocks.join("\n\n");
 }

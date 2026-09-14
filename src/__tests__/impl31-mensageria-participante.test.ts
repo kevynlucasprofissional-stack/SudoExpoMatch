@@ -101,7 +101,9 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
 
   it("é honesta quando não há sugestão alguma", () => {
     const msg = generateParticipantReactivationMessage(ctx({ active_matches_count: 0 }));
-    expect(msg).toContain("Ainda não temos sugestões de conexão para o seu perfil");
+    // IMPL 31 hardening: sem contexto real, só a saudação. Nenhuma promessa futura.
+    expect(msg).toBe("Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.");
+    expect(msg).not.toMatch(/assim que surgirem/i);
     expect(msg).not.toMatch(/demonstr/i);
   });
 
@@ -138,7 +140,7 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
       ctx({
         active_matches_count: 1,
         released_connections: [
-          { ...person(1, "Ana", "Ana Doces"), status: "apresentados", my_decision: "interesse" },
+          { ...person(1, "Ana", "Ana Doces"), status: "apresentados", my_decision: "interesse", other_decision: "sem_decisao", other_has_interest: false },
         ],
       }),
     );
@@ -148,7 +150,7 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
       ctx({
         active_matches_count: 1,
         released_connections: [
-          { ...person(2, "Bia"), status: "apresentados", my_decision: "sem_decisao" },
+          { ...person(2, "Bia"), status: "apresentados", my_decision: "sem_decisao", other_decision: "sem_decisao", other_has_interest: false },
         ],
       }),
     );
@@ -160,7 +162,7 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
     const msg = generateParticipantReactivationMessage(
       ctx({
         released_connections: [
-          { ...person(1, "Ana"), status: "contato_trocado", my_decision: "interesse" },
+          { ...person(1, "Ana"), status: "contato_trocado", my_decision: "interesse", other_decision: "interesse", other_has_interest: true },
         ],
       }),
     );
@@ -192,14 +194,14 @@ describe("IMPL 31 — quebra-gelo do participante", () => {
           summary: "s",
           my_side: [],
           evidence: [],
-          approach: "Pergunte sobre a linha de tecidos sustentáveis.",
+          approach: "Vi que vocês têm uma linha de tecidos sustentáveis.",
           generated_at: "2026-09-14T12:00:00Z",
           stale: false,
         },
       } as Partial<OwnMatchDTO>),
     );
     expect(ice.source).toBe("briefing_approach");
-    expect(ice.text).toContain("Pergunte sobre a linha de tecidos sustentáveis.");
+    expect(ice.text).toContain("Vi que vocês têm uma linha de tecidos sustentáveis.");
     expect(ice.text).toContain("Oi, Carlos!");
   });
 

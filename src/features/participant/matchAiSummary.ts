@@ -4,16 +4,18 @@ import { formatSegmentLabel } from "./presentation";
 export interface MatchAiSummary {
   why_connect: string;
   what_you_gain: string;
-  is_ai_enhanced?: boolean;
 }
 
 /**
- * Motor de síntese determinística de IA para os cartões de match do participante.
- * Gera respostas precisas, comerciais e personalizadas para as duas perguntas-chave:
+ * SÍNTESE DETERMINÍSTICA (não é IA) para os cartões de match do participante.
+ *
+ * Monta, por regras fixas sobre os dados do match, respostas para:
  * 1. Por qual motivo você deveria se conectar com essa pessoa?
  * 2. O que você ganha se conectando com essa pessoa?
  *
- * Funciona instantaneamente (zero latência), auditável e imune a oscilações de API.
+ * Zero latência, auditável e sem chamada a modelo. Este texto NUNCA pode ser
+ * rotulado como IA na interface — o briefing oficial (`match_briefings`) é o
+ * único conteúdo gerado por modelo.
  */
 export function generateMatchAiSummary(match: OwnMatchDTO): MatchAiSummary {
   const other = match.other;
@@ -81,6 +83,5 @@ export function generateMatchAiSummary(match: OwnMatchDTO): MatchAiSummary {
   return {
     why_connect,
     what_you_gain,
-    is_ai_enhanced: true,
   };
 }

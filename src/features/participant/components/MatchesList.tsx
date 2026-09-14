@@ -22,6 +22,12 @@ interface Props {
   onRetry: () => void;
   eventId: string;
   emptyMessage?: string;
+  /**
+   * IMPL 31 hardening — IDs do Top 3 da ordem CANÔNICA GLOBAL, calculados na
+   * rota do participante. Nunca derive Top 3 do índice desta lista: ela também
+   * é usada na aba filtrada "Interesses".
+   */
+  topThreeMatchIds?: ReadonlySet<string>;
 }
 
 export function MatchesList({
@@ -33,6 +39,7 @@ export function MatchesList({
   onRetry,
   eventId,
   emptyMessage,
+  topThreeMatchIds,
 }: Props) {
   const state: MatchesDisplayState = resolveMatchesDisplayState({
     matches,
@@ -97,11 +104,16 @@ export function MatchesList({
     <div className="space-y-3">
       {state.showRefreshError && <RefreshErrorNotice onRetry={onRetry} retrying={retrying} />}
       {/*
-        IMPL 31 — Top 3 da ordem CANÔNICA já exibida (a lista não é reordenada
-        para esta feature). O backend revalida a elegibilidade Top 3.
+        IMPL 31 hardening — Top 3 por match_id GLOBAL, não por índice desta
+        lista. O backend revalida a elegibilidade com a mesma ordenação.
       */}
-      {state.matches.map((m, index) => (
-        <MatchCard key={m.match_id} match={m} eventId={eventId} isTopThree={index < 3} />
+      {state.matches.map((m) => (
+        <MatchCard
+          key={m.match_id}
+          match={m}
+          eventId={eventId}
+          isTopThree={topThreeMatchIds?.has(m.match_id) ?? false}
+        />
       ))}
     </div>
   );
