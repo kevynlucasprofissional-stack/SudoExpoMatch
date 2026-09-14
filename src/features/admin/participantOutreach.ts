@@ -131,9 +131,9 @@ export function generateParticipantReactivationMessage(
 
     if (chosen.length > 0) {
       blocks.push(
-        `Vi também que você demonstrou interesse em ${formatPersonList(chosen)}. O contato ${
-          chosen.length > 1 ? "deles" : "já"
-        } ${chosen.length > 1 ? "já está" : "está"} liberado para você.`,
+        `Vi também que você demonstrou interesse em ${formatPersonList(chosen)}. ${
+          chosen.length > 1 ? "Os contatos já estão" : "O contato já está"
+        } liberado${chosen.length > 1 ? "s" : ""} para você.`,
       );
     }
     if (neutral.length > 0) {
