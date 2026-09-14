@@ -116,6 +116,9 @@ function GraphPage() {
     }
   }, [debouncedQ, filters.q, navigate]);
 
+  /** preferências visuais: locais e pessoais, fora da URL */
+  const graphSettings = useGraphSettings();
+
   const segmentsQuery = useEventSegments(selectedEventId);
   const graphQuery = useAdminMatchGraph(selectedEventId, true);
 
