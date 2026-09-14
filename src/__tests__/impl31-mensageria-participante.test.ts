@@ -87,9 +87,11 @@ describe("IMPL 31 — contexto de abordagem admin", () => {
 describe("IMPL 31 — mensagem de reativação participant-centric", () => {
   it("usa o primeiro nome e assina pela ACIRV", () => {
     const msg = generateParticipantReactivationMessage(ctx());
-    expect(msg.startsWith("Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.")).toBe(
-      true,
-    );
+    expect(
+      msg.startsWith(
+        "Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.\nEstou entrando em contato pois vi que se cadastrou no Sudoexpo Match.",
+      ),
+    ).toBe(true);
   });
 
   it("NUNCA afirma interesse quando não há interesses recebidos", () => {
