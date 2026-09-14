@@ -18,15 +18,22 @@ import {
   translateDecideErrorCode,
 } from "@/features/participant/presentation";
 import { generateMatchAiSummary } from "@/features/participant/matchAiSummary";
+import { buildParticipantIcebreaker } from "@/features/participant/icebreaker";
+import {
+  translateParticipantBriefingError,
+  useGenerateOwnMatchBriefing,
+} from "@/features/participant/useOwnMatchBriefing";
 import { RevealContactDialog } from "./RevealContactDialog";
 import type { OwnMatchDTO } from "@/features/participant/types";
 
 interface Props {
   match: OwnMatchDTO;
   eventId: string;
+  /** Top 3 da ordem canônica: única posição que oferece geração de IA sob demanda. */
+  isTopThree?: boolean;
 }
 
-export function MatchCard({ match, eventId }: Props) {
+export function MatchCard({ match, eventId, isTopThree = false }: Props) {
   const decide = useDecideMatchMutation(eventId);
   const [activeAction, setActiveAction] = useState<"interesse" | "agora_nao" | null>(null);
   const [revealOpen, setRevealOpen] = useState(false);
