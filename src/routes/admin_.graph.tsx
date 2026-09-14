@@ -332,9 +332,9 @@ function GraphPage() {
             </p>
           ) : graphQuery.isLoading || !view ? (
             <Skeleton className="h-[62vh] min-h-[380px] w-full" />
-          ) : view.edges.length === 0 ? (
+          ) : view.nodes.length === 0 ? (
             <p className="p-8 text-center text-sm text-muted-foreground">
-              Nenhuma dupla corresponde aos filtros escolhidos.
+              Nenhum participante corresponde aos filtros escolhidos.
             </p>
           ) : (
             <ClientOnly fallback={<Skeleton className="h-[62vh] min-h-[380px] w-full" />}>
@@ -409,10 +409,22 @@ function GraphPage() {
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
               <Badge variant="secondary">{selectedSummary.visible} duplas visíveis</Badge>
-              <Badge variant="outline">grau total {selectedNode.degree}</Badge>
-              <Badge variant="outline">{selectedSummary.sent} interesses enviados</Badge>
-              <Badge variant="outline">{selectedSummary.received} interesses recebidos</Badge>
-              <Badge variant="outline">{selectedSummary.mutual} interesses mútuos</Badge>
+              <Badge variant="outline">{selectedTotalDegree} duplas no evento</Badge>
+              {selectedTotals ? (
+                <>
+                  <Badge variant="outline">
+                    {selectedTotals.sent} interesses enviados no evento
+                  </Badge>
+                  <Badge variant="outline">
+                    {selectedTotals.received} interesses recebidos no evento
+                  </Badge>
+                  <Badge variant="outline">{selectedTotals.mutual} interesses mútuos no evento</Badge>
+                </>
+              ) : null}
+              <span className="self-center text-muted-foreground">
+                nos filtros atuais: {selectedSummary.sent} enviados · {selectedSummary.received}{" "}
+                recebidos · {selectedSummary.mutual} mútuos
+              </span>
             </div>
           </Card>
         ) : null}
