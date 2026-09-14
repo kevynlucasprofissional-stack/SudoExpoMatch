@@ -61,8 +61,21 @@ describe("normalização e defaults das configurações", () => {
 });
 
 describe("persistência local", () => {
+  /** ambiente de teste é node: localStorage em memória, determinístico */
   beforeEach(() => {
-    window.localStorage.clear();
+    const store = new Map<string, string>();
+    (globalThis as Record<string, unknown>)["window"] = {
+      localStorage: {
+        getItem: (k: string) => store.get(k) ?? null,
+        setItem: (k: string, v: string) => void store.set(k, v),
+        removeItem: (k: string) => void store.delete(k),
+        clear: () => store.clear(),
+      },
+    };
+  });
+
+  afterEach(() => {
+    delete (globalThis as Record<string, unknown>)["window"];
   });
 
   it("salva e restaura pela chave versionada", () => {
