@@ -190,19 +190,35 @@ function GraphPage() {
                 />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label htmlFor="graph-min">Score mínimo</Label>
-              <Input
-                id="graph-min"
-                inputMode="numeric"
-                placeholder="ex.: 55"
-                value={filters.minScore ?? ""}
-                onChange={(e) =>
-                  void navigate({
-                    search: (prev) => ({ ...prev, min: e.target.value.replace(/\D/g, "") }),
-                  })
-                }
-              />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="graph-min">Score mínimo</Label>
+                <Input
+                  id="graph-min"
+                  inputMode="numeric"
+                  placeholder="ex.: 55"
+                  value={filters.minScore ?? ""}
+                  onChange={(e) =>
+                    void navigate({
+                      search: (prev) => ({ ...prev, min: e.target.value.replace(/\D/g, "") }),
+                    })
+                  }
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="graph-max">Score máximo</Label>
+                <Input
+                  id="graph-max"
+                  inputMode="numeric"
+                  placeholder="ex.: 40"
+                  value={filters.maxScore ?? ""}
+                  onChange={(e) =>
+                    void navigate({
+                      search: (prev) => ({ ...prev, max: e.target.value.replace(/\D/g, "") }),
+                    })
+                  }
+                />
+              </div>
             </div>
             <div className="space-y-3 pt-1">
               <div className="flex items-center justify-between gap-2">
