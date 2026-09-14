@@ -589,7 +589,7 @@ describe("contrato das RPCs e da rota", () => {
 
   it("não usa EVENT_ID fixo em consulta de dados (só no gate de papel)", () => {
     expect(routeSrc).toContain("useEventRole(EVENT_ID)");
-    expect(routeSrc.match(/EVENT_ID/g)?.length).toBe(2);
+    expect(routeSrc.match(/EVENT_ID/g)?.length).toBe(3); // import + gate de papel + comentário
     expect(hookSrc).not.toContain("EVENT_ID");
     expect(hookSrc).toContain("_event_id: eventId");
   });
