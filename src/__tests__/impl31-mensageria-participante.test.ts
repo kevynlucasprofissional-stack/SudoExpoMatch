@@ -102,7 +102,9 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
   it("é honesta quando não há sugestão alguma", () => {
     const msg = generateParticipantReactivationMessage(ctx({ active_matches_count: 0 }));
     // IMPL 31 hardening: sem contexto real, só a saudação. Nenhuma promessa futura.
-    expect(msg).toBe("Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.");
+    expect(msg).toBe(
+      "Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.\nEstou entrando em contato pois vi que se cadastrou no Sudoexpo Match.",
+    );
     expect(msg).not.toMatch(/assim que surgirem/i);
     expect(msg).not.toMatch(/demonstr/i);
   });
