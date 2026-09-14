@@ -1,0 +1,184 @@
+import type {
+  GraphEdge,
+  GraphNode,
+  InterestState,
+  MatchGraph,
+} from "@/features/admin/graphSchemas";
+
+/**
+ * Lógica pura do Mapa de conexões: cor/estado da aresta, tamanho do nó e
+ * filtragem em memória. Nada de canvas aqui — este módulo é testável direto.
+ */
+
+/** Paleta definida no plano aprovado. */
+export const INTEREST_COLOR: Record<InterestState, string> = {
+  /** exatamente um lado marcou interesse */
+  single: "#27e300",
+  /** ninguém decidiu ainda */
+  none: "#1b26ae",
+  /** interesse mútuo */
+  mutual: "#ff7c31",
+  /** houve decisão, mas nenhum interesse (agora_nao) */
+  declined: "#6b7280",
+};
+
+export const INTEREST_LABEL: Record<InterestState, string> = {
+  mutual: "Interesse mútuo",
+  single: "Um lado com interesse",
+  none: "Ninguém decidiu",
+  declined: "Sem interesse (agora não)",
+};
+
+export const INTEREST_OPACITY: Record<InterestState, string> = {
+  mutual: "1",
+  single: "0.9",
+  none: "0.55",
+  declined: "0.25",
+};
+
+/**
+ * Mesma derivação do SQL, replicada aqui para teste e para uso em dados
+ * derivados no cliente. `agora_nao` e `sem_decisao` nunca contam como interesse.
+ */
+export function deriveInterestState(decisionA: string, decisionB: string): InterestState {
+  const a = decisionA === "interesse";
+  const b = decisionB === "interesse";
+  if (a && b) return "mutual";
+  if (a || b) return "single";
+  if (decisionA === "agora_nao" || decisionB === "agora_nao") return "declined";
+  return "none";
+}
+
+export function edgeColor(edge: Pick<GraphEdge, "interest_state">): string {
+  return INTEREST_COLOR[edge.interest_state];
+}
+
+export function edgeWidth(edge: Pick<GraphEdge, "interest_state">): number {
+  if (edge.interest_state === "mutual") return 2.4;
+  if (edge.interest_state === "single") return 1.6;
+  if (edge.interest_state === "declined") return 0.6;
+  return 1;
+}
+
+/** Tamanho do nó cresce com o número de matches, com teto visual. */
+export function nodeRadius(node: Pick<GraphNode, "degree">): number {
+  return Math.min(3 + Math.sqrt(Math.max(node.degree, 0)) * 1.2, 12);
+}
+
+/** Cor determinística por segmento (mesma cor a cada carga). */
+export function segmentColor(segmentId: string | null): string {
+  if (!segmentId) return "#94a3b8";
+  let hash = 0;
+  for (let i = 0; i < segmentId.length; i += 1) {
+    hash = (hash * 31 + segmentId.charCodeAt(i)) % 360;
+  }
+  return `hsl(${hash} 70% 62%)`;
+}
+
+export interface GraphFilters {
+  /** estados de interesse visíveis */
+  states: InterestState[];
+  /** score mínimo considerando o maior lado */
+  minScore: number | null;
+  /** segmentos aceitos (qualquer lado) */
+  segments: string[];
+  /** busca por nome/empresa (qualquer lado) */
+  q: string;
+  /** somente duplas com conexão registrada */
+  onlyConnected: boolean;
+  /** somente duplas já revisadas pela administração */
+  onlyReviewed: boolean;
+  /** mostrar participantes que ficaram sem nenhuma aresta */
+  showIsolated: boolean;
+}
+
+export const DEFAULT_GRAPH_FILTERS: GraphFilters = {
+  states: ["mutual", "single", "none"],
+  minScore: null,
+  segments: [],
+  q: "",
+  onlyConnected: false,
+  onlyReviewed: false,
+  showIsolated: false,
+};
+
+const norm = (v: string) =>
+  v
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+
+/**
+ * Recorta o subgrafo visível. Arestas primeiro; nós ficam se participarem de
+ * alguma aresta visível (ou se `showIsolated`).
+ */
+export function filterGraph(graph: MatchGraph, filters: GraphFilters) {
+  const byId = new Map(graph.nodes.map((n) => [n.profile_id, n]));
+  const needle = norm(filters.q);
+  const segs = new Set(filters.segments);
+  const states = new Set(filters.states);
+
+  const edges = graph.edges.filter((e) => {
+    if (!states.has(e.interest_state)) return false;
+    if (filters.minScore != null && Math.max(e.score_for_a, e.score_for_b) < filters.minScore) {
+      return false;
+    }
+    if (filters.onlyConnected && !e.connection_status) return false;
+    if (filters.onlyReviewed && !e.reviewed) return false;
+
+    const a = byId.get(e.a_profile_id);
+    const b = byId.get(e.b_profile_id);
+    if (segs.size > 0) {
+      const okSeg =
+        (a?.segment_id != null && segs.has(a.segment_id)) ||
+        (b?.segment_id != null && segs.has(b.segment_id));
+      if (!okSeg) return false;
+    }
+    if (needle) {
+      const hay = [a?.name, a?.company, b?.name, b?.company]
+        .filter(Boolean)
+        .map((v) => norm(v as string));
+      if (!hay.some((h) => h.includes(needle))) return false;
+    }
+    return true;
+  });
+
+  const connected = new Set<string>();
+  for (const e of edges) {
+    connected.add(e.a_profile_id);
+    connected.add(e.b_profile_id);
+  }
+
+  const nodes = graph.nodes.filter((n) =>
+    filters.showIsolated ? true : connected.has(n.profile_id),
+  );
+
+  const degrees = new Map<string, number>();
+  for (const e of edges) {
+    degrees.set(e.a_profile_id, (degrees.get(e.a_profile_id) ?? 0) + 1);
+    degrees.set(e.b_profile_id, (degrees.get(e.b_profile_id) ?? 0) + 1);
+  }
+
+  return {
+    nodes: nodes.map((n) => ({ ...n, degree: degrees.get(n.profile_id) ?? 0 })),
+    edges,
+    counts: countStates(edges),
+  };
+}
+
+export function countStates(edges: Pick<GraphEdge, "interest_state">[]) {
+  const out: Record<InterestState, number> = { mutual: 0, single: 0, none: 0, declined: 0 };
+  for (const e of edges) out[e.interest_state] += 1;
+  return out;
+}
+
+/** Vizinhança para o realce estilo Obsidian. */
+export function neighborsOf(edges: GraphEdge[], profileId: string): Set<string> {
+  const set = new Set<string>([profileId]);
+  for (const e of edges) {
+    if (e.a_profile_id === profileId) set.add(e.b_profile_id);
+    if (e.b_profile_id === profileId) set.add(e.a_profile_id);
+  }
+  return set;
+}
