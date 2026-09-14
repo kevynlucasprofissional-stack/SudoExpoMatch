@@ -31,6 +31,8 @@ import {
   segmentColor,
 } from "@/features/admin/graphPresentation";
 import { graphSearchSchema, normalizeGraphSearch } from "@/features/admin/graphUrlState";
+import { GraphSettingsPanel } from "@/features/admin/GraphSettingsPanel";
+import { useGraphSettings } from "@/features/admin/useGraphSettings";
 import { MatchDetailSheet } from "@/features/admin/MatchDetailSheet";
 import { ParticipantDetailSheet } from "@/features/admin/ParticipantDetailSheet";
 
