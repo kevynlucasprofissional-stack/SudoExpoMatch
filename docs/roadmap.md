@@ -1228,6 +1228,18 @@ Uma tarefa só recebe `[x]` quando:
 - [x] confirmação rápida;
 - [x] logging inicial de outreach — **semanticamente provisório até W01–W05**.
 
+## Dashboard analítico (SudoExpo Intelligence V1)
+- [x] rota admin-only `/admin/inteligencia` com `AdminEventProvider`/`EventSelector` e todas as consultas escopadas no evento selecionado;
+- [x] camada de leitura agregada admin-only (`admin_intelligence_overview/_matcher/_behavior/_taxonomy`), somente leitura, sem contatos privados;
+- [x] KPIs com denominador visível (participantes, matches, decisões/decisores, interest rate, Selective Signal Gap, Low-score Noise Share, taxonomy coverage, snapshot drift, outcome coverage);
+- [x] gráficos de interesse por faixa de score (todos × seletivos), decomposição dos interesses de score baixo, cobertura taxonômica e integridade de snapshot;
+- [x] Matcher Lab (matriz Score A × Score B, Reason Lift com N, efetividade por kind, residuais seletivos de score baixo);
+- [x] Behavior Lab (histograma de propensão e coortes seletivo/permissivo forte/100% com pouca amostra);
+- [x] Taxonomy Intelligence (cobertura por lado, fonte e segmento + conceitos livres com oportunidade observada);
+- [x] Outcomes & Data Trust com estado explícito de ground truth insuficiente;
+- [x] card de Rede reutilizando o `/admin/graph` existente, sem duplicar o canvas;
+- [x] testes de contrato/definições analíticas e hardening (IMPL 29 e IMPL 30) + typecheck aprovados.
+
 ---
 
 # 23. Princípio arquitetural a preservar
