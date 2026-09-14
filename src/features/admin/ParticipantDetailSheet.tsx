@@ -73,9 +73,12 @@ function decisionText(decision: string) {
 export function ParticipantDetailSheet({
   profileId,
   onClose,
+  onOutreach,
 }: {
   profileId: string | null;
   onClose: () => void;
+  /** IMPL 31 — delega a abordagem ao modal da rota; o detalhe segue sem telefone. */
+  onOutreach?: (profileId: string) => void;
 }) {
   const query = useAdminParticipantDetail(profileId, true);
   const socialQuery = useAdminParticipantSocial(profileId, true);
