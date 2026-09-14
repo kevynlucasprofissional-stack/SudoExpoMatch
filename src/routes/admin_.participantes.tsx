@@ -132,6 +132,7 @@ function ParticipantsBoard() {
   const staffCheckin = useStaffCheckinMutation(EVENT_ID);
 
   const [participantToDelete, setParticipantToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [outreachProfileId, setOutreachProfileId] = useState<string | null>(null);
   const deleteMutation = useAdminDeleteParticipantMutation();
 
   const [qInput, setQInput] = useState(search.q);
