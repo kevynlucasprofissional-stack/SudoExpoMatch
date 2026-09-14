@@ -399,3 +399,51 @@ export function isEmptyState(n: number): boolean {
 }
 
 export const NO_DATA_LABEL = "Dados insuficientes";
+
+// ------------------------------------------------------------ Rede (agregado)
+
+import type { InterestState, MatchGraph } from "@/features/admin/graphSchemas";
+
+export interface NetworkSummary {
+  nodes: number;
+  edges: number;
+  isolated: number;
+  avgDegree: number;
+  maxDegree: number;
+  withConnection: number;
+  states: Record<InterestState, number>;
+  topHubs: { profile_id: string; name: string; company: string; degree: number }[];
+}
+
+/**
+ * Resumo agregado da MESMA rede desenhada em /admin/graph — nenhum canvas
+ * novo, nenhuma centralidade pesada no cliente.
+ */
+export function networkSummary(g: MatchGraph, hubLimit = 5): NetworkSummary {
+  const degrees = g.nodes.map((n) => n.degree);
+  const total = degrees.reduce((acc, d) => acc + d, 0);
+  return {
+    nodes: g.nodes.length,
+    edges: g.edges.length,
+    isolated: g.nodes.filter((n) => n.degree === 0).length,
+    avgDegree: g.nodes.length > 0 ? Math.round((total / g.nodes.length) * 10) / 10 : 0,
+    maxDegree: degrees.length > 0 ? Math.max(...degrees) : 0,
+    withConnection: g.edges.filter((e) => e.connection_status !== null).length,
+    states: {
+      mutual: g.edges.filter((e) => e.interest_state === "mutual").length,
+      single: g.edges.filter((e) => e.interest_state === "single").length,
+      none: g.edges.filter((e) => e.interest_state === "none").length,
+      declined: g.edges.filter((e) => e.interest_state === "declined").length,
+    },
+    topHubs: [...g.nodes]
+      .sort((a, b) => b.degree - a.degree)
+      .slice(0, hubLimit)
+      .filter((n) => n.degree > 0)
+      .map((n) => ({
+        profile_id: n.profile_id,
+        name: n.name,
+        company: n.company,
+        degree: n.degree,
+      })),
+  };
+}
