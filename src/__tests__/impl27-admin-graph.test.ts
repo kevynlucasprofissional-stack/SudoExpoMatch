@@ -10,6 +10,7 @@ import {
   edgeWidth,
   filterGraph,
   neighborsOf,
+  nodeInterestSummary,
   nodeRadius,
   segmentColor,
   type GraphFilters,
@@ -267,5 +268,72 @@ describe("estado de URL", () => {
   it("score mínimo negativo é normalizado", () => {
     expect(normalizeGraphSearch({ ...raw, min: "-30" }).minScore).toBe(0);
     expect(normalizeGraphSearch({ ...raw, min: "abc" }).minScore).toBeNull();
+  });
+});
+
+describe("faixa de score (mínimo e máximo)", () => {
+  const g = graphOf(
+    [node(A), node(B), node(C)],
+    [
+      edge(A, B, { interest_state: "none", score_for_a: 20, score_for_b: 10 }),
+      edge(A, C, { interest_state: "none", score_for_a: 90, score_for_b: 40 }),
+    ],
+  );
+
+  it("score máximo corta a dupla pelo maior lado", () => {
+    const out = filterGraph(g, { ...DEFAULT_GRAPH_FILTERS, maxScore: 30 });
+    expect(out.edges).toHaveLength(1);
+    expect(out.edges[0]!.score_for_a).toBe(20);
+  });
+
+  it("mínimo e máximo combinam como faixa fechada", () => {
+    expect(filterGraph(g, { ...DEFAULT_GRAPH_FILTERS, minScore: 30, maxScore: 95 }).edges).toHaveLength(1);
+    expect(filterGraph(g, { ...DEFAULT_GRAPH_FILTERS, minScore: 30, maxScore: 50 }).edges).toHaveLength(0);
+    expect(filterGraph(g, { ...DEFAULT_GRAPH_FILTERS }).edges).toHaveLength(2);
+  });
+
+  it("score máximo entra e sai da URL", () => {
+    const raw = { st: "", min: "", max: "", seg: "", q: "", conn: "", rev: "", iso: "", p: "", m: "" };
+    expect(normalizeGraphSearch({ ...raw, max: "40" }).maxScore).toBe(40);
+    expect(normalizeGraphSearch({ ...raw, max: "-1" }).maxScore).toBe(0);
+    expect(normalizeGraphSearch({ ...raw, max: "abc" }).maxScore).toBeNull();
+    expect(hasActiveGraphFilters(normalizeGraphSearch({ ...raw, max: "40" }))).toBe(true);
+  });
+});
+
+describe("painel contextual da pessoa selecionada", () => {
+  const edges = [
+    edge(A, B, { interest_state: "mutual", decision_a: "interesse", decision_b: "interesse" }),
+    edge(A, C, { interest_state: "single", decision_a: "sem_decisao", decision_b: "interesse" }),
+    edge(B, C, { interest_state: "single", decision_a: "interesse", decision_b: "agora_nao" }),
+  ];
+
+  it("conta enviados, recebidos e mútuos pelo lado correto da dupla", () => {
+    const a = nodeInterestSummary(edges, A);
+    expect(a).toEqual({ visible: 2, sent: 1, received: 2, mutual: 1 });
+
+    const c = nodeInterestSummary(edges, C);
+    expect(c).toEqual({ visible: 2, sent: 1, received: 1, mutual: 0 });
+  });
+
+  it("pessoa sem dupla visível não gera contagem", () => {
+    expect(nodeInterestSummary([], A)).toEqual({ visible: 0, sent: 0, received: 0, mutual: 0 });
+  });
+});
+
+describe("contadores do subgrafo", () => {
+  it("os contadores por estado somam o total de arestas visíveis", () => {
+    const g = graphOf(
+      [node(A), node(B), node(C)],
+      [
+        edge(A, B, { interest_state: "mutual", decision_a: "interesse", decision_b: "interesse" }),
+        edge(A, C, { interest_state: "single", decision_a: "interesse" }),
+        edge(B, C, { interest_state: "declined", decision_a: "agora_nao" }),
+      ],
+    );
+    const out = filterGraph(g, { ...DEFAULT_GRAPH_FILTERS, states: ["mutual", "single", "none", "declined"] });
+    const { mutual, single, none, declined } = out.counts;
+    expect(mutual + single + none + declined).toBe(out.edges.length);
+    expect(out.counts).toEqual({ mutual: 1, single: 1, none: 0, declined: 1 });
   });
 });
