@@ -13,6 +13,14 @@ import { hasPrivateKey } from "@/features/admin/participantsSchemas";
  * - o score de uma decisão é o score DA PERSPECTIVA de quem decidiu
  *   (`score_for_a` ou `score_for_b` conforme o `profile_id`), derivado no SQL;
  * - nenhum campo de contato trafega (validado por `hasPrivateKey` nos testes).
+ *
+ * Privacidade (revisão de segurança IMPL 30): as quatro RPCs são STABLE
+ * SECURITY DEFINER, autorizadas por `_admin_require_event_admin(_event_id)` e
+ * somente leitura. Elas NÃO retornam WhatsApp, telefone, e-mail, PIN/código de
+ * acesso, hash de telefone nem qualquer credencial — não leem o schema
+ * `private` nem `profile_contacts`. Nome e empresa aparecem apenas nas amostras
+ * de investigação (residuais e ranking comportamental), informação já visível
+ * ao administrador autorizado do evento em `/admin/participantes`.
  */
 
 const int = z.coerce.number().int();
