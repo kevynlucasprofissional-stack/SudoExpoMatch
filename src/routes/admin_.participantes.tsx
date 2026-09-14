@@ -1,7 +1,17 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { zodValidator } from "@tanstack/zod-adapter";
-import { ArrowLeft, Search, ShieldAlert, Sparkles, TestTube2, Trash2, Users, X } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageCircle,
+  Search,
+  ShieldAlert,
+  Sparkles,
+  TestTube2,
+  Trash2,
+  Users,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
 
 import { PageShell } from "@/components/brand/BrandShell";
@@ -50,6 +60,7 @@ import {
 } from "@/features/admin/participantsUrlState";
 import { translateAdminParticipantsError } from "@/features/admin/participantsSchemas";
 import { ParticipantDetailSheet } from "@/features/admin/ParticipantDetailSheet";
+import { ParticipantOutreachModal } from "@/features/admin/ParticipantOutreachModal";
 
 export const Route = createFileRoute("/admin_/participantes")({
   validateSearch: zodValidator(participantesSearchSchema),
@@ -121,6 +132,7 @@ function ParticipantsBoard() {
   const staffCheckin = useStaffCheckinMutation(EVENT_ID);
 
   const [participantToDelete, setParticipantToDelete] = useState<{ id: string; name: string } | null>(null);
+  const [outreachProfileId, setOutreachProfileId] = useState<string | null>(null);
   const deleteMutation = useAdminDeleteParticipantMutation();
 
   const [qInput, setQInput] = useState(search.q);
@@ -378,6 +390,22 @@ function ParticipantsBoard() {
                       </span>
                     )}
 
+                    <div className="flex items-center gap-1.5">
+                    {/* IMPL 31 — abre a abordagem sem propagar o clique para o detalhe. */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-emerald-500/40 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOutreachProfileId(p.id);
+                      }}
+                      data-testid="btn-participant-outreach"
+                    >
+                      <MessageCircle className="mr-1 h-3 w-3" />
+                      Chamar no WhatsApp
+                    </Button>
+
                     <Button
                       size="sm"
                       variant="ghost"
@@ -391,6 +419,7 @@ function ParticipantsBoard() {
                       <Trash2 className="mr-1 h-3 w-3" />
                       Excluir
                     </Button>
+                    </div>
                   </div>
                 </Card>
               </li>
@@ -462,7 +491,18 @@ function ParticipantsBoard() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <ParticipantDetailSheet profileId={search.selected} onClose={closeDetail} />
+      <ParticipantDetailSheet
+        profileId={search.selected}
+        onClose={closeDetail}
+        onOutreach={(id) => setOutreachProfileId(id)}
+      />
+
+      {/* Contexto de abordagem é buscado só aqui, sob demanda, e nunca cacheado. */}
+      <ParticipantOutreachModal
+        profileId={outreachProfileId}
+        open={outreachProfileId !== null}
+        onClose={() => setOutreachProfileId(null)}
+      />
     </PageShell>
   );
 }

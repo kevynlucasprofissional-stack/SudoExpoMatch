@@ -69,6 +69,25 @@ export interface OwnMatchConnection {
   /** Data em que a equipe/admin liberou o WhatsApp das duas partes. */
   contact_released_at: string | null;
 }
+/** Evidência do briefing oficial, com a origem declarada. */
+export interface OwnMatchBriefingEvidence {
+  label: string;
+  source: string;
+}
+/**
+ * IMPL 31 — visão SEGURA do briefing oficial (`public.match_briefings`) para o
+ * participante. Contém apenas resumo, ganhos do PRÓPRIO lado, evidências e a
+ * dica de abordagem. Riscos internos, o lado da outra pessoa, prompts, modelo
+ * e qualquer contato ficam fora do contrato.
+ */
+export interface OwnMatchBriefing {
+  summary: string;
+  my_side: string[];
+  evidence: OwnMatchBriefingEvidence[];
+  approach: string | null;
+  generated_at: string;
+  stale: boolean;
+}
 export interface OwnMatchDTO {
   match_id: string;
   my_profile_id: string;
@@ -93,6 +112,8 @@ export interface OwnMatchDTO {
   my_decision: Decision;
   other_decision: Decision;
   connection: OwnMatchConnection | null;
+  /** `null` quando ainda não existe briefing oficial para este match. */
+  briefing?: OwnMatchBriefing | null;
 }
 
 export interface DecideMatchResult {

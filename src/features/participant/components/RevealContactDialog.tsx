@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { buildParticipantWhatsAppLink } from "@/features/participant/icebreaker";
 import { useRevealContactMutation } from "@/features/matching/queries";
 import { ApiError } from "@/features/participant/api";
 import { isRevealRetriable, translateRevealErrorCode } from "@/features/participant/presentation";
@@ -20,6 +22,11 @@ interface Props {
   open: boolean;
   matchId: string;
   otherFirstName: string;
+  /**
+   * IMPL 31 — quebra-gelo sugerido (editável/descartável). É texto derivado do
+   * match/briefing; NUNCA contém telefone e não é persistido em lugar algum.
+   */
+  suggestedMessage?: string;
   onClose: () => void;
 }
 
@@ -43,12 +50,24 @@ interface Props {
  *    contact_unavailable). Estados de negócio (not_mutual, not_yet_introduced,
  *    contact_sharing_disabled, ...) exibem instrução e nenhum botão.
  */
-export function RevealContactDialog({ open, matchId, otherFirstName, onClose }: Props) {
+export function RevealContactDialog({
+  open,
+  matchId,
+  otherFirstName,
+  suggestedMessage,
+  onClose,
+}: Props) {
   const mutation = useRevealContactMutation();
   const [contact, setContact] = useState<RevealedContactDTO | null>(null);
   const [errorCode, setErrorCode] = useState<ErrorCode | null>(null);
   const [copied, setCopied] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [message, setMessage] = useState(suggestedMessage ?? "");
+
+  // Reidrata a sugestão a cada abertura, sem sobrescrever a edição em curso.
+  useEffect(() => {
+    if (open) setMessage(suggestedMessage ?? "");
+  }, [open, suggestedMessage]);
 
   const mountedRef = useRef(true);
   const requestVersionRef = useRef(0);
@@ -190,13 +209,30 @@ export function RevealContactDialog({ open, matchId, otherFirstName, onClose }: 
                     )}
                   </Button>
                 </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="icebreaker"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Mensagem sugerida (quebra-gelo) — edite ou apague à vontade:
+                  </label>
+                  <Textarea
+                    id="icebreaker"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                    className="text-xs leading-relaxed"
+                    placeholder="Escreva a sua própria mensagem ou deixe em branco para abrir o WhatsApp sem texto."
+                  />
+                </div>
                 <Button asChild className="w-full">
                   <a
-                    href={`https://wa.me/${contact.phone_e164.replace(/\D/g, "")}`}
+                    href={buildParticipantWhatsAppLink(contact.phone_e164, message)}
                     target="_blank"
                     rel="noreferrer"
+                    data-testid="btn-reveal-open-whatsapp"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" /> Abrir WhatsApp
+                    <MessageCircle className="mr-2 h-4 w-4" /> Chamar no WhatsApp
                   </a>
                 </Button>
               </div>

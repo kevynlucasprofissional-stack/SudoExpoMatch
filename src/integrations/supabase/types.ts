@@ -1417,6 +1417,10 @@ export type Database = {
       _normalize_br_phone: { Args: { _raw: string }; Returns: string }
       _normalize_social_handle: { Args: { _raw: string }; Returns: string }
       _outcome_kinds: { Args: never; Returns: string[] }
+      _participant_match_rank: {
+        Args: { _match_id: string; _profile_id: string }
+        Returns: number
+      }
       _phone_hash_candidates: { Args: { _raw: string }; Returns: string[] }
       _recompute_matches_for_profile: {
         Args: { p_event_id: string; p_profile_id: string }
@@ -1507,6 +1511,10 @@ export type Database = {
       admin_get_match_detail: { Args: { _match_id: string }; Returns: Json }
       admin_get_match_dossier: { Args: { _match_id: string }; Returns: Json }
       admin_get_participant_detail: {
+        Args: { _profile_id: string }
+        Returns: Json
+      }
+      admin_get_participant_outreach_context: {
         Args: { _profile_id: string }
         Returns: Json
       }
@@ -1606,6 +1614,14 @@ export type Database = {
           _offset?: number
           _search?: string
           _segment_ids?: string[]
+        }
+        Returns: Json
+      }
+      admin_log_participant_outreach: {
+        Args: {
+          _channel?: string
+          _message_preview?: string
+          _profile_id: string
         }
         Returns: Json
       }
@@ -1761,6 +1777,14 @@ export type Database = {
       }
       norm_label: { Args: { _s: string }; Returns: string }
       normalize_phone: { Args: { _raw: string }; Returns: string }
+      participant_get_match_dossier: {
+        Args: { _match_id: string }
+        Returns: Json
+      }
+      participant_save_match_briefing: {
+        Args: { _match_id: string; _payload: Json }
+        Returns: Json
+      }
       recompute_matches_for_profile_id: {
         Args: { _profile_id: string }
         Returns: number

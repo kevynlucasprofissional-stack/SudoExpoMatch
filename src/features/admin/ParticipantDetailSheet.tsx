@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Sparkles, Trash2 } from "lucide-react";
+import { MessageCircle, Sparkles, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { EVENT_ID } from "@/config/event";
 import { useStaffCheckinMutation } from "@/features/admin/useAdminEvents";
@@ -73,9 +73,12 @@ function decisionText(decision: string) {
 export function ParticipantDetailSheet({
   profileId,
   onClose,
+  onOutreach,
 }: {
   profileId: string | null;
   onClose: () => void;
+  /** IMPL 31 — delega a abordagem ao modal da rota; o detalhe segue sem telefone. */
+  onOutreach?: (profileId: string) => void;
 }) {
   const query = useAdminParticipantDetail(profileId, true);
   const socialQuery = useAdminParticipantSocial(profileId, true);
@@ -101,6 +104,20 @@ export function ParticipantDetailSheet({
               : "Carregando dados profissionais…"}
           </SheetDescription>
         </SheetHeader>
+
+        {profileId && onOutreach && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3 w-full border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            onClick={() => onOutreach(profileId)}
+            data-testid="btn-detail-participant-outreach"
+          >
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Chamar no WhatsApp
+          </Button>
+        )}
+
 
         {d && (
           <div className="mt-3 flex items-center justify-between border-b pb-2">

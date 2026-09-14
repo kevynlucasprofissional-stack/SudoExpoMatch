@@ -96,8 +96,12 @@ export function MatchesList({
   return (
     <div className="space-y-3">
       {state.showRefreshError && <RefreshErrorNotice onRetry={onRetry} retrying={retrying} />}
-      {state.matches.map((m) => (
-        <MatchCard key={m.match_id} match={m} eventId={eventId} />
+      {/*
+        IMPL 31 — Top 3 da ordem CANÔNICA já exibida (a lista não é reordenada
+        para esta feature). O backend revalida a elegibilidade Top 3.
+      */}
+      {state.matches.map((m, index) => (
+        <MatchCard key={m.match_id} match={m} eventId={eventId} isTopThree={index < 3} />
       ))}
     </div>
   );

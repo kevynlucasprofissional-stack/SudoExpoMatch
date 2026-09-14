@@ -1772,3 +1772,35 @@ Prioridade inicial registrada (SudoViz / readiness / fase):
 - [ ] documentação de definições métricas sincronizada em `docs/specs/`.
 
 **Princípio:** o SudoExpo Intelligence é instrumento de investigação. Ele descreve o que aconteceu e onde o dado é fraco; qualquer mudança de peso, threshold ou semântica do matcher continua exigindo replay, exposição correta e outcomes conforme as regras deste roadmap.
+
+---
+
+## 31. Mensageria participant-centric e briefing do participante (IMPL 31 — concluído em 14/09/2026)
+
+**Objetivo:** transformar o SudoExpo Match em ferramenta ativa de reativação — a equipe fala com UMA pessoa por vez com contexto real, e o participante recebe uma leitura da conexão e um quebra-gelo pronto para o WhatsApp.
+
+### 31.1 Backend (migration IMPL 31)
+- `admin_get_participant_outreach_context(profile_id)`: admin do evento apenas, leitura sob demanda. Retorna nome/empresa, telefone do PRÓPRIO participante abordado, contagem de matches ativos, interesses recebidos e conexões liberadas — sem telefone de terceiros.
+- `admin_log_participant_outreach`: auditoria/analytics da abordagem participant-centric, sem gravar telefone.
+- `list_own_matches_v2` ampliada com `briefing` seguro por perspectiva: `summary`, `my_side`, `evidence`, `approach`, `generated_at`, `stale`. Riscos internos e o lado do outro nunca são enviados ao participante.
+- `_participant_match_rank`, `participant_get_match_dossier`, `participant_save_match_briefing`: participante autenticado, match ativo, dono de uma das pontas e **somente Top 3** da ordem canônica (`score_me DESC, generated_at DESC, match_id`). Persistência na mesma tabela `match_briefings`.
+- Grants explícitos para `authenticated`/`service_role`, `anon` revogado, `search_path` fixado.
+
+### 31.2 Admin/Equipe
+- Botão **Chamar no WhatsApp** em cada card de `/admin/participantes` e no detalhe do participante.
+- `ParticipantOutreachModal`: mensagem gerada, editável, copiável, com abertura direta do wa.me e logging best-effort.
+- Listagem e detalhe seguem sem telefone/e-mail; o número só aparece no contexto de abordagem, buscado sob demanda com `staleTime/gcTime = 0`.
+- `generateParticipantReactivationMessage` é pura e honesta: só afirma interesse quando há interesse recebido real; conexão liberada sem decisão do próprio participante usa formulação neutra.
+
+### 31.3 Participante
+- `MatchCard` diferencia o briefing OFICIAL de IA (`Leitura detalhada com IA`, com marca de desatualizado) do resumo determinístico (`Resumo da oportunidade`), que deixou de ser rotulado como IA.
+- Botão **Gerar análise detalhada com IA** exibido apenas nas 3 melhores sugestões, com revalidação de elegibilidade no backend e rate limit de 5 gerações por 10 minutos.
+- `RevealContactDialog` oferece quebra-gelo editável (do `approach` do briefing, ou fallback determinístico) e abre o WhatsApp com ou sem texto. O telefone continua efêmero e nunca é persistido.
+
+### 31.4 Verificação
+- [x] typecheck limpo;
+- [x] suíte completa verde: 68 arquivos, 1253 testes;
+- [x] `src/__tests__/impl31-mensageria-participante.test.ts` com 21 testes puros (honestidade da mensagem, plural, dedupe, quebra-gelo, link wa.me, briefing seguro, ausência de PII);
+- [ ] pesos, thresholds, `algorithm_version` e regras de match: intocados por decisão.
+
+**Princípio:** a mensagem nunca inventa intenção. Cada bloco de texto existe porque há um dado real por trás dele.

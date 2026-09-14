@@ -116,6 +116,28 @@ export const matchConnectionSchema = z
   })
   .nullable();
 
+/**
+ * IMPL 31 — briefing oficial na perspectiva do participante. Campos
+ * administrativos (riscos, lado da outra pessoa, modelo) NÃO fazem parte
+ * do contrato e são ignorados caso apareçam.
+ */
+export const ownMatchBriefingSchema = z
+  .object({
+    summary: z.string(),
+    my_side: z.array(z.string()).default([]),
+    evidence: z
+      .array(z.object({ label: z.string(), source: z.string() }))
+      .default([]),
+    approach: z
+      .string()
+      .nullish()
+      .transform((v) => v ?? null),
+    generated_at: z.string(),
+    stale: z.boolean().default(false),
+  })
+  .nullish()
+  .transform((v) => v ?? null);
+
 export const ownMatchSchema = z.object({
   match_id: z.string(),
   my_profile_id: z.string(),
@@ -137,6 +159,7 @@ export const ownMatchSchema = z.object({
   my_decision: decisionSchema,
   other_decision: decisionSchema,
   connection: matchConnectionSchema,
+  briefing: ownMatchBriefingSchema.optional().default(null),
 });
 
 export const ownMatchesSchema = z.array(ownMatchSchema);
