@@ -211,6 +211,20 @@ describe("IMPL 31 — mensagem de reativação participant-centric", () => {
     );
     expect(msg).toContain('clique em "Acessar Minhas Conexões"');
     expect(msg).toContain('aba "Conexões"');
+    expect(msg).toContain('clique em "Ver contato" e chame pelo WhatsApp para marcar um café.');
+    expect(msg).toContain("Para falar com essa pessoa");
+  });
+
+  it("usa o texto de sugestões no singular e no plural", () => {
+    const uma = generateParticipantReactivationMessage(ctx({ active_matches_count: 1 }));
+    expect(uma).toContain("Já encontramos 1 sugestão de conexão");
+    expect(uma).toContain("analise a sugestão com calma.");
+    expect(uma).toContain("faça o login usando seu número do whatsapp");
+
+    const varias = generateParticipantReactivationMessage(ctx({ active_matches_count: 5 }));
+    expect(varias).toContain("Já encontramos 5 sugestões de conexão");
+    expect(varias).toContain("analise cada sugestão com calma.");
+
   });
 
   it("nunca inclui telefone na mensagem, mesmo tendo o número no contexto", () => {
