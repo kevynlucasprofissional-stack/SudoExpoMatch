@@ -44,7 +44,23 @@ export function MatchCard({ match, eventId, isTopThree = false }: Props) {
   const other = match.other;
   const segmentLabel = formatSegmentLabel(other.segment_id);
   const myLabel = participantMatchLabel(match);
-  const aiSummary = generateMatchAiSummary(match);
+  /** Fallback DETERMINÍSTICO — nunca rotulado como IA. */
+  const fallbackSummary = generateMatchAiSummary(match);
+  /** Briefing oficial (`match_briefings`). Quando existe, vence o fallback. */
+  const briefing = match.briefing ?? null;
+  const icebreaker = buildParticipantIcebreaker(match);
+  const generateBriefing = useGenerateOwnMatchBriefing(eventId);
+  const canGenerateBriefing = isTopThree && (!briefing || briefing.stale);
+
+  function runGenerateBriefing() {
+    generateBriefing.mutate(
+      { matchId: match.match_id },
+      {
+        onSuccess: () => toast.success("Análise detalhada gerada para esta conexão."),
+        onError: (err) => toast.error(translateParticipantBriefingError(err)),
+      },
+    );
+  }
 
   function submit(d: "interesse" | "agora_nao") {
     setActiveAction(d);
