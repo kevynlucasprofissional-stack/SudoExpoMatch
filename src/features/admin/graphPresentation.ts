@@ -97,6 +97,7 @@ export interface GraphFilters {
 export const DEFAULT_GRAPH_FILTERS: GraphFilters = {
   states: ["mutual", "single", "none"],
   minScore: null,
+  maxScore: null,
   segments: [],
   q: "",
   onlyConnected: false,

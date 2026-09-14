@@ -39,9 +39,11 @@ export interface NormalizedGraphSearch extends GraphFilters {
 export function normalizeGraphSearch(search: GraphSearch): NormalizedGraphSearch {
   const states = csv(search.st).filter(isState);
   const minRaw = Number.parseInt(search.min, 10);
+  const maxRaw = Number.parseInt(search.max, 10);
   return {
     states: states.length > 0 ? states : DEFAULT_GRAPH_FILTERS.states,
     minScore: Number.isFinite(minRaw) ? Math.max(0, minRaw) : null,
+    maxScore: Number.isFinite(maxRaw) ? Math.max(0, maxRaw) : null,
     segments: csv(search.seg),
     q: search.q.trim(),
     onlyConnected: search.conn === "1",
