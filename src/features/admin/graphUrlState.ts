@@ -16,8 +16,10 @@ export const graphSearchSchema = z.object({
   conn: fallback(z.string(), "").default(""),
   rev: fallback(z.string(), "").default(""),
   iso: fallback(z.string(), "").default(""),
-  /** nó aberto no detalhe */
+  /** nó selecionado (painel contextual) */
   p: fallback(z.string(), "").default(""),
+  /** "1" quando a ficha completa do participante está aberta */
+  pd: fallback(z.string(), "").default(""),
   /** aresta aberta no detalhe */
   m: fallback(z.string(), "").default(""),
 });
