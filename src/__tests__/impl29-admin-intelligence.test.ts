@@ -512,7 +512,7 @@ describe("Rede (integração com o mapa existente)", () => {
 
 describe("contrato das RPCs e da rota", () => {
   const migration = readFileSync(
-    "supabase/migrations/20260914050000_intelligence_read_models.sql",
+    "supabase/migrations/20260914045821_b9a0b7c4-000e-4e10-862f-c413fd5c031a.sql",
     "utf8",
   );
   const routeSrc = readFileSync("src/routes/admin_.inteligencia.tsx", "utf8");
