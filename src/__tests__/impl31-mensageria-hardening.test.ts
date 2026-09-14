@@ -366,7 +366,8 @@ describe("IMPL 31 hardening — mensagem em parágrafos e honesta", () => {
       }),
     );
     expect(msg).toMatch(/Ana, da Ana Doces demonstrou interesse em conversar com você/);
-    expect(msg).toContain("conexão já está liberada");
+    expect(msg).toContain("é só me responder por aqui que coloco vocês em contato.");
+
     // Não duplica a mesma pessoa em dois blocos de interesse.
     expect(msg.match(/demonstrou interesse/g)?.length).toBe(1);
   });
