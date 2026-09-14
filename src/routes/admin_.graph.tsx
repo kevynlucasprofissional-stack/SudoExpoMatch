@@ -156,9 +156,19 @@ function GraphPage() {
   };
 
   const selectedNode = view?.nodes.find((n) => n.profile_id === filters.selectedProfileId) ?? null;
+  /** grau original do evento (não recalculado pelo subgrafo filtrado) */
+  const selectedTotalDegree =
+    graphQuery.data && filters.selectedProfileId
+      ? (graphQuery.data.nodes.find((n) => n.profile_id === filters.selectedProfileId)?.degree ?? 0)
+      : 0;
   const selectedSummary =
     view && filters.selectedProfileId
       ? nodeInterestSummary(view.edges, filters.selectedProfileId)
+      : null;
+  /** totais do evento inteiro, para não induzir erro com os números filtrados */
+  const selectedTotals =
+    graphQuery.data && filters.selectedProfileId
+      ? nodeInterestSummary(graphQuery.data.edges, filters.selectedProfileId)
       : null;
 
   return (
