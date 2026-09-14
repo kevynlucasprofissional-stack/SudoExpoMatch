@@ -10,6 +10,7 @@ import { DEFAULT_GRAPH_FILTERS, type GraphFilters } from "@/features/admin/graph
 export const graphSearchSchema = z.object({
   st: fallback(z.string(), "").default(""),
   min: fallback(z.string(), "").default(""),
+  max: fallback(z.string(), "").default(""),
   seg: fallback(z.string(), "").default(""),
   q: fallback(z.string(), "").default(""),
   conn: fallback(z.string(), "").default(""),
@@ -58,6 +59,7 @@ export function hasActiveGraphFilters(f: NormalizedGraphSearch): boolean {
   return (
     f.q !== "" ||
     f.minScore != null ||
+    f.maxScore != null ||
     f.segments.length > 0 ||
     f.onlyConnected ||
     f.onlyReviewed ||
