@@ -36,6 +36,8 @@ const isState = (v: string): v is InterestState =>
 
 export interface NormalizedGraphSearch extends GraphFilters {
   selectedProfileId: string | null;
+  /** ficha completa (Sheet) do participante aberta */
+  profileSheetOpen: boolean;
   selectedMatchId: string | null;
 }
 
