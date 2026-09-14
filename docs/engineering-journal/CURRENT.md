@@ -71,3 +71,13 @@
 - **Status**: CONFIRMADA
 - **Evidência**: existe perfil real com necessidade de texto livre cujo label coincide com item ativo do catálogo, mas com `taxonomy_item_id` nulo. O catálogo ativo, por si só, não tem colisões internas por `norm_label`.
 - **Implicação**: a equivalência de itens precisa considerar label normalizado além do id; a canonicalização automática de texto livre fica como melhoria separada por afetar o matcher.
+
+### H-013 — É possível dar ao participante uma leitura de IA da conexão sem expor a visão interna do match?
+- **Status**: CONFIRMADA
+- **Evidência**: `match_briefings` guarda `sides.{a,b}`, `risks` e `evidence`; a projeção por perspectiva em `list_own_matches_v2` entrega apenas `summary`, `my_side`, `evidence`, `approach` e frescor, e o schema Zod do cliente descarta qualquer chave extra vinda do banco.
+- **Implicação**: o briefing do participante e o briefing do admin podem compartilhar a mesma tabela e o mesmo gerador, desde que a projeção segura seja feita no banco e revalidada no schema de entrada.
+
+### H-014 — Limitar a geração de IA ao Top 3 exige reordenar a lista do participante?
+- **Status**: REFUTADA
+- **Evidência**: a listagem já é ordenada de forma canônica (`score_me DESC, generated_at DESC, match_id`); `_participant_match_rank` recalcula a mesma posição no banco.
+- **Implicação**: o front pode marcar `isTopThree` pelo índice exibido sem alterar ordenação, porque a autorização real acontece no backend.
