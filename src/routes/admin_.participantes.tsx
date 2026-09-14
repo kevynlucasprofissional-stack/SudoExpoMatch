@@ -390,6 +390,22 @@ function ParticipantsBoard() {
                       </span>
                     )}
 
+                    <div className="flex items-center gap-1.5">
+                    {/* IMPL 31 — abre a abordagem sem propagar o clique para o detalhe. */}
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-emerald-500/40 text-xs text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setOutreachProfileId(p.id);
+                      }}
+                      data-testid="btn-participant-outreach"
+                    >
+                      <MessageCircle className="mr-1 h-3 w-3" />
+                      Chamar no WhatsApp
+                    </Button>
+
                     <Button
                       size="sm"
                       variant="ghost"
