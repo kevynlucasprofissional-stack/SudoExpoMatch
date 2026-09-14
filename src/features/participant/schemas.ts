@@ -159,6 +159,7 @@ export const ownMatchSchema = z.object({
   my_decision: decisionSchema,
   other_decision: decisionSchema,
   connection: matchConnectionSchema,
+  briefing: ownMatchBriefingSchema.optional().default(null),
 });
 
 export const ownMatchesSchema = z.array(ownMatchSchema);
