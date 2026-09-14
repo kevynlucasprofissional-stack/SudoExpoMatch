@@ -364,6 +364,8 @@ function GraphPage() {
                   onEdgeClick={(matchId) =>
                     void navigate({ search: (prev) => ({ ...prev, m: matchId }) })
                   }
+                  settings={graphSettings.settings}
+                  reheatToken={graphSettings.reheatToken}
                 />
               </Suspense>
             </ClientOnly>
