@@ -234,6 +234,19 @@ describe("filtros e subgrafo", () => {
     expect(a.degree).toBe(2);
   });
 
+  it("com isolados ligados e zero arestas ainda sobram nós para desenhar", () => {
+    const out = withFilters({ states: [], showIsolated: true });
+    expect(out.edges).toHaveLength(0);
+    expect(out.nodes.length).toBeGreaterThan(0);
+    expect(out.nodes.every((n) => n.degree === 0)).toBe(true);
+  });
+
+  it("sem isolados e sem arestas o subgrafo fica realmente vazio", () => {
+    const out = withFilters({ states: [] });
+    expect(out.edges).toHaveLength(0);
+    expect(out.nodes).toHaveLength(0);
+  });
+
   it("vizinhança inclui o próprio nó e os conectados", () => {
     const set = neighborsOf(base.edges, A);
     expect([...set].sort()).toEqual([A, B, C].sort());
