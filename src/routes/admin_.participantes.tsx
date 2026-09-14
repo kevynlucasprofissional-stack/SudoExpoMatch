@@ -491,7 +491,18 @@ function ParticipantsBoard() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <ParticipantDetailSheet profileId={search.selected} onClose={closeDetail} />
+      <ParticipantDetailSheet
+        profileId={search.selected}
+        onClose={closeDetail}
+        onOutreach={(id) => setOutreachProfileId(id)}
+      />
+
+      {/* Contexto de abordagem é buscado só aqui, sob demanda, e nunca cacheado. */}
+      <ParticipantOutreachModal
+        profileId={outreachProfileId}
+        open={outreachProfileId !== null}
+        onClose={() => setOutreachProfileId(null)}
+      />
     </PageShell>
   );
 }
