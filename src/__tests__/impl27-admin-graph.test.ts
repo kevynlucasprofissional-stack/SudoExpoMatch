@@ -145,9 +145,20 @@ describe("contrato da RPC admin_match_graph", () => {
     for (const e of payload.edges) expect(hasPrivateKey(e)).toBe(false);
   });
 
-  it("a RPC do grafo filtra por evento e só matches ativos", () => {
-    const sql = readFileSync("src/__tests__/../../supabase/migrations", "utf8");
-    expect(sql).toBeTypeOf("string");
+  it("a RPC do grafo isola por evento, exige papel e só usa matches ativos", () => {
+    const sql = readFileSync(
+      "supabase/migrations/20260914025324_09458a6d-cad5-4b1a-9a62-0a50e4f082f3.sql",
+      "utf8",
+    );
+    expect(sql).toContain("public.admin_match_graph");
+    expect(sql).toContain("has_any_event_role");
+    expect(sql).toContain("m.event_id = _event_id");
+    expect(sql).toContain("m.is_active");
+    // Estado de interesse vem de match_decisions, nunca da coluna legada matches.label
+    expect(sql).toContain("public.match_decisions");
+    expect(sql).not.toContain("m.label");
+    // Nenhum dado de contato no payload
+    expect(sql).not.toContain("profile_contacts");
   });
 });
 
