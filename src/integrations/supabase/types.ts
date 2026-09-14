@@ -1595,6 +1595,14 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_match_graph: {
+        Args: {
+          _event_id: string
+          _min_score?: number
+          _segment_ids?: string[]
+        }
+        Returns: Json
+      }
       admin_reassign_connection: {
         Args: { _connection_id: string; _new_user_id: string; _note?: string }
         Returns: undefined
