@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Textarea } from "@/components/ui/textarea";
+import { buildParticipantWhatsAppLink } from "@/features/participant/icebreaker";
 import { useRevealContactMutation } from "@/features/matching/queries";
 import { ApiError } from "@/features/participant/api";
 import { isRevealRetriable, translateRevealErrorCode } from "@/features/participant/presentation";
@@ -207,13 +209,30 @@ export function RevealContactDialog({
                     )}
                   </Button>
                 </div>
+                <div className="space-y-1.5">
+                  <label
+                    htmlFor="icebreaker"
+                    className="text-xs font-medium text-muted-foreground"
+                  >
+                    Mensagem sugerida (quebra-gelo) — edite ou apague à vontade:
+                  </label>
+                  <Textarea
+                    id="icebreaker"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    rows={4}
+                    className="text-xs leading-relaxed"
+                    placeholder="Escreva a sua própria mensagem ou deixe em branco para abrir o WhatsApp sem texto."
+                  />
+                </div>
                 <Button asChild className="w-full">
                   <a
-                    href={`https://wa.me/${contact.phone_e164.replace(/\D/g, "")}`}
+                    href={buildParticipantWhatsAppLink(contact.phone_e164, message)}
                     target="_blank"
                     rel="noreferrer"
+                    data-testid="btn-reveal-open-whatsapp"
                   >
-                    <MessageCircle className="mr-2 h-4 w-4" /> Abrir WhatsApp
+                    <MessageCircle className="mr-2 h-4 w-4" /> Chamar no WhatsApp
                   </a>
                 </Button>
               </div>
