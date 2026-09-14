@@ -105,6 +105,20 @@ export function ParticipantDetailSheet({
           </SheetDescription>
         </SheetHeader>
 
+        {profileId && onOutreach && (
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3 w-full border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/10 dark:text-emerald-400"
+            onClick={() => onOutreach(profileId)}
+            data-testid="btn-detail-participant-outreach"
+          >
+            <MessageCircle className="mr-2 h-4 w-4" />
+            Chamar no WhatsApp
+          </Button>
+        )}
+
+
         {d && (
           <div className="mt-3 flex items-center justify-between border-b pb-2">
             <span className="text-xs text-muted-foreground font-mono">
