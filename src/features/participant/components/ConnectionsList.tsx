@@ -12,6 +12,7 @@ import {
   revealDisabledHint,
 } from "@/features/participant/presentation";
 import { PARTICIPANT_STATUS_MESSAGE } from "@/features/connections/eligibility";
+import { buildParticipantIcebreaker } from "@/features/participant/icebreaker";
 import { RevealContactDialog } from "./RevealContactDialog";
 import type { OwnMatchDTO } from "@/features/participant/types";
 import type { ConnectionStatus } from "@/lib/types";
@@ -157,6 +158,7 @@ function ActiveRow({ match }: { match: OwnMatchDTO }) {
           open={open}
           matchId={match.match_id}
           otherFirstName={other.name.split(" ")[0] ?? other.name}
+          suggestedMessage={buildParticipantIcebreaker(match).text}
           onClose={() => setOpen(false)}
         />
       )}

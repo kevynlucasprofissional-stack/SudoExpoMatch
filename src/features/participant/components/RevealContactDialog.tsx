@@ -20,6 +20,11 @@ interface Props {
   open: boolean;
   matchId: string;
   otherFirstName: string;
+  /**
+   * IMPL 31 — quebra-gelo sugerido (editável/descartável). É texto derivado do
+   * match/briefing; NUNCA contém telefone e não é persistido em lugar algum.
+   */
+  suggestedMessage?: string;
   onClose: () => void;
 }
 
