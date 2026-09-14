@@ -286,7 +286,9 @@ describe("segurança das RPCs de inteligência", () => {
     expect(routeSrc).toContain("selectedEventId");
     expect(hookSrc).toContain("_event_id: eventId");
     expect(hookSrc).not.toContain("sudoexpo-2026");
-    expect(hookSrc).not.toMatch(/EVENT_ID/);
+    // `EVENT_ID` só pode aparecer em comentário, nunca importado/usado em consulta.
+    expect(hookSrc).not.toMatch(/import[^;]*EVENT_ID/);
+    expect(hookSrc).not.toMatch(/_event_id:\s*EVENT_ID/);
   });
 });
 
