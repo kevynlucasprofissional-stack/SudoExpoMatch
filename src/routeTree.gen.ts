@@ -18,6 +18,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AdminTaxonomiaRouteImport } from './routes/admin_.taxonomia'
 import { Route as AdminParticipantesRouteImport } from './routes/admin_.participantes'
 import { Route as AdminMatchesRouteImport } from './routes/admin_.matches'
+import { Route as AdminInteligenciaRouteImport } from './routes/admin_.inteligencia'
 import { Route as AdminGraphRouteImport } from './routes/admin_.graph'
 
 const PublicoRoute = PublicoRouteImport.update({
@@ -65,6 +66,11 @@ const AdminMatchesRoute = AdminMatchesRouteImport.update({
   path: '/admin/matches',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminInteligenciaRoute = AdminInteligenciaRouteImport.update({
+  id: '/admin_/inteligencia',
+  path: '/admin/inteligencia',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminGraphRoute = AdminGraphRouteImport.update({
   id: '/admin_/graph',
   path: '/admin/graph',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/participar': typeof ParticiparRoute
   '/publico': typeof PublicoRoute
   '/admin/graph': typeof AdminGraphRoute
+  '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/matches': typeof AdminMatchesRoute
   '/admin/participantes': typeof AdminParticipantesRoute
   '/admin/taxonomia': typeof AdminTaxonomiaRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/participar': typeof ParticiparRoute
   '/publico': typeof PublicoRoute
   '/admin/graph': typeof AdminGraphRoute
+  '/admin/inteligencia': typeof AdminInteligenciaRoute
   '/admin/matches': typeof AdminMatchesRoute
   '/admin/participantes': typeof AdminParticipantesRoute
   '/admin/taxonomia': typeof AdminTaxonomiaRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/participar': typeof ParticiparRoute
   '/publico': typeof PublicoRoute
   '/admin_/graph': typeof AdminGraphRoute
+  '/admin_/inteligencia': typeof AdminInteligenciaRoute
   '/admin_/matches': typeof AdminMatchesRoute
   '/admin_/participantes': typeof AdminParticipantesRoute
   '/admin_/taxonomia': typeof AdminTaxonomiaRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/participar'
     | '/publico'
     | '/admin/graph'
+    | '/admin/inteligencia'
     | '/admin/matches'
     | '/admin/participantes'
     | '/admin/taxonomia'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/participar'
     | '/publico'
     | '/admin/graph'
+    | '/admin/inteligencia'
     | '/admin/matches'
     | '/admin/participantes'
     | '/admin/taxonomia'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/participar'
     | '/publico'
     | '/admin_/graph'
+    | '/admin_/inteligencia'
     | '/admin_/matches'
     | '/admin_/participantes'
     | '/admin_/taxonomia'
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   ParticiparRoute: typeof ParticiparRoute
   PublicoRoute: typeof PublicoRoute
   AdminGraphRoute: typeof AdminGraphRoute
+  AdminInteligenciaRoute: typeof AdminInteligenciaRoute
   AdminMatchesRoute: typeof AdminMatchesRoute
   AdminParticipantesRoute: typeof AdminParticipantesRoute
   AdminTaxonomiaRoute: typeof AdminTaxonomiaRoute
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminMatchesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin_/inteligencia': {
+      id: '/admin_/inteligencia'
+      path: '/admin/inteligencia'
+      fullPath: '/admin/inteligencia'
+      preLoaderRoute: typeof AdminInteligenciaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin_/graph': {
       id: '/admin_/graph'
       path: '/admin/graph'
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParticiparRoute: ParticiparRoute,
   PublicoRoute: PublicoRoute,
   AdminGraphRoute: AdminGraphRoute,
+  AdminInteligenciaRoute: AdminInteligenciaRoute,
   AdminMatchesRoute: AdminMatchesRoute,
   AdminParticipantesRoute: AdminParticipantesRoute,
   AdminTaxonomiaRoute: AdminTaxonomiaRoute,
