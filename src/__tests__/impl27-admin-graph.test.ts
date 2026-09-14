@@ -402,7 +402,7 @@ describe("realce estilo Obsidian (incidência e opacidade da aresta)", () => {
     expect(edgeStroke(AB)).toBe("rgba(255, 124, 49, 1)");
     expect(edgeStroke(AC)).toBe("rgba(39, 227, 0, 0.9)");
     expect(edgeStroke(BC)).toBe("rgba(27, 38, 174, 0.55)");
-    expect(edgeStroke(REJ)).toBe("rgba(107, 114, 120, 0.25)");
+    expect(edgeStroke(REJ)).toBe("rgba(107, 114, 128, 0.25)");
   });
 
   it("edgeStroke reduz apenas o alpha no hover, nunca a cor", () => {
