@@ -36,6 +36,17 @@ export const INTEREST_OPACITY: Record<InterestState, string> = {
   declined: "0.25",
 };
 
+/** Mesma escala do `INTEREST_OPACITY`, em número, para pintar no canvas. */
+export const INTEREST_ALPHA: Record<InterestState, number> = {
+  mutual: 1,
+  single: 0.9,
+  none: 0.55,
+  declined: 0.25,
+};
+
+/** Fator aplicado a arestas que NÃO tocam o nó sob o cursor. */
+export const HOVER_DIM_FACTOR = 0.12;
+
 /**
  * Mesma derivação do SQL, replicada aqui para teste e para uso em dados
  * derivados no cliente. `agora_nao` e `sem_decisao` nunca contam como interesse.
