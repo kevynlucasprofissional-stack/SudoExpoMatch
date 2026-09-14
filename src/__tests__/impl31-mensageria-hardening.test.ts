@@ -325,7 +325,9 @@ describe("IMPL 31 hardening — mensagem em parágrafos e honesta", () => {
     const c = ctx({ active_matches_count: 0 });
     expect(hasOutreachContext(c)).toBe(false);
     const msg = generateParticipantReactivationMessage(c);
-    expect(msg).toBe("Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.");
+    expect(msg).toBe(
+      "Olá, Bruna, tudo bem? Aqui é o Kevyn, da comunicação da ACIRV.\nEstou entrando em contato pois vi que se cadastrou no Sudoexpo Match.",
+    );
     expect(msg).not.toMatch(/aviso|surgirem|em breve/i);
   });
 
