@@ -36,6 +36,17 @@ export const INTEREST_OPACITY: Record<InterestState, string> = {
   declined: "0.25",
 };
 
+/** Mesma escala do `INTEREST_OPACITY`, em número, para pintar no canvas. */
+export const INTEREST_ALPHA: Record<InterestState, number> = {
+  mutual: 1,
+  single: 0.9,
+  none: 0.55,
+  declined: 0.25,
+};
+
+/** Fator aplicado a arestas que NÃO tocam o nó sob o cursor. */
+export const HOVER_DIM_FACTOR = 0.12;
+
 /**
  * Mesma derivação do SQL, replicada aqui para teste e para uso em dados
  * derivados no cliente. `agora_nao` e `sem_decisao` nunca contam como interesse.
@@ -174,6 +185,41 @@ export function countStates(edges: Pick<GraphEdge, "interest_state">[]) {
   const out: Record<InterestState, number> = { mutual: 0, single: 0, none: 0, declined: 0 };
   for (const e of edges) out[e.interest_state] += 1;
   return out;
+}
+
+/**
+ * Realce estilo Obsidian: só a aresta que TOCA o nó sob o cursor é incidente.
+ * Uma aresta entre dois vizinhos do nó não é incidente e deve esmaecer.
+ */
+export function isIncidentEdge(
+  edge: Pick<GraphEdge, "a_profile_id" | "b_profile_id">,
+  hoveredProfileId: string | null,
+): boolean {
+  if (!hoveredProfileId) return false;
+  return edge.a_profile_id === hoveredProfileId || edge.b_profile_id === hoveredProfileId;
+}
+
+/** Opacidade final da aresta: base por estado, reduzida fora do hover. */
+export function edgeAlpha(
+  edge: Pick<GraphEdge, "interest_state" | "a_profile_id" | "b_profile_id">,
+  hoveredProfileId: string | null = null,
+): number {
+  const base = INTEREST_ALPHA[edge.interest_state];
+  if (!hoveredProfileId) return base;
+  return isIncidentEdge(edge, hoveredProfileId) ? base : base * HOVER_DIM_FACTOR;
+}
+
+/** Cor base do estado + alpha, em `rgba()` aceito pelo canvas. */
+export function edgeStroke(
+  edge: Pick<GraphEdge, "interest_state" | "a_profile_id" | "b_profile_id">,
+  hoveredProfileId: string | null = null,
+): string {
+  const hex = INTEREST_COLOR[edge.interest_state];
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const a = Math.round(edgeAlpha(edge, hoveredProfileId) * 1000) / 1000;
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
 /** Vizinhança para o realce estilo Obsidian. */

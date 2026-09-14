@@ -5,8 +5,9 @@ import ForceGraph2D from "react-force-graph-2d";
 
 import type { GraphEdge, GraphNode } from "@/features/admin/graphSchemas";
 import {
-  edgeColor,
+  edgeStroke,
   edgeWidth,
+  isIncidentEdge,
   neighborsOf,
   nodeRadius,
   segmentColor,
@@ -29,7 +30,6 @@ interface FGLink {
   edge: GraphEdge;
 }
 
-const idOf = (v: string | FGNode) => (typeof v === "string" ? v : v.profile_id);
 
 export function MatchGraphCanvas({
   nodes,
@@ -115,11 +115,12 @@ export function MatchGraphCanvas({
           ctx.arc(n.x ?? 0, n.y ?? 0, nodeRadius(n) + 2, 0, 2 * Math.PI);
           ctx.fill();
         }}
-        linkColor={(l: FGLink) => edgeColor(l.edge)}
+        linkColor={(l: FGLink) => edgeStroke(l.edge, hovered)}
         linkWidth={(l: FGLink) => {
-          if (!highlight) return edgeWidth(l.edge);
-          const on = highlight.has(idOf(l.source)) && highlight.has(idOf(l.target));
-          return on ? edgeWidth(l.edge) * 1.6 : edgeWidth(l.edge) * 0.4;
+          if (!hovered) return edgeWidth(l.edge);
+          return isIncidentEdge(l.edge, hovered)
+            ? edgeWidth(l.edge) * 1.6
+            : edgeWidth(l.edge) * 0.4;
         }}
         linkDirectionalParticles={0}
         onNodeHover={(n: FGNode | null) => setHovered(n ? n.profile_id : null)}

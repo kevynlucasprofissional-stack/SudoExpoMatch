@@ -6,8 +6,13 @@ import {
   INTEREST_COLOR,
   countStates,
   deriveInterestState,
+  HOVER_DIM_FACTOR,
+  INTEREST_ALPHA,
+  edgeAlpha,
   edgeColor,
+  edgeStroke,
   edgeWidth,
+  isIncidentEdge,
   filterGraph,
   neighborsOf,
   nodeInterestSummary,
@@ -229,6 +234,19 @@ describe("filtros e subgrafo", () => {
     expect(a.degree).toBe(2);
   });
 
+  it("com isolados ligados e zero arestas ainda sobram nós para desenhar", () => {
+    const out = withFilters({ states: [], showIsolated: true });
+    expect(out.edges).toHaveLength(0);
+    expect(out.nodes.length).toBeGreaterThan(0);
+    expect(out.nodes.every((n) => n.degree === 0)).toBe(true);
+  });
+
+  it("sem isolados e sem arestas o subgrafo fica realmente vazio", () => {
+    const out = withFilters({ states: [] });
+    expect(out.edges).toHaveLength(0);
+    expect(out.nodes).toHaveLength(0);
+  });
+
   it("vizinhança inclui o próprio nó e os conectados", () => {
     const set = neighborsOf(base.edges, A);
     expect([...set].sort()).toEqual([A, B, C].sort());
@@ -336,5 +354,83 @@ describe("contadores do subgrafo", () => {
     const { mutual, single, none, declined } = out.counts;
     expect(mutual + single + none + declined).toBe(out.edges.length);
     expect(out.counts).toEqual({ mutual: 1, single: 1, none: 0, declined: 1 });
+  });
+});
+
+describe("realce estilo Obsidian (incidência e opacidade da aresta)", () => {
+  const AB = edge(A, B, { interest_state: "mutual" });
+  const AC = edge(A, C, { interest_state: "single" });
+  const BC = edge(B, C, { interest_state: "none" });
+  const REJ = edge(A, B, { interest_state: "declined" });
+
+  it("só é incidente a aresta que toca o nó sob o cursor", () => {
+    expect(isIncidentEdge(AB, A)).toBe(true);
+    expect(isIncidentEdge(AC, A)).toBe(true);
+    // B e C são vizinhos de A, mas a aresta entre eles NÃO é incidente a A
+    expect(isIncidentEdge(BC, A)).toBe(false);
+  });
+
+  it("sem hover nenhuma aresta é considerada incidente", () => {
+    expect(isIncidentEdge(AB, null)).toBe(false);
+    expect(isIncidentEdge(BC, null)).toBe(false);
+  });
+
+  it("opacidade base segue a escala por estado", () => {
+    expect(edgeAlpha(AB)).toBe(INTEREST_ALPHA.mutual);
+    expect(edgeAlpha(AC)).toBe(INTEREST_ALPHA.single);
+    expect(edgeAlpha(BC)).toBe(INTEREST_ALPHA.none);
+    expect(edgeAlpha(REJ)).toBe(INTEREST_ALPHA.declined);
+    expect(INTEREST_ALPHA.mutual).toBe(1);
+    expect(INTEREST_ALPHA.single).toBe(0.9);
+    expect(INTEREST_ALPHA.none).toBe(0.55);
+    expect(INTEREST_ALPHA.declined).toBe(0.25);
+  });
+
+  it("recusada é sempre a menos visível", () => {
+    expect(INTEREST_ALPHA.declined).toBeLessThan(INTEREST_ALPHA.none);
+    expect(INTEREST_ALPHA.none).toBeLessThan(INTEREST_ALPHA.single);
+    expect(INTEREST_ALPHA.single).toBeLessThanOrEqual(INTEREST_ALPHA.mutual);
+  });
+
+  it("durante o hover a aresta incidente mantém a opacidade e a de fora apaga", () => {
+    expect(edgeAlpha(AB, A)).toBe(INTEREST_ALPHA.mutual);
+    expect(edgeAlpha(BC, A)).toBeCloseTo(INTEREST_ALPHA.none * HOVER_DIM_FACTOR, 6);
+    expect(edgeAlpha(BC, A)).toBeLessThan(edgeAlpha(BC));
+  });
+
+  it("edgeStroke devolve rgba com a cor base intacta", () => {
+    expect(edgeStroke(AB)).toBe("rgba(255, 124, 49, 1)");
+    expect(edgeStroke(AC)).toBe("rgba(39, 227, 0, 0.9)");
+    expect(edgeStroke(BC)).toBe("rgba(27, 38, 174, 0.55)");
+    expect(edgeStroke(REJ)).toBe("rgba(107, 114, 128, 0.25)");
+  });
+
+  it("edgeStroke reduz apenas o alpha no hover, nunca a cor", () => {
+    const dimmed = edgeStroke(BC, A);
+    expect(dimmed.startsWith("rgba(27, 38, 174,")).toBe(true);
+    expect(dimmed).not.toBe(edgeStroke(BC));
+  });
+});
+
+describe("contrato da tela /admin/graph", () => {
+  const src = readFileSync("src/routes/admin_.graph.tsx", "utf8");
+
+  it("o empty state depende dos nós visíveis, não das arestas", () => {
+    expect(src).toContain("view.nodes.length === 0");
+    expect(src).not.toContain("view.edges.length === 0");
+  });
+
+  it("o painel da pessoa usa o grau original do evento", () => {
+    expect(src).toContain("selectedTotalDegree");
+    expect(src).not.toContain("grau total {selectedNode.degree}");
+  });
+});
+
+describe("canvas do mapa", () => {
+  const src = readFileSync("src/features/admin/MatchGraphCanvas.tsx", "utf8");
+
+  it("usa incidência real da aresta e cor com alpha", () => {
+    expect(src).toContain("isIncidentEdge(l.edge, hovered)");
+    expect(src).toContain("edgeStroke(l.edge, hovered)");
   });
 });
