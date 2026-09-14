@@ -30,7 +30,6 @@ interface FGLink {
   edge: GraphEdge;
 }
 
-const idOf = (v: string | FGNode) => (typeof v === "string" ? v : v.profile_id);
 
 export function MatchGraphCanvas({
   nodes,
