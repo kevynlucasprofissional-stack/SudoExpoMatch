@@ -27,6 +27,8 @@ import {
   INTEREST_COLOR,
   INTEREST_LABEL,
   filterGraph,
+  nodeInterestSummary,
+  segmentColor,
 } from "@/features/admin/graphPresentation";
 import { graphSearchSchema, normalizeGraphSearch } from "@/features/admin/graphUrlState";
 import { MatchDetailSheet } from "@/features/admin/MatchDetailSheet";
