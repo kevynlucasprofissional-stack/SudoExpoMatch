@@ -344,19 +344,71 @@ function GraphPage() {
           )}
 
           <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="secondary">{view?.nodes.length ?? 0} participantes</Badge>
+            <Badge variant="secondary">{view?.nodes.length ?? 0} pessoas visíveis</Badge>
             <Badge variant="secondary">{view?.edges.length ?? 0} duplas visíveis</Badge>
+            <Badge variant="outline">{view?.counts.none ?? 0} sem decisão</Badge>
+            <Badge variant="outline">{view?.counts.single ?? 0} interesse de um lado</Badge>
+            <Badge variant="outline">{view?.counts.mutual ?? 0} interesse mútuo</Badge>
+            <Badge variant="outline">{view?.counts.declined ?? 0} recusado/misto</Badge>
             {graphQuery.data ? (
-              <Badge variant="outline">{graphQuery.data.meta.edges_total} duplas ativas</Badge>
+              <Badge variant="outline">{graphQuery.data.meta.edges_total} duplas ativas no evento</Badge>
             ) : null}
             <span>Clique em uma bolinha para ver o participante, ou em uma linha para o match.</span>
           </div>
         </Card>
+
+        {selectedNode && selectedSummary ? (
+          <Card className="mt-4 space-y-3 p-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span
+                    aria-hidden
+                    className="inline-block h-3 w-3 rounded-full"
+                    style={{ backgroundColor: segmentColor(selectedNode.segment_id) }}
+                  />
+                  <h2 className="font-display text-lg font-semibold">{selectedNode.name}</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {selectedNode.company || "Empresa não informada"}
+                  {selectedNode.segment_label ? ` · ${selectedNode.segment_label}` : ""}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  onClick={() => void navigate({ search: (prev) => ({ ...prev, pd: "1" }) })}
+                >
+                  Ficha completa
+                </Button>
+                <Button asChild size="sm" variant="outline">
+                  <Link to="/admin/matches" search={{ q: selectedNode.name }}>
+                    Ver duplas em Matches
+                  </Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => void navigate({ search: (prev) => ({ ...prev, p: "", pd: "" }) })}
+                >
+                  Fechar
+                </Button>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <Badge variant="secondary">{selectedSummary.visible} duplas visíveis</Badge>
+              <Badge variant="outline">grau total {selectedNode.degree}</Badge>
+              <Badge variant="outline">{selectedSummary.sent} interesses enviados</Badge>
+              <Badge variant="outline">{selectedSummary.received} interesses recebidos</Badge>
+              <Badge variant="outline">{selectedSummary.mutual} interesses mútuos</Badge>
+            </div>
+          </Card>
+        ) : null}
       </section>
 
       <ParticipantDetailSheet
-        profileId={filters.selectedProfileId}
-        onClose={() => void navigate({ search: (prev) => ({ ...prev, p: "" }) })}
+        profileId={filters.profileSheetOpen ? filters.selectedProfileId : null}
+        onClose={() => void navigate({ search: (prev) => ({ ...prev, pd: "" }) })}
       />
       <MatchDetailSheet
         matchId={filters.selectedMatchId}
