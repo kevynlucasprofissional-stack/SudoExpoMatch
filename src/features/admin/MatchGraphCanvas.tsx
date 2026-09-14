@@ -116,11 +116,12 @@ export function MatchGraphCanvas({
           ctx.arc(n.x ?? 0, n.y ?? 0, nodeRadius(n) + 2, 0, 2 * Math.PI);
           ctx.fill();
         }}
-        linkColor={(l: FGLink) => edgeColor(l.edge)}
+        linkColor={(l: FGLink) => edgeStroke(l.edge, hovered)}
         linkWidth={(l: FGLink) => {
-          if (!highlight) return edgeWidth(l.edge);
-          const on = highlight.has(idOf(l.source)) && highlight.has(idOf(l.target));
-          return on ? edgeWidth(l.edge) * 1.6 : edgeWidth(l.edge) * 0.4;
+          if (!hovered) return edgeWidth(l.edge);
+          return isIncidentEdge(l.edge, hovered)
+            ? edgeWidth(l.edge) * 1.6
+            : edgeWidth(l.edge) * 0.4;
         }}
         linkDirectionalParticles={0}
         onNodeHover={(n: FGNode | null) => setHovered(n ? n.profile_id : null)}
