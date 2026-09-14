@@ -124,9 +124,9 @@ export function filterGraph(graph: MatchGraph, filters: GraphFilters) {
 
   const edges = graph.edges.filter((e) => {
     if (!states.has(e.interest_state)) return false;
-    if (filters.minScore != null && Math.max(e.score_for_a, e.score_for_b) < filters.minScore) {
-      return false;
-    }
+    const best = Math.max(e.score_for_a, e.score_for_b);
+    if (filters.minScore != null && best < filters.minScore) return false;
+    if (filters.maxScore != null && best > filters.maxScore) return false;
     if (filters.onlyConnected && !e.connection_status) return false;
     if (filters.onlyReviewed && !e.reviewed) return false;
 
@@ -184,4 +184,35 @@ export function neighborsOf(edges: GraphEdge[], profileId: string): Set<string> 
     if (e.b_profile_id === profileId) set.add(e.a_profile_id);
   }
   return set;
+}
+
+export interface NodeInterestSummary {
+  /** duplas visíveis das quais a pessoa participa */
+  visible: number;
+  /** a própria pessoa marcou interesse */
+  sent: number;
+  /** o outro lado marcou interesse na pessoa */
+  received: number;
+  /** os dois lados marcaram interesse */
+  mutual: number;
+}
+
+/**
+ * Contexto barato para o painel lateral: enviados/recebidos/mútuos derivados
+ * das arestas já carregadas, sem nenhuma requisição extra.
+ */
+export function nodeInterestSummary(edges: GraphEdge[], profileId: string): NodeInterestSummary {
+  const out: NodeInterestSummary = { visible: 0, sent: 0, received: 0, mutual: 0 };
+  for (const e of edges) {
+    const isA = e.a_profile_id === profileId;
+    const isB = e.b_profile_id === profileId;
+    if (!isA && !isB) continue;
+    out.visible += 1;
+    const mine = isA ? e.decision_a : e.decision_b;
+    const theirs = isA ? e.decision_b : e.decision_a;
+    if (mine === "interesse") out.sent += 1;
+    if (theirs === "interesse") out.received += 1;
+    if (mine === "interesse" && theirs === "interesse") out.mutual += 1;
+  }
+  return out;
 }
