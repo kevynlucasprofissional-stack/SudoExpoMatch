@@ -145,37 +145,122 @@ export function MatchCard({ match, eventId, isTopThree = false }: Props) {
         </div>
       </div>
       <div className="space-y-4 p-4">
-        {/* Resumo Inteligente por IA (Perguntas Solicitadas) */}
-        <div className="rounded-lg border border-primary/25 bg-primary/5 p-3.5 space-y-3">
-          <div className="flex items-center gap-1.5 text-xs font-semibold text-primary uppercase tracking-wider">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            <span>Resumo de Oportunidade (IA)</span>
+        {/*
+          IMPL 31 — briefing OFICIAL de IA quando existe. O bloco abaixo dele é
+          sempre determinístico e nunca é rotulado como IA.
+        */}
+        {briefing && (
+          <div
+            className="space-y-3 rounded-lg border border-primary/40 bg-primary/10 p-3.5"
+            data-testid="briefing-ai"
+          >
+            <div className="flex flex-wrap items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+              <Sparkles className="h-3.5 w-3.5 text-primary" />
+              <span>Leitura detalhada com IA</span>
+              {briefing.stale && (
+                <Badge variant="outline" className="text-[10px] font-normal">
+                  pode estar desatualizada
+                </Badge>
+              )}
+            </div>
+
+            <p className="text-xs leading-relaxed text-foreground sm:text-sm">{briefing.summary}</p>
+
+            {briefing.my_side.length > 0 && (
+              <div>
+                <p className="text-xs font-semibold text-foreground">O que você ganha</p>
+                <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
+                  {briefing.my_side.map((s, i) => (
+                    <li key={`side-${i}`} className="flex items-start gap-2">
+                      <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <span>{s}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {briefing.evidence.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {briefing.evidence.map((e, i) => (
+                  <Badge key={`ev-${i}`} variant="secondary" className="text-[10px] font-normal">
+                    {e.label} · {e.source}
+                  </Badge>
+                ))}
+              </div>
+            )}
+
+            {briefing.approach && (
+              <div
+                className="rounded-md border border-accent/40 bg-accent/10 p-2.5"
+                data-testid="briefing-approach"
+              >
+                <p className="text-xs font-semibold text-foreground">
+                  💡 Dica de abordagem presencial ou no WhatsApp
+                </p>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  {briefing.approach}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
+        <div
+          className="space-y-3 rounded-lg border border-primary/25 bg-primary/5 p-3.5"
+          data-testid="summary-deterministic"
+        >
+          <div className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-primary">
+            <span>Resumo da oportunidade</span>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
                 1
               </span>
-              <span>Por qual motivo você deveria se conectar com essa pessoa?</span>
+              <span>Por que essa conexão faz sentido?</span>
             </p>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pl-5">
-              {aiSummary.why_connect}
+            <p className="pl-5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              {fallbackSummary.why_connect}
             </p>
           </div>
 
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+            <p className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
               <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[10px] font-bold text-primary">
                 2
               </span>
               <span>O que você ganha se conectando com essa pessoa?</span>
             </p>
-            <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed pl-5">
-              {aiSummary.what_you_gain}
+            <p className="pl-5 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+              {fallbackSummary.what_you_gain}
             </p>
           </div>
         </div>
+
+        {canGenerateBriefing && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full border-primary/40 text-primary hover:bg-primary/10"
+            onClick={runGenerateBriefing}
+            disabled={generateBriefing.isPending}
+            aria-busy={generateBriefing.isPending}
+            data-testid={`btn-generate-briefing-${match.match_id}`}
+          >
+            {generateBriefing.isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1.5 h-4 w-4" />
+            )}
+            {generateBriefing.isPending
+              ? "Gerando análise…"
+              : briefing
+                ? "Atualizar análise"
+                : "✨ Gerar análise detalhada com IA"}
+          </Button>
+        )}
 
         <details className="text-sm">
           <summary className="cursor-pointer text-primary hover:underline">
