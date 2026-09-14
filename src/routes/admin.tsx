@@ -240,6 +240,9 @@ function AdminDashboard({ email, userId }: { email: string; userId: string }) {
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/graph">Mapa de conexões</Link>
             </Button>
+            <Button asChild variant="default" size="sm">
+              <Link to="/admin/inteligencia">Inteligência</Link>
+            </Button>
             <Button asChild variant="outline" size="sm">
               <Link to="/admin/taxonomia">Taxonomia</Link>
             </Button>
