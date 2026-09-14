@@ -90,9 +90,27 @@ export function dedupeByProfile<T extends { profile_id: string }>(list: T[]): T[
 }
 
 const ACCESS_PATH_MAIN =
-  'acesse o SudoExpo Match, vá até o final da página principal e clique em "Acessar Minhas Conexões"';
+  'acesse o SudoExpo Match, vá até o final da página principal e clique em "Acessar Minhas Conexões", faça o login usando seu número do whatsapp';
 const ACCESS_PATH_CONNECTIONS =
-  'entre no SudoExpo Match usando o seu número de WhatsApp, clique em "Acessar Minhas Conexões", abra a aba "Conexões"';
+  'entre no SudoExpo Match e clique em "Acessar Minhas Conexões", depois usando o seu número de WhatsApp faça o login, por fim abra a aba "Conexões", clique em "Ver contato"';
+const REPLY_CTA =
+  "Se fizer sentido para você, é só me responder por aqui que coloco vocês em contato.";
+
+/**
+ * Lista numerada, uma pessoa por linha:
+ * "1- Ana, da Ana Doces,\n2- Bia e\n3- Caio."
+ */
+export function formatNumberedPersonList(
+  people: Array<{ name: string; company?: string | null }>,
+): string {
+  return people
+    .map((p, i) => {
+      const suffix = i === people.length - 1 ? "." : i === people.length - 2 ? " e" : ",";
+      return `${i + 1}- ${describePerson(p)}${suffix}`;
+    })
+    .join("\n");
+}
+
 
 export interface GenerateParticipantOutreachOptions {
   senderName?: string;
