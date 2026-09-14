@@ -5,8 +5,9 @@ import ForceGraph2D from "react-force-graph-2d";
 
 import type { GraphEdge, GraphNode } from "@/features/admin/graphSchemas";
 import {
-  edgeColor,
+  edgeStroke,
   edgeWidth,
+  isIncidentEdge,
   neighborsOf,
   nodeRadius,
   segmentColor,
