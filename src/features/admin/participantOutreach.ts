@@ -160,7 +160,9 @@ export function generateParticipantReactivationMessage(
     (p) => !releasedProfileIds.has(p.profile_id),
   );
 
-  const blocks: string[] = [`Olá, ${firstName}, tudo bem? Aqui é o ${sender}.`];
+  const blocks: string[] = [
+    `Olá, ${firstName}, tudo bem? Aqui é o ${sender}.\nEstou entrando em contato pois vi que se cadastrou no Sudoexpo Match.`,
+  ];
 
   if (incoming.length > 0) {
     if (incoming.length === 1) {
