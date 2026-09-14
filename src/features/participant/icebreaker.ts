@@ -46,9 +46,40 @@ export function resolveIcebreakerHook(match: OwnMatchDTO): string | null {
   return null;
 }
 
+/**
+ * Padrões META: texto escrito para a EQUIPE apresentar os dois, não para o
+ * participante falar. Briefings antigos (`briefing-v1`) foram gerados assim.
+ */
+const META_APPROACH_PATTERNS: RegExp[] = [
+  /^ao\s+(falar|conversar|apresentar|abordar|encontrar)\b/i,
+  /^(pergunte|questione|sugira|proponha|apresente|inicie|puxe|explore|destaque|reforce|use|aproveite|convide|lembre|mostre)\b/i,
+  /\bequipe\b/i,
+  /\bapresentar os dois\b/i,
+];
+
+/** Prefixos instrucionais que podem ser removidos com segurança. */
+const META_PREFIX = /^(diga|comente|mencione|fale|conte)\s+(?:para\s+\S+\s+)?(?:que|sobre)\s+/i;
+
+/**
+ * Adapta o `approach` do briefing para uso direto no WhatsApp.
+ * Retorna `null` quando o texto é instrucional e não pode ser convertido com
+ * confiança — nesse caso o quebra-gelo cai no fallback determinístico.
+ */
+export function adaptApproachForWhatsApp(approach?: string | null): string | null {
+  const raw = (approach ?? "").trim();
+  if (!raw) return null;
+
+  const stripped = raw.replace(META_PREFIX, "").trim();
+  const candidate =
+    stripped !== raw && stripped ? stripped.charAt(0).toUpperCase() + stripped.slice(1) : raw;
+
+  if (META_APPROACH_PATTERNS.some((r) => r.test(candidate))) return null;
+  return candidate;
+}
+
 export function buildParticipantIcebreaker(match: OwnMatchDTO): Icebreaker {
   const name = firstName(match.other?.name ?? "");
-  const approach = match.briefing?.approach?.trim();
+  const approach = adaptApproachForWhatsApp(match.briefing?.approach);
 
   if (approach) {
     return {

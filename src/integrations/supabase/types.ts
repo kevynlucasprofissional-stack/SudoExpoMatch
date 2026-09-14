@@ -1811,6 +1811,14 @@ export type Database = {
         Args: { _network?: string; _profile_id: string }
         Returns: Json
       }
+      service_participant_briefing_context: {
+        Args: { _actor_user_id: string; _match_id: string }
+        Returns: Json
+      }
+      service_participant_save_briefing: {
+        Args: { _actor_user_id: string; _match_id: string; _payload: Json }
+        Returns: Json
+      }
       service_refresh_profile_social: {
         Args: { _actor_user_id: string; _network?: string; _profile_id: string }
         Returns: Json

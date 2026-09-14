@@ -16,16 +16,28 @@ import {
 const PARTICIPANT_RATE_WINDOW_SEC = 600;
 const PARTICIPANT_RATE_MAX_CALLS = 5;
 
+interface SafeBriefingView {
+  summary: string;
+  my_side: string[];
+  evidence: Array<{ label: string; source: string }>;
+  approach: string | null;
+  generated_at: string;
+  stale: boolean;
+}
+
 /**
- * IMPL 31 — geração do briefing OFICIAL pelo próprio participante.
+ * IMPL 31 (hardening) — geração do briefing OFICIAL pelo próprio participante.
  *
- * A autorização real vive no banco: `participant_get_match_dossier` e
- * `participant_save_match_briefing` só aceitam o dono de uma das duas pontas
- * de um match ATIVO e apenas para o Top 3 da ordem canônica. A UI é
- * conveniência, nunca o controle de acesso.
+ * Toda a autorização acontece em pontes SERVER-ONLY (service role):
+ * `service_participant_briefing_context` e `service_participant_save_briefing`.
+ * Elas recebem o ator explicitamente e revalidam: match existe, está ativo, é
+ * do evento correto, o perfil não-demo do ator é uma das duas pontas e o match
+ * está no Top 3 canônico (mesma ordenação exibida na tela). As RPCs internas
+ * NÃO são executáveis por `authenticated` — o cliente nunca escreve em
+ * `match_briefings` por fora deste caminho, e nenhum service role vai ao browser.
  *
- * O resultado é persistido em `public.match_briefings` — a mesma fonte que o
- * painel administrativo usa, para que equipe e participante falem a mesma língua.
+ * Ordem obrigatória: autorização → reuso de briefing atual → rate limit
+ * (fail closed) → chamada paga ao modelo → persistência.
  */
 export const generateOwnMatchBriefing = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -34,23 +46,48 @@ export const generateOwnMatchBriefing = createServerFn({ method: "POST" })
     const apiKey = process.env["LOVABLE_API_KEY"];
     if (!apiKey) throw new Error("ai_unavailable");
 
-    // Rate limit por ator antes de qualquer chamada paga.
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const admin = supabaseAdmin as any;
+
+    // 1) AUTORIZAÇÃO primeiro — antes de consumir qualquer quota.
+    const ctxRes = await admin.rpc("service_participant_briefing_context", {
+      _match_id: data.matchId,
+      _actor_user_id: context.userId,
+    });
+    if (ctxRes.error || !ctxRes.data) {
+      throw new Error(ctxRes.error?.message ?? "briefing_context_unavailable");
+    }
+    const authorized = ctxRes.data as {
+      existing: SafeBriefingView | null;
+      dossier: unknown;
+    };
+
+    // 2) Briefing oficial atual (não-stale) é REUTILIZADO: zero token gasto.
+    const existing = authorized.existing;
+    if (existing && existing.stale === false) {
+      return {
+        match_id: data.matchId,
+        summary: existing.summary,
+        my_side: Array.isArray(existing.my_side) ? existing.my_side : [],
+        evidence: Array.isArray(existing.evidence) ? existing.evidence : [],
+        approach: existing.approach ?? null,
+        generated_at: existing.generated_at,
+        stale: false,
+        reused: true,
+      };
+    }
+
+    // 3) Rate limit FAIL CLOSED: falha do limitador impede a chamada paga.
     const limit = await context.supabase.rpc("ai_rate_limit_consume", {
       _actor: context.userId,
       _window_sec: PARTICIPANT_RATE_WINDOW_SEC,
       _max_calls: PARTICIPANT_RATE_MAX_CALLS,
     });
-    if (!limit.error && limit.data === false) throw new Error("ai_rate_limited");
+    if (limit.error) throw new Error("ai_unavailable");
+    if (limit.data === false) throw new Error("ai_rate_limited");
 
-    const dossierRes = await context.supabase.rpc(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      "participant_get_match_dossier" as any,
-      { _match_id: data.matchId },
-    );
-    if (dossierRes.error || !dossierRes.data) {
-      throw new Error(dossierRes.error?.message ?? "dossier_unavailable");
-    }
-    const dossier = dossierRes.data as unknown as MatchDossier;
+    const dossier = authorized.dossier as MatchDossier;
 
     const started = Date.now();
     const provider = createLovableAiGatewayProvider(apiKey);
@@ -74,16 +111,15 @@ export const generateOwnMatchBriefing = createServerFn({ method: "POST" })
     if (!parsed.success) throw new Error("ai_invalid_output");
 
     const payload = toBriefingPayload(parsed.data, MATCH_BRIEFING_MODEL);
-    const saved = await context.supabase.rpc(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      "participant_save_match_briefing" as any,
-      { _match_id: data.matchId, _payload: payload },
-    );
+    const saved = await admin.rpc("service_participant_save_briefing", {
+      _match_id: data.matchId,
+      _actor_user_id: context.userId,
+      _payload: payload,
+    });
     if (saved.error) throw new Error(saved.error.message);
 
     // Telemetria best-effort — nunca quebra o fluxo do participante.
     try {
-      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await (
         supabaseAdmin as unknown as {
           from: (t: string) => { insert: (r: unknown) => Promise<unknown> };
@@ -115,5 +151,6 @@ export const generateOwnMatchBriefing = createServerFn({ method: "POST" })
       approach: payload.approach,
       generated_at: row.generated_at ?? new Date().toISOString(),
       stale: false,
+      reused: false,
     };
   });

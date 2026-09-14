@@ -78,6 +78,13 @@
 - **Implicação**: o briefing do participante e o briefing do admin podem compartilhar a mesma tabela e o mesmo gerador, desde que a projeção segura seja feita no banco e revalidada no schema de entrada.
 
 ### H-014 — Limitar a geração de IA ao Top 3 exige reordenar a lista do participante?
-- **Status**: REFUTADA
-- **Evidência**: a listagem já é ordenada de forma canônica (`score_me DESC, generated_at DESC, match_id`); `_participant_match_rank` recalcula a mesma posição no banco.
-- **Implicação**: o front pode marcar `isTopThree` pelo índice exibido sem alterar ordenação, porque a autorização real acontece no backend.
+- **Status**: CORRIGIDA (a premissa original estava ERRADA)
+- **Premissa refutada pela auditoria**: assumiu-se que a lista exibida seguia `score_me DESC, generated_at DESC, match_id`. Não seguia: a UI ordena por `sortMatchesByMutualInterest` (tiers de sinergia mútua, menor assimetria, `agora_nao` ao final).
+- **Consequência do erro**: o Top 3 autorizado no banco podia ser um conjunto diferente do Top 3 exibido; e marcar `isTopThree` por índice fazia os 3 primeiros da aba filtrada "Interesses" parecerem Top 3.
+- **Correção (14/09/2026)**: `public._participant_match_rank` foi reescrita para reproduzir EXATAMENTE a ordenação da UI (dismissed → tier → gap → soma → score_me → score_other → id) e `compareMatchesForRanking` ganhou desempate final por `match_id`. SQL e TypeScript passaram a compartilhar a mesma semântica, com teste de equivalência por fixtures. O Top 3 é resolvido por `resolveTopThreeMatchIds` na rota do participante e propagado por `match_id`.
+
+### H-015 — Achados da auditoria externa da primeira versão da IMPL 31
+- **Status**: CONFIRMADOS e CORRIGIDOS
+- **Achado 1 (crítico)**: a migration inicial concedeu `EXECUTE` a `authenticated` em `participant_get_match_dossier` e `participant_save_match_briefing`, permitindo que um participante autenticado sobrescrevesse o briefing oficial com payload arbitrário. **Correção**: nova migration revoga `PUBLIC`/`anon`/`authenticated` dessas RPCs (e de `_participant_match_rank`), deixando-as service-role-only, e cria as pontes server-only `service_participant_briefing_context` / `service_participant_save_briefing` com `_actor_user_id` explícito e revalidação completa (match ativo, evento correto, dono de uma ponta, Top 3 canônico). O participante só grava passando pela server function autenticada.
+- **Achado 2 (crítico)**: divergência de Top 3 entre banco e tela — ver H-014.
+- **Nota histórica**: os dois achados existiram em produção entre 14/09/2026 (primeira versão) e a correção do mesmo dia. Registro mantido de propósito: correção histórica não se esconde.

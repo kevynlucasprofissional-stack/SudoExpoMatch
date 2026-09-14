@@ -15,7 +15,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import { buildWhatsAppLink, cleanPhone } from "@/features/admin/outreachMessages";
-import { generateParticipantReactivationMessage } from "@/features/admin/participantOutreach";
+import {
+  generateParticipantReactivationMessage,
+  hasOutreachContext,
+} from "@/features/admin/participantOutreach";
 import {
   useLogParticipantOutreach,
   useParticipantOutreachContext,
@@ -54,6 +57,8 @@ export function ParticipantOutreachModal({
   const ctx = query.data;
   const cleaned = cleanPhone(ctx?.phone_e164 ?? "");
   const hasPhone = cleaned.length >= 12;
+  /** Sem interesse recebido, conexão liberada ou sugestão ativa: nada honesto a dizer. */
+  const noContext = !!ctx && !hasOutreachContext(ctx);
 
   function logBestEffort(channel: "whatsapp" | "copy") {
     if (!profileId) return;
@@ -134,6 +139,18 @@ export function ParticipantOutreachModal({
             </div>
           </div>
         ) : null}
+
+        {noContext && (
+          <p
+            role="status"
+            data-testid="outreach-no-context"
+            className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs"
+          >
+            Este participante ainda não tem interesse recebido, conexão liberada nem sugestão
+            ativa. Não há contexto de matchmaking para compor uma mensagem — escreva o que faz
+            sentido no caso dele.
+          </p>
+        )}
 
         <div className="space-y-2">
           <div className="flex items-center justify-between">

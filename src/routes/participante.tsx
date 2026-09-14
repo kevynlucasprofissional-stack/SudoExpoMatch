@@ -21,6 +21,7 @@ import {
   filterCancelledConnections,
   filterInterests,
   filterPendingConnections,
+  resolveTopThreeMatchIds,
   sortMatchesByMutualInterest,
   translateRecomputeErrorCode,
 } from "@/features/participant/presentation";
@@ -167,6 +168,11 @@ function Panel({
     [matchesQuery.data],
   );
   const hasCachedResult = matchesQuery.data !== undefined;
+  /**
+   * IMPL 31 hardening — Top 3 da ordem CANÔNICA GLOBAL. Calculado aqui e
+   * repassado por match_id, para que a aba "Interesses" não crie um Top 3 falso.
+   */
+  const topThreeMatchIds = useMemo(() => resolveTopThreeMatchIds(matches), [matches]);
   const interested = useMemo(() => filterInterests(matches), [matches]);
   const activeConn = useMemo(() => filterActiveConnections(matches), [matches]);
   const pendingConn = useMemo(() => filterPendingConnections(matches), [matches]);
@@ -257,6 +263,7 @@ function Panel({
               retrying={matchesQuery.isFetching}
               onRetry={handleRefresh}
               eventId={eventId}
+              topThreeMatchIds={topThreeMatchIds}
             />
           </TabsContent>
           <TabsContent value="interested" className="mt-6">
@@ -268,6 +275,7 @@ function Panel({
               retrying={matchesQuery.isFetching}
               onRetry={handleRefresh}
               eventId={eventId}
+              topThreeMatchIds={topThreeMatchIds}
               emptyMessage="Você ainda não marcou interesse em ninguém."
             />
           </TabsContent>

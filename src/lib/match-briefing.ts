@@ -8,7 +8,9 @@ import { z } from "zod";
  */
 
 export const MATCH_BRIEFING_MODEL = "google/gemini-3.7-flash";
-export const MATCH_BRIEFING_PROMPT_VERSION = "briefing-v1";
+// v2 (IMPL 31 hardening): `approach` passou a ser DISCURSO DIRETO, utilizável
+// pelo próprio participante no WhatsApp — sem instruções meta para a equipe.
+export const MATCH_BRIEFING_PROMPT_VERSION = "briefing-v2";
 
 export const matchBriefingInputSchema = z.object({
   matchId: z.string().uuid(),
@@ -170,7 +172,10 @@ export function buildBriefingPrompt(d: MatchDossier): string {
     "gains_a: o que o lado A ganha. gains_b: o que o lado B ganha.",
     "evidence: itens com origem 'cadastro', 'ia' ou 'instagram'.",
     "risks: pontos de atenção (assimetria, dados fracos, sinal frágil).",
-    "approach: uma frase que a equipe pode falar ao apresentar os dois no evento.",
+    "approach: UMA frase curta em DISCURSO DIRETO, escrita como a própria pessoa falaria " +
+      "presencialmente ou no WhatsApp (ex.: \"Vi que vocês trabalham com X, que é o que eu procuro.\"). " +
+      "PROIBIDO usar instruções meta como \"pergunte\", \"diga que\", \"ao falar com\", \"apresente os dois\" " +
+      "ou qualquer referência à equipe.",
   ].join("\n");
 }
 

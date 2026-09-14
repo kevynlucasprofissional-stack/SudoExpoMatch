@@ -114,14 +114,42 @@ export function isHighSynergyMatch(match: OwnMatchDTO): boolean {
 }
 
 /**
- * Ordena os matches do participante priorizando o topo com:
- * 1. Matches de Alta Sinergia Mútua (score de ambos >= 60 e assimetria < 30),
- *    ordenados pela menor assimetria (mais equilibrados primeiro) e maior score total.
- * 2. Matches com ambos >= 60, mas com assimetria >= 30.
- * 3. Demais matches ordenados pelo score da perspectiva do participante (score_me DESC).
+ * Comparador CANÔNICO da fila de matches do participante.
+ *
+ * Esta é a mesma semântica reproduzida por `public._participant_match_rank`
+ * no banco (IMPL 31 hardening): o Top 3 que autoriza a geração de IA no
+ * backend é exatamente o Top 3 que o participante vê na tela.
+ *
+ * 1. `agora_nao` sempre ao final.
+ * 2. Tier 1: ambos >= 60 e assimetria < 30. Tier 2: ambos >= 60. Tier 3: resto.
+ * 3. Tier 1/2: menor assimetria, depois maior soma, depois maior score_me.
+ * 4. Tier 3: maior score_me, depois maior score_other.
+ * 5. Desempate final determinístico por `match_id`.
  */
+export function compareMatchesForRanking(a: OwnMatchDTO, b: OwnMatchDTO): number {
+  const cmp = compareMatchesCore(a, b);
+  if (cmp !== 0) return cmp;
+  // Desempate final determinístico (mesma ordem que `ORDER BY id` no Postgres).
+  if (a.match_id === b.match_id) return 0;
+  return a.match_id < b.match_id ? -1 : 1;
+}
+
+/** IDs do Top 3 da ordem CANÔNICA global — nunca de uma lista filtrada. */
+export function resolveTopThreeMatchIds(matches: OwnMatchDTO[]): Set<string> {
+  return new Set(
+    [...matches]
+      .sort(compareMatchesForRanking)
+      .slice(0, 3)
+      .map((m) => m.match_id),
+  );
+}
+
 export function sortMatchesByMutualInterest(matches: OwnMatchDTO[]): OwnMatchDTO[] {
-  return [...matches].sort((a, b) => {
+  return [...matches].sort(compareMatchesForRanking);
+}
+
+function compareMatchesCore(a: OwnMatchDTO, b: OwnMatchDTO): number {
+  {
     // 0. Prioridade máxima: matches em aberto ou com interesse ficam no topo;
     // matches marcados como "agora_nao" vão para o final da fila.
     const isDismissedA = a.my_decision === "agora_nao";
@@ -164,7 +192,7 @@ export function sortMatchesByMutualInterest(matches: OwnMatchDTO[]): OwnMatchDTO
       return meB - meA;
     }
     return otherB - otherA;
-  });
+  }
 }
 
 export function canRevealForMatch(match: OwnMatchDTO): boolean {

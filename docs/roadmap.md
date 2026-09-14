@@ -1783,8 +1783,10 @@ Prioridade inicial registrada (SudoViz / readiness / fase):
 - `admin_get_participant_outreach_context(profile_id)`: admin do evento apenas, leitura sob demanda. Retorna nome/empresa, telefone do PRÓPRIO participante abordado, contagem de matches ativos, interesses recebidos e conexões liberadas — sem telefone de terceiros.
 - `admin_log_participant_outreach`: auditoria/analytics da abordagem participant-centric, sem gravar telefone.
 - `list_own_matches_v2` ampliada com `briefing` seguro por perspectiva: `summary`, `my_side`, `evidence`, `approach`, `generated_at`, `stale`. Riscos internos e o lado do outro nunca são enviados ao participante.
-- `_participant_match_rank`, `participant_get_match_dossier`, `participant_save_match_briefing`: participante autenticado, match ativo, dono de uma das pontas e **somente Top 3** da ordem canônica (`score_me DESC, generated_at DESC, match_id`). Persistência na mesma tabela `match_briefings`.
-- Grants explícitos para `authenticated`/`service_role`, `anon` revogado, `search_path` fixado.
+- `_participant_match_rank`, `participant_get_match_dossier`, `participant_save_match_briefing`: revalidam participante, match ativo, dono de uma das pontas e **somente Top 3**. **Correção (hardening 14/09/2026):** a primeira versão concedia `EXECUTE` a `authenticated` nessas RPCs e usava a ordem `score_me DESC, generated_at DESC, match_id`, que NÃO era a ordem exibida. Hoje elas são service-role-only e o rank reproduz exatamente `sortMatchesByMutualInterest`.
+- Pontes server-only `service_participant_briefing_context` / `service_participant_save_briefing`: recebem `_actor_user_id` explícito, revalidam match ativo, evento correto, perfil não-demo dono de uma ponta e Top 3 canônico. Persistência na mesma tabela `match_briefings`.
+- Grants explícitos: `anon` e `authenticated` revogados nas RPCs internas/pontes (apenas `service_role`), `search_path` fixado.
+- `admin_get_participant_outreach_context` devolve `other_suggestions_count` exato e, em cada conexão liberada, `other_decision`/`other_has_interest`.
 
 ### 31.2 Admin/Equipe
 - Botão **Chamar no WhatsApp** em cada card de `/admin/participantes` e no detalhe do participante.
@@ -1797,10 +1799,30 @@ Prioridade inicial registrada (SudoViz / readiness / fase):
 - Botão **Gerar análise detalhada com IA** exibido apenas nas 3 melhores sugestões, com revalidação de elegibilidade no backend e rate limit de 5 gerações por 10 minutos.
 - `RevealContactDialog` oferece quebra-gelo editável (do `approach` do briefing, ou fallback determinístico) e abre o WhatsApp com ou sem texto. O telefone continua efêmero e nunca é persistido.
 
-### 31.4 Verificação
+### 31.4 Hardening pós-auditoria (14/09/2026)
+- [x] RPCs internas de dossier/save revogadas de `authenticated`/`anon`/`PUBLIC`; geração passa obrigatoriamente pelas pontes service-role;
+- [x] Top 3 do banco = Top 3 exibido (`_participant_match_rank` espelha `compareMatchesForRanking`, com desempate final por `match_id`);
+- [x] Top 3 calculado por `match_id` GLOBAL na rota do participante — a aba "Interesses" não cria mais um Top 3 falso;
+- [x] autorização antes da quota, rate limiter fail closed e reuso do briefing atual/não-stale sem nova chamada paga;
+- [x] mensagem em parágrafos, sem promessa futura quando não há contexto, `other_suggestions_count` exato e interesse da contraparte preservado em conexão liberada;
+- [x] `approach` do briefing passa a ser discurso direto (`briefing-v2`), com adaptação defensiva de briefings antigos em forma meta;
+- [x] resumo determinístico deixou de expor qualquer semântica de IA.
+
+### 31.5 Verificação
 - [x] typecheck limpo;
-- [x] suíte completa verde: 68 arquivos, 1253 testes;
+- [x] suíte completa verde: 69 arquivos, 1287 testes;
 - [x] `src/__tests__/impl31-mensageria-participante.test.ts` com 21 testes puros (honestidade da mensagem, plural, dedupe, quebra-gelo, link wa.me, briefing seguro, ausência de PII);
+- [x] `src/__tests__/impl31-mensageria-hardening.test.ts` com 34 testes de contrato (grants da migration, equivalência de ordenação SQL/TS, Top 3 global, custo/rate limit, privacidade, quebra-gelo adaptado);
 - [ ] pesos, thresholds, `algorithm_version` e regras de match: intocados por decisão.
+
+### 31.6 Futuro
+- [ ] assinatura/remetente e templates de mensagem configuráveis por evento;
+- [ ] teste A/B de copy da abordagem;
+- [ ] métricas privacy-safe de abrir/copiar/iniciar conversa (sem registrar conteúdo nem telefone);
+- [ ] follow-up inteligente para a equipe (quem foi abordado e não respondeu);
+- [ ] WhatsApp Business API como opção futura — não assumido como implementado;
+- [ ] feedback pós-conversa/pós-café;
+- [ ] quotas e custo de IA configuráveis por evento e por participante;
+- [ ] analytics de briefing gerado → interesse → conexão → outcome.
 
 **Princípio:** a mensagem nunca inventa intenção. Cada bloco de texto existe porque há um dado real por trás dele.
