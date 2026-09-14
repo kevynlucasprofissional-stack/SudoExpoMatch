@@ -80,6 +80,8 @@ export interface GraphFilters {
   states: InterestState[];
   /** score mínimo considerando o maior lado */
   minScore: number | null;
+  /** score máximo considerando o maior lado (investigação de falsos negativos) */
+  maxScore: number | null;
   /** segmentos aceitos (qualquer lado) */
   segments: string[];
   /** busca por nome/empresa (qualquer lado) */
