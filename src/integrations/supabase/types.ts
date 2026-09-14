@@ -1404,6 +1404,7 @@ export type Database = {
         Returns: string
       }
       _connection_outcomes: { Args: { _connection_id: string }; Returns: Json }
+      _intel_score_bucket: { Args: { _score: number }; Returns: string }
       _match_dossier_profile: { Args: { _profile_id: string }; Returns: Json }
       _match_inputs_fingerprint: {
         Args: { _match_id: string }
@@ -1515,6 +1516,19 @@ export type Database = {
       }
       admin_get_taxonomy_item_detail: {
         Args: { _event_id: string; _item_id: string }
+        Returns: Json
+      }
+      admin_intelligence_behavior: {
+        Args: { _event_id: string }
+        Returns: Json
+      }
+      admin_intelligence_matcher: { Args: { _event_id: string }; Returns: Json }
+      admin_intelligence_overview: {
+        Args: { _event_id: string }
+        Returns: Json
+      }
+      admin_intelligence_taxonomy: {
+        Args: { _event_id: string }
         Returns: Json
       }
       admin_list_event_staff: {
