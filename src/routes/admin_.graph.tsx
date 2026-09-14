@@ -330,6 +330,15 @@ function GraphPage() {
           ) : null}
         </Card>
 
+        <div className="mt-4">
+          <GraphSettingsPanel
+            settings={graphSettings.settings}
+            onChange={graphSettings.update}
+            onAnimate={graphSettings.animate}
+            onReset={graphSettings.reset}
+          />
+        </div>
+
         <Card className="mt-4 overflow-hidden p-3">
           {graphQuery.isError ? (
             <p className="p-8 text-center text-sm text-destructive">
