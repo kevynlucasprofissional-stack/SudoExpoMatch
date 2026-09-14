@@ -1162,6 +1162,7 @@ low-score residual mining
 M20–M22 experimentos estruturais
 exploração controlada
 Matcher v3 somente com labels/outcomes suficientes
+Intelligence V3 — calibration curve e outcome charts quando o ground truth amadurecer
 ```
 
 ---
