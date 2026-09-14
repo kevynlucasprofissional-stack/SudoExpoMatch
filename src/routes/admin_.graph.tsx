@@ -31,6 +31,8 @@ import {
   segmentColor,
 } from "@/features/admin/graphPresentation";
 import { graphSearchSchema, normalizeGraphSearch } from "@/features/admin/graphUrlState";
+import { GraphSettingsPanel } from "@/features/admin/GraphSettingsPanel";
+import { useGraphSettings } from "@/features/admin/useGraphSettings";
 import { MatchDetailSheet } from "@/features/admin/MatchDetailSheet";
 import { ParticipantDetailSheet } from "@/features/admin/ParticipantDetailSheet";
 
@@ -113,6 +115,9 @@ function GraphPage() {
       void navigate({ search: (prev) => ({ ...prev, q: debouncedQ }) });
     }
   }, [debouncedQ, filters.q, navigate]);
+
+  /** preferências visuais: locais e pessoais, fora da URL */
+  const graphSettings = useGraphSettings();
 
   const segmentsQuery = useEventSegments(selectedEventId);
   const graphQuery = useAdminMatchGraph(selectedEventId, true);
@@ -325,6 +330,15 @@ function GraphPage() {
           ) : null}
         </Card>
 
+        <div className="mt-4">
+          <GraphSettingsPanel
+            settings={graphSettings.settings}
+            onChange={graphSettings.update}
+            onAnimate={graphSettings.animate}
+            onReset={graphSettings.reset}
+          />
+        </div>
+
         <Card className="mt-4 overflow-hidden p-3">
           {graphQuery.isError ? (
             <p className="p-8 text-center text-sm text-destructive">
@@ -350,6 +364,8 @@ function GraphPage() {
                   onEdgeClick={(matchId) =>
                     void navigate({ search: (prev) => ({ ...prev, m: matchId }) })
                   }
+                  settings={graphSettings.settings}
+                  reheatToken={graphSettings.reheatToken}
                 />
               </Suspense>
             </ClientOnly>
