@@ -2,7 +2,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
   Legend,
   ResponsiveContainer,
   Tooltip,
@@ -329,5 +328,3 @@ function BucketTooltip({
     </div>
   );
 }
-
-export { Cell };
