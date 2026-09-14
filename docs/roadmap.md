@@ -1271,3 +1271,271 @@ SudoExpo sugere
 ```
 
 **O produto deve evoluir quando o ciclo produz evidência, não quando apenas produz mais features.**
+
+---
+
+# 24. Mapa de Conexões — Graph View estilo Obsidian
+
+Objetivo: criar uma nova visualização administrativa `/admin/graph` em formato de rede force-directed, semelhante ao Graph View do Obsidian, para visualizar participantes, matches e estados de interesse do evento selecionado.
+
+## 24.1 Semântica visual
+
+Cada nó representa uma pessoa cadastrada no SudoExpo Match.
+
+Cada aresta representa um match ativo encontrado pelo matcher entre dois perfis.
+
+Estados das arestas:
+
+- [ ] azul `#1b26ae` — nenhuma das partes tomou decisão;
+- [ ] verde `#27e300` — exatamente uma das partes marcou `interesse`;
+- [ ] laranja `#ff7c31` — ambas as partes marcaram `interesse` (interesse mútuo);
+- [ ] cinza discreto, baixa opacidade — houve decisão sem interesse, incluindo `agora_nao` ou estados mistos; deve poder ser ocultado por filtro para não confundir rejeição com ausência de decisão.
+
+Regras:
+
+- [ ] `match_decisions` é a fonte autoritativa para derivar o estado da aresta;
+- [ ] `agora_nao` e `sem_decisao` nunca contam como interesse;
+- [ ] somente `matches.is_active = true` do evento selecionado entram no grafo;
+- [ ] nenhuma informação privada de contato pode trafegar no payload do grafo.
+
+## 24.2 Interação do grafo
+
+- [ ] zoom e pan;
+- [ ] arrastar nós;
+- [ ] física force-directed semelhante ao Obsidian;
+- [ ] hover em um nó destaca o nó, seus vizinhos e arestas relacionadas, esmaecendo o restante;
+- [ ] clique no nó abre o detalhe do participante reutilizando `ParticipantDetailSheet`;
+- [ ] clique na aresta abre o detalhe do match reutilizando `MatchDetailSheet`;
+- [ ] nó deve exibir nome/empresa em tooltip ou detalhe contextual;
+- [ ] tamanho do nó proporcional ao grau/número de matches visíveis;
+- [ ] cor do nó pode representar segmento, mantendo a cor das arestas exclusivamente para estado da relação;
+- [ ] oferecer atalho do participante para `/admin/matches` já filtrado pela pessoa;
+- [ ] nós sem arestas após filtros ficam ocultos por padrão, com opção de mostrar isolados.
+
+## 24.3 Filtros
+
+Filtros refletidos na URL para manter estado compartilhável/recarregável:
+
+- [ ] busca por nome/empresa;
+- [ ] estado da relação: sem decisão, interesse unilateral, mútuo e recusado/misto;
+- [ ] score mínimo;
+- [ ] score máximo quando útil para investigação;
+- [ ] segmento;
+- [ ] somente duplas com conexão;
+- [ ] somente matches revisados;
+- [ ] mostrar/ocultar nós isolados;
+- [ ] evento selecionado via `AdminEventContext` / `EventSelector`.
+
+Casos analíticos prioritários:
+
+- [ ] `interesse` com score baixo para investigar falsos negativos do matcher;
+- [ ] score alto sem interesse para investigar falsos positivos;
+- [ ] interesse mútuo para visualizar conexões efetivamente validadas por ambos;
+- [ ] concentração de matches por participante para identificar hubs;
+- [ ] pontes entre segmentos e clusters de oportunidade.
+
+## 24.4 Payload e RPC dedicada
+
+Não reutilizar `admin_list_matches` como fonte principal do grafo, pois a RPC atual é paginada e retorna payload mais pesado orientado à lista/auditoria.
+
+Criar RPC dedicada, read-only, por exemplo:
+
+```text
+admin_match_graph(_event_id text, filtros...)
+```
+
+Contrato sugerido:
+
+```text
+nodes
+  profile_id
+  name
+  company
+  segment_id
+  segment_label
+  degree
+
+edges
+  match_id
+  a_profile_id
+  b_profile_id
+  score_for_a
+  score_for_b
+  decision_a
+  decision_b
+  interest_state
+  connection_status
+  reviewed
+  has_briefing
+
+meta
+  total_nodes
+  total_edges
+  no_decision
+  single_interest
+  mutual
+  declined_or_mixed
+```
+
+`interest_state`:
+
+```text
+none
+single_interest
+mutual
+declined
+```
+
+Requisitos da RPC:
+
+- [ ] `SECURITY DEFINER` seguindo o padrão seguro das RPCs administrativas existentes;
+- [ ] autorização por papel no evento;
+- [ ] isolamento obrigatório por `event_id`;
+- [ ] retornar payload mínimo necessário;
+- [ ] não retornar telefone, e-mail, código, token ou outro dado privado;
+- [ ] índices/queries adequados para milhares de arestas;
+- [ ] uma única requisição para carregar o subgrafo filtrado;
+- [ ] cache curto via TanStack Query.
+
+## 24.5 Frontend
+
+Biblioteca recomendada para a primeira versão: `react-force-graph-2d`, usando canvas + layout de força.
+
+Motivo:
+
+- integração direta com React;
+- comportamento visual semelhante ao Obsidian;
+- zoom/pan/drag/hover/click prontos;
+- desenho customizado de nós e arestas;
+- escala atual de centenas de nós e poucos milhares de arestas é pequena para canvas;
+- menor complexidade que Sigma.js/Graphology para a necessidade atual.
+
+Reavaliar Sigma.js + Graphology somente se o volume crescer para dezenas de milhares de nós/arestas ou se análises avançadas de rede passarem a exigir WebGL/modelo de grafo dedicado.
+
+Arquivos previstos:
+
+```text
+src/routes/admin_.graph.tsx
+src/features/admin/MatchGraphCanvas.tsx
+src/features/admin/useAdminMatchGraph.ts
+src/features/admin/graphSchemas.ts
+src/features/admin/graphPresentation.ts
+src/features/admin/graphUrlState.ts
+supabase/migrations/<timestamp>_admin_match_graph.sql
+src/__tests__/impl27-admin-graph.test.ts
+scripts/admin-match-graph-proof.sql
+```
+
+Alterações previstas em arquivos existentes:
+
+- [ ] adicionar entrada “Mapa de conexões” à navegação administrativa;
+- [ ] tornar `ParticipantDetailSheet` reutilizável/controlável pelo Graph View sem regressão da tela de participantes;
+- [ ] tornar `MatchDetailSheet` reutilizável/controlável pelo Graph View sem regressão da auditoria de matches;
+- [ ] adicionar dependências necessárias ao `package.json`/lockfile;
+- [ ] carregar o componente de canvas apenas no cliente quando necessário para preservar SSR.
+
+## 24.6 Painel contextual do mapa
+
+Exibir contadores do subgrafo atual:
+
+```text
+pessoas visíveis
+matches visíveis
+sem decisão
+interesse unilateral
+interesse mútuo
+recusado/misto
+```
+
+Ao selecionar uma pessoa, exibir pelo menos:
+
+```text
+nome
+empresa
+segmento
+matches visíveis
+grau total quando disponível
+interesses enviados
+interesses recebidos
+interesses mútuos
+```
+
+Métricas avançadas futuras, somente quando houver utilidade operacional/analítica comprovada:
+
+- centralidade;
+- hubs;
+- comunidades/clusters;
+- pontes entre segmentos;
+- densidade de rede;
+- concentração de exposição/conexões.
+
+## 24.7 Uso como laboratório visual do matcher
+
+O Graph View deve permitir investigação de erros do matcher, e não ser apenas uma visualização estética.
+
+Perguntas que a ferramenta deve ajudar a responder:
+
+- [ ] onde existem interesses humanos em duplas com score baixo?;
+- [ ] quais reasons aparecem com frequência nesses falsos negativos potenciais?;
+- [ ] quais matches de score alto são ignorados ou rejeitados?;
+- [ ] determinados segmentos formam clusters que a taxonomia atual não captura bem?;
+- [ ] existem participantes que funcionam como hubs ou pontes comerciais?;
+- [ ] há concentração excessiva de matches em poucas pessoas?;
+- [ ] mudanças futuras de matcher alteram a topologia da rede de forma coerente?;
+
+Usos prioritários:
+
+```text
+score baixo + interesse
+→ candidato a falso negativo
+
+score alto + agora_não após exposição
+→ candidato a falso positivo
+
+interesse mútuo
+→ evidência mais forte que interesse unilateral
+
+outcome comercial futuro
+→ ground truth mais forte que interesse mútuo
+```
+
+O mapa não deve promover automaticamente alterações de peso. Ele serve para descoberta, auditoria e geração de hipóteses que ainda precisam passar por replay, exposição correta e outcomes conforme as regras deste roadmap.
+
+## 24.8 Testes e critérios de aceite
+
+- [ ] derivação correta das quatro categorias de aresta;
+- [ ] `interesse/interesse` = laranja;
+- [ ] `interesse/sem_decisao` = verde;
+- [ ] ausência de decisões = azul;
+- [ ] qualquer combinação sem `interesse` mas com `agora_nao` = cinza/declined;
+- [ ] isolamento entre eventos;
+- [ ] payload sem PII privada;
+- [ ] filtros produzem o subgrafo esperado;
+- [ ] filtros persistem na URL;
+- [ ] clique em nó abre participante correto;
+- [ ] clique em aresta abre match correto;
+- [ ] hover destaca vizinhança sem mutar os dados;
+- [ ] tela funciona com o volume atual e possui benchmark mínimo com 100, 250, 500 e 1.000 perfis quando datasets de teste permitirem;
+- [ ] `npm run typecheck` aprovado;
+- [ ] testes Vitest relevantes aprovados;
+- [ ] prova SQL da RPC executável;
+- [ ] nenhuma alteração nos pesos, reasons ou `algorithm_version` do matcher;
+- [ ] nenhuma regressão nas telas atuais de participantes e auditoria de matches.
+
+## 24.9 Evolução futura — Network Intelligence
+
+Após a primeira versão estável, avaliar:
+
+- [ ] filtros por `algorithm_version` para comparar topologias;
+- [ ] modo de comparação antes/depois de uma versão do matcher;
+- [ ] heatmap de segmentos;
+- [ ] clusterização/comunidades;
+- [ ] centralidade e bridges;
+- [ ] destacar low-score residuals automaticamente;
+- [ ] destacar high-score rejects automaticamente;
+- [ ] sobrepor outcomes comerciais;
+- [ ] modo temporal mostrando a rede evoluindo durante o evento;
+- [ ] export analítico anonimizado para estudos offline;
+- [ ] usar o mapa como superfície de curadoria de taxonomia/relações sem misturar visualização com alteração automática do matcher.
+
+**Princípio:** o Graph View deve transformar o banco relacional do SudoExpo Match em uma representação visual investigável da rede comercial, sem confundir visualização com verdade causal e sem alterar o matcher apenas por intuição visual.
