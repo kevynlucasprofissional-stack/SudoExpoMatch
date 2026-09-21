@@ -14,6 +14,24 @@ export type Database = {
   }
   public: {
     Tables: {
+      _export_staging: {
+        Row: {
+          id: number
+          payload: Json
+          table_name: string
+        }
+        Insert: {
+          id?: never
+          payload: Json
+          table_name: string
+        }
+        Update: {
+          id?: never
+          payload?: Json
+          table_name?: string
+        }
+        Relationships: []
+      }
       ai_runs: {
         Row: {
           actor_user_id: string | null
