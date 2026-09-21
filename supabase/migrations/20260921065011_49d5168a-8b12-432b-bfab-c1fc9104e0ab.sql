@@ -1,0 +1,1 @@
+DROP TABLE public._export_staging;
